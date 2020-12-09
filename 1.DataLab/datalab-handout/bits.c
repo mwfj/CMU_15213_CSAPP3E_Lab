@@ -607,6 +607,12 @@ unsigned float_twice(unsigned uf) {
  */
 unsigned float_i2f(int x) {
   // Solution1 :
+  /**
+   * If x equal to zero, just simple return zero
+   * Then keep left shift until it overflow
+   * the variable of afterShift record the frac bit, 159-shiftleft record exp bit
+   * if the fraction point over half, then round up, nearest even otherwise 
+   **/
     unsigned shiftLeft=0;
     unsigned afterShift, tmp, flag;
     unsigned absX=x;
@@ -701,6 +707,7 @@ unsigned float_i2f(int x) {
  *   Rating: 4
  */
 int float_f2i(unsigned uf) {
+  // Solution 1: 
   // int s_    = uf>>31;
   // int exp_  = ((uf&0x7f800000)>>23)-127;
   // int frac_ = (uf&0x007fffff)|0x00800000;
@@ -715,6 +722,8 @@ int float_f2i(unsigned uf) {
   // if(!((frac_>>31)^s_)) return frac_;
   // else if(frac_>>31) return 0x80000000;
   // else return ~frac_+1;
+
+  //Solution 2: 
   int exp = (uf >> 23) & 0xFF; /*8 exponent bits*/
   int frac = uf & 0x7FFFFF; /*23 fraction bits*/
   int e = exp - 127; /*amount to shift normalized values by (bias of 127)*/
