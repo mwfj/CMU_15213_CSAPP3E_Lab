@@ -670,11 +670,11 @@ int float_f2i(unsigned uf) {
  *   Max ops: 30 
  *   Rating: 4
  */
-unsigned floatPower2(int x) {
-  unsigned INF = 0xff << 23;
-  int e = 127 + x;
-  if (x < 0) return 0;
-  if (e >= 255) return INF;
-  return e << 23;
-}
+// unsigned floatPower2(int x) {
+//   unsigned INF = 0xff << 23;
+//   int e = 127 + x;
+//   if (x < 0) return 0;
+//   if (e >= 255) return INF;
+//   return e << 23;
+// }
 
