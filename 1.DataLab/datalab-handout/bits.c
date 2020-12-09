@@ -367,6 +367,36 @@ int logicalNeg(int x) {
 
 }
 
+/*
+ * ilog2 - return floor(log base 2 of x), where x > 0
+ *   Example: ilog2(16) = 4
+ *   Legal ops: ! ~ & ^ | + << >>
+ *   Max ops: 90
+ *   Rating: 4
+ */
+// int ilog2(int x) {
+//     //This program takes refrence to the Internet
+//     //First consider the First 16 bit of x,if x>0xffff then the last 16 bit is useless so we can do right shift
+//     //After the right shift,what is left is the original First 16 bits
+//     //t records the answer
+//     //use (!!x) as a representation of (x!=0)
+//     //use bit-or to do add operation
+//     int s,t,u;
+//     u=x;
+//     t = (!!(u >> 16)) << 4;
+//     u >>= t;
+//     s = (!!(u >> 8)) << 3;
+//     u >>= s;
+//     t |= s;
+//     s= (!!(u >> 4)) << 2;
+//     u >>= s;
+//     t |= s;
+//     s=(!!(u >> 2)) << 1;
+//     u >>= s;
+//     t |= s;
+//     return (t | (u >> 1));
+// }
+
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
  *  Examples: howManyBits(12) = 5
@@ -576,30 +606,87 @@ unsigned float_twice(unsigned uf) {
  *   Rating: 4
  */
 unsigned float_i2f(int x) {
-  unsigned result;
-  int signx = x&(1<<31);
-  int res = 31;
-  int ss=0;
-  int ff=0;
-  int tmp;
-  if(x == 0) result=0;
-  else{
-    if(signx) x = (~x)+1;
-    while(!((1<<res)&x)) res=res-1;
-    x = x^(1<<res);
-    if(res<23) x=x<<(23-res);
-    else{
-      tmp = res-24;
-      if(tmp>=0) ss = (x>>tmp)&1,ff = ((1<<tmp)-1)&x;
-      x=(x>>(res-23));
+  // Solution1 :
+    unsigned shiftLeft=0;
+    unsigned afterShift, tmp, flag;
+    unsigned absX=x;
+    unsigned sign=0;
+    if (x==0) return 0;
+    //if x < 0, sign = 1000...,abs_x = -x
+    if (x<0)
+    {
+        sign=0x80000000;
+        absX=-x;
     }
-    x=x|((res+127)<<23);
-    if(ff==0) ss=(ss&x);
-    x=x+ss;
-    x=x|signx;
-    result = x;
-  }
-  return result;
+    afterShift=absX;
+    //count shift_left and after_shift
+    while (1)
+    {
+        tmp=afterShift;
+        afterShift<<=1;
+        shiftLeft++;
+        if (tmp & 0x80000000) break;
+    }
+    if ((afterShift & 0x01ff)>0x0100)
+        flag=1;
+    else if ((afterShift & 0x03ff)==0x0300)
+        flag=1;
+    else
+        flag=0;
+    return sign + (afterShift>>9) + ((159-shiftLeft)<<23) + flag;
+
+  // Solution 2 :
+	// int flag = (x & 0x80000000), i, val1, val2, len, tempp, temp;//flag equals to (1 << 31) or 0,indicating the sign bit of x
+	// if(x == 0x80000000)//if x equals to INT_MIN
+	// 	return 0xcf000000;//Then we can not take -x, so just return the answer
+	// if(flag)//flag equals to (1 << 31) or 0, and flag is considered true when flag equals to (1 << 31)
+	// 	x = -x;//x now equals to abs(x)
+	// i = 31;//initialization of i, i will be the first bit of 1(from left to right, except the sign bit)
+	// do
+	// {
+	// 	if( x >> (--i) & 0x1)
+	// 		break;
+	// }
+	// while(i);
+	// if(x == 0)//x equals to zero
+	// 	return 0;
+	// temp = i + 127;//This temp is exp, 127 is the bias
+	// len = i - 23;//if i is greater than 23, than len is the number of bits that needed to be rounded
+	// if(len > 0)
+	// {
+	// 	val2 = x & ((0xffffffffU) >> (32 - len) );//Save the bits that will be rounded in val2
+	// 	val1 = (x >> len) & 0x007fffff;//val1 is the frac domain
+	// 	tempp = 1 << (len - 1);//set tempp to justify the round stat
+	// 	if((val2 > tempp) || ((val2 == tempp) && ((val1 & 0x1))))//There is a carry '1' here
+	// 		val1++;
+	// }
+	// else
+	// 	val1 = (x << (-len)) & 0x007fffff;//if len <= 0, which means the 23 bit of frac is enough, we do not need to consider val2
+
+	// if(val1 == 0x00800000 )//corner case, special judge: 0x00800000 :  0000 0000 1000 0000 0000 0000 0000 0000
+	// {
+	// 	val1 = 0;
+	// 	temp++;
+	// }
+	// return flag  | ((temp << 23)) | (val1);
+
+  // Solution3:
+  // int s_ = x&0x80000000;
+  // int n_ = 30;
+  // if(!x) return 0;
+  // if(x==0x80000000) return 0xcf000000;
+  // if(s_) x = ~x+1;
+  // while(!(x&(1<<n_))) n_--;
+  // if(n_<=23) x<<=(23-n_);
+  // else{
+  //   x+=(1<<(n_-24));
+  //   if(x<<(55-n_)) ;else x&=(0xffffffff<<(n_-22));
+  //   if(x&(1<<n_))  ;else n_++;
+  //   x >>= (n_-23);
+  // }
+  // x=x&0x007fffff;
+  // n_=(n_+127)<<23;
+  // return x|n_|s_;
 }
 /* 
  * float_f2i - Return bit-level equivalent of expression (int) f
@@ -631,7 +718,7 @@ int float_f2i(unsigned uf) {
   int exp = (uf >> 23) & 0xFF; /*8 exponent bits*/
   int frac = uf & 0x7FFFFF; /*23 fraction bits*/
   int e = exp - 127; /*amount to shift normalized values by (bias of 127)*/
-
+ 
   /*returns if NaN*/
   if(exp == 0x7F800000)
     return 0x80000000u;
