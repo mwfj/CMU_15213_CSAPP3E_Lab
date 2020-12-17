@@ -45,3 +45,39 @@ Otherwise, compare character by character in a loop; if all the same, return tru
 ```bash
 (gdb) x/s 0x4024000x402400:	"Border relations with Canada have never been better."
 ```
+
+## Phase_2 :
+
+Next, we move on the `Phase_2`: just like what we did in the phase 1, we first set the break point to the function of phase_2 and disassemble it.
+
+```asm
+(gdb) disas phase_2Dump of assembler code for function phase_2:   0x0000000000400efc <+0>:	push   %rbp   0x0000000000400efd <+1>:	push   %rbx   0x0000000000400efe <+2>:	sub    $0x28,%rsp   0x0000000000400f02 <+6>:	mov    %rsp,%rsi   0x0000000000400f05 <+9>:	callq  0x40145c <read_six_numbers> # we guess the input number is six digits numbers   0x0000000000400f0a <+14>:	cmpl   $0x1,(%rsp) # compare *%rsp with 1   0x0000000000400f0e <+18>:	je     0x400f30 <phase_2+52>   0x0000000000400f10 <+20>:	callq  0x40143a <explode_bomb> # trigger the bomb if not equal with one   0x0000000000400f15 <+25>:	jmp    0x400f30 <phase_2+52>   0x0000000000400f17 <+27>:	mov    -0x4(%rbx),%eax # start a loop   0x0000000000400f1a <+30>:	add    %eax,%eax # eax *=2   0x0000000000400f1c <+32>:	cmp    %eax,(%rbx)   0x0000000000400f1e <+34>:	je     0x400f25 <phase_2+41>   0x0000000000400f20 <+36>:	callq  0x40143a <explode_bomb>   0x0000000000400f25 <+41>:	add    $0x4,%rbx # move to next input digit   0x0000000000400f29 <+45>:	cmp    %rbp,%rbx # check whether is jump out of the loop   0x0000000000400f2c <+48>:	jne    0x400f17 <phase_2+27>   0x0000000000400f2e <+50>:	jmp    0x400f3c <phase_2+64>   0x0000000000400f30 <+52>:	lea    0x4(%rsp),%rbx # move to the next input digit and save it to %rbx   0x0000000000400f35 <+57>:	lea    0x18(%rsp),%rbp   0x0000000000400f3a <+62>:	jmp    0x400f17 <phase_2+27> # back to loop begin   0x0000000000400f3c <+64>:	add    $0x28,%rsp   0x0000000000400f40 <+68>:	pop    %rbx   0x0000000000400f41 <+69>:	pop    %rbp   0x0000000000400f42 <+70>:	retq   End of assembler dump.```
+
+As we can see in the assemble code, it call a function called `read_six_numbers`(in 0x400f05), and thus we guess we need to input six numbers for this phase. Let's assume `1 2 3 4 5 6` and see what is going on.
+
+```bash
+(gdb) r solution.txtStarting program: /home/mwfj/cmu-15-213-CSAPP3E-lab/2.BombLab/bomb/bomb solution.txtWelcome to my fiendish little bomb. You have 6 phases withwhich to blow yourself up. Have a nice day!Phase 1 defused. How about the next one?1 2 3 4 5 6Breakpoint 1, 0x0000000000400efc in phase_2 ()
+```
+After calling the `read_six number`, I found that the return number is six, thus I guess this function is to make sure the number digit we input is 6 numbers, where is to check the input validation.
+
+```bash
+(gdb) i r raxrax            0x6	6```
+
+Then, we find it compare with 1, if it is not equal with one, trigger the bomb. If so, jump to 0x400f30. Because the first input is 1, thus we jump to 0x400f30.
+After jump to 0x400f30, we find a interesting instruction `0x0000000000400f1a <+30>: add    %eax,%eax`, where before running this instruction, we find that the value of eax is 1.
+
+```bash
+(gdb) i r eaxeax            0x1	1```
+
+After `0x0000000000400f1a <+30>: add    %eax,%eax` eax double itself compared with rbx, the new input digits. If they are same, skip the bomb, trigger the bomb otherwise.
+Thus, our next input is 2, we are temperate safe. Then, the thing we need to to is repeat the stop above and check eax and compare it with *rbx every time
+
+```bash
+(gdb) i rrax            0x4	4rbx            0x7fffffffde28	140737488346664rcx            0x0	0rdx            0x7fffffffde34	140737488346676rsi            0x0	0rdi            0x7fffffffd790	140737488344976rbp            0x7fffffffde38	0x7fffffffde38rsp            0x7fffffffde20	0x7fffffffde20r8             0x0	0r9             0x0	0r10            0x7ffff7b80c40	140737349422144r11            0x4025d4	4203988r12            0x400c90	4197520r13            0x7fffffffdf40	140737488346944r14            0x0	0r15            0x0	0rip            0x400f1c	0x400f1c <phase_2+32>eflags         0x202	[ IF ]cs             0x33	51ss             0x2b	43ds             0x0	0es             0x0	0fs             0x0	0gs             0x0	0(gdb) x/d $rbx0x7fffffffde28:	3```
+
+As the gdb show to us, the third input(%rbx) is 3, but the compared value (eax) is 4(2*2), thus it will trigger the bomb. However, we have already discover the input rules, where **the input has six numbers at total, begin as 1, and the next digits is the double as before.**
+
+### Thus the final answer is **1 2 4 8 16 32**
+
+```bash
+(gdb) r solution.txt Starting program: /home/mwfj/cmu-15-213-CSAPP3E-lab/2.BombLab/bomb/bomb solution.txtWelcome to my fiendish little bomb. You have 6 phases withwhich to blow yourself up. Have a nice day!Phase 1 defused. How about the next one?1 2 4 8 16 32That's number 2.  Keep going!```
