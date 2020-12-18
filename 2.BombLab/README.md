@@ -19,14 +19,14 @@ That must be the keyword, because the other arguement is the input string. There
 ``` asm
 (gdb) disas phase_1
 Dump of assembler code for function phase_1:
-   0x0000000000400ee0 <+0>:	sub    $0x8,%rsp  # push the space for stack (decrease the stack pointer)
-   0x0000000000400ee4 <+4>:	mov    $0x402400,%esi  # pass the value to the temperate variable
-   0x0000000000400ee9 <+9>:	callq  0x401338 <strings_not_equal> # call the string compare function
-   0x0000000000400eee <+14>:	test   %eax,%eax # get the return value from strings_not_equal function
-   0x0000000000400ef0 <+16>:	je     0x400ef7 <phase_1+23> # if the return value is one(same string), go to 0x400ef7
-   0x0000000000400ef2 <+18>:	callq  0x40143a <explode_bomb>  # if the string is not same, explode the bomb
-   0x0000000000400ef7 <+23>:	add    $0x8,%rsp # pop the space for stack (increase the stack pointer)
-   0x0000000000400efb <+27>:	retq   #  return the value
+   0x0000000000400ee0 <+0>:	sub    $0x8,%rsp  ; push the space for stack (decrease the stack pointer)
+   0x0000000000400ee4 <+4>:	mov    $0x402400,%esi  ; pass the value to the temperate variable
+   0x0000000000400ee9 <+9>:	callq  0x401338 <strings_not_equal> ; call the string compare function
+   0x0000000000400eee <+14>:	test   %eax,%eax ; get the return value from strings_not_equal function
+   0x0000000000400ef0 <+16>:	je     0x400ef7 <phase_1+23> ;  if the return value is one(same string), go to 0x400ef7
+   0x0000000000400ef2 <+18>:	callq  0x40143a <explode_bomb>  ;  if the string is not same, explode the bomb
+   0x0000000000400ef7 <+23>:	add    $0x8,%rsp ; pop the space for stack (increase the stack pointer)
+   0x0000000000400efb <+27>:	retq   ;  return the value
 End of assembler dump.
 ```
 
