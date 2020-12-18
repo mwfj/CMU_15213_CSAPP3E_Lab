@@ -115,4 +115,4 @@ From now, we have already calculate each target address of each case and its rel
 + 5 206
 + 6 682
 
-### Choose any one of the answers can avoid to trigger the bomb
+### Choose any one of the answers can avoid to trigger the bomb.
