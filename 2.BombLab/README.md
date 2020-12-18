@@ -81,3 +81,38 @@ As the gdb show to us, the third input(%rbx) is 3, but the compared value (eax) 
 
 ```bash
 (gdb) r solution.txt Starting program: /home/mwfj/cmu-15-213-CSAPP3E-lab/2.BombLab/bomb/bomb solution.txtWelcome to my fiendish little bomb. You have 6 phases withwhich to blow yourself up. Have a nice day!Phase 1 defused. How about the next one?1 2 4 8 16 32That's number 2.  Keep going!```
+
+## Phase_3
+When we see the assemble code in the phase 3, we can see there has one indirect jump and six direct jumps, we can guess that there must be a switch structure in the code inside.
+Also, in the assembly code, not every jump will trigger the bomb. Thus, we can guess that, only default case will trigger the bomb, where **trigger every case except default one will avoid this bomb**.
+
+```asm
+(gdb) disas phase_3Dump of assembler code for function phase_3:   0x0000000000400f43 <+0>:	sub    $0x18,%rsp   0x0000000000400f47 <+4>:	lea    0xc(%rsp),%rcx   0x0000000000400f4c <+9>:	lea    0x8(%rsp),%rdx   0x0000000000400f51 <+14>:	mov    $0x4025cf,%esi # the arguement that pass in to sscanf   0x0000000000400f56 <+19>:	mov    $0x0,%eax   0x0000000000400f5b <+24>:	callq  0x400bf0 <__isoc99_sscanf@plt> #  call sscanf   0x0000000000400f60 <+29>:	cmp    $0x1,%eax # if the input case less or equal than one, trigger the bomb   0x0000000000400f63 <+32>:	jg     0x400f6a <phase_3+39>   0x0000000000400f65 <+34>:	callq  0x40143a <explode_bomb>   0x0000000000400f6a <+39>:	cmpl   $0x7,0x8(%rsp) # if the first input number higher or equal then 7, trigger the bomb   0x0000000000400f6f <+44>:	ja     0x400fad <phase_3+106>   0x0000000000400f71 <+46>:	mov    0x8(%rsp),%eax # clear the eax register   0x0000000000400f75 <+50>:	jmpq   *0x402470(,%rax,8)   0x0000000000400f7c <+57>:	mov    $0xcf,%eax # case 0 comparsion value   0x0000000000400f81 <+62>:	jmp    0x400fbe <phase_3+123>   0x0000000000400f83 <+64>:	mov    $0x2c3,%eax # case 2   0x0000000000400f88 <+69>:	jmp    0x400fbe <phase_3+123>    0x0000000000400f8a <+71>:	mov    $0x100,%eax # case 3   0x0000000000400f8f <+76>:	jmp    0x400fbe <phase_3+123>   0x0000000000400f91 <+78>:	mov    $0x185,%eax # case 4   0x0000000000400f96 <+83>:	jmp    0x400fbe <phase_3+123>   0x0000000000400f98 <+85>:	mov    $0xce,%eax# case 5   0x0000000000400f9d <+90>:	jmp    0x400fbe <phase_3+123>   0x0000000000400f9f <+92>:	mov    $0x2aa,%eax # case 6   0x0000000000400fa4 <+97>:	jmp    0x400fbe <phase_3+123>   0x0000000000400fa6 <+99>:	mov    $0x147,%eax   0x0000000000400fab <+104>:	jmp    0x400fbe <phase_3+123> # should be the default case   0x0000000000400fad <+106>:	callq  0x40143a <explode_bomb>   0x0000000000400fb2 <+111>:	mov    $0x0,%eax   0x0000000000400fb7 <+116>:	jmp    0x400fbe <phase_3+123>   0x0000000000400fb9 <+118>:	mov    $0x137,%eax # case 1   0x0000000000400fbe <+123>:	cmp    0xc(%rsp),%eax # compare with the number that equal to the number given in each case   0x0000000000400fc2 <+127>:	je     0x400fc9 <phase_3+134>   0x0000000000400fc4 <+129>:	callq  0x40143a <explode_bomb> # if not, trigger the bomb   0x0000000000400fc9 <+134>:	add    $0x18,%rsp   0x0000000000400fcd <+138>:	retq   End of assembler dump.
+```
+Then, we need to guess the number of input and the type of input. To solve this, we can check the arguement that pass into sscanf, which should be nearest resigester the reveiced the variable(`0x0000000000400f51 <+14>: mov    $0x4025cf,%esi`).
+
+When we print the varible `$0x4025cf` by string, we can see that it is `0x4025cf: "%d %d"`, and thus we know that two digits should be input to the program in this phase. Furthermore, there has another way to guess the number of input, where it is `0x0000000000400f60 <+29>: cmp    $0x1,%eax`, we can know that the number of input should higher than one. 
+
+```bash
+(gdb) x/s 0x4025cf0x4025cf:	"%d %d"
+(gdb) i r eax # when run the address at 0x0000000000400f60eax            0x2	2```
+
+As the analysis above, we can guess that the **first arguement should be the index to trigger each case(from 0 to 6) and the other arguement is used to do the comparison with key word** in each case.
+
+Then what we need to do is to **check the first indirect jump and calculate the keyword in each case** as the comment show on the assemble code.
+
+```bash
+(gdb) p/x *(0x402470+8) # when index = 1 : 311$7 = 0x400fb9(gdb) p/d 0x137$8 = 311(gdb) p/x *(0x402470+16)  # when index = 2 : 707$9 = 0x400f83(gdb) p/d 0x2c3$10 = 707(gdb) p/x *(0x402470+24)  # when index = 3 : 256$11 = 0x400f8a(gdb) p/d 0x100$12 = 256(gdb) p/x *(0x402470+32)  # when index = 4 : 389$13 = 0x400f91(gdb) p/d 0x185$14 = 389(gdb) p/x *(0x402470+40)  # when index = 5 : 206$15 = 0x400f98(gdb) p/d 0xce$16 = 206(gdb) p/x *(0x402470+48)  # when index = 6 : 682$17 = 0x400f9f(gdb) p/d 0x2aa$18 = 682
+(gdb) p/x *0x402470 # when index = 0 : 207$19 = 0x400f7c(gdb) p/d 0xcf$20 = 207```
+
+From now, we have already calculate each target address of each case and its relative keyword:
+
++ 0 207
++ 1 311
++ 2 707 
++ 3 256
++ 4 389
++ 5 206
++ 6 682
+
+### Choose any one of the answers can avoid to trigger the bomb
