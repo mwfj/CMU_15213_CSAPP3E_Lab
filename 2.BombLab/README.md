@@ -116,3 +116,53 @@ From now, we have already calculate each target address of each case and its rel
 + 6 682
 
 ### Choose any one of the answers can avoid to trigger the bomb.
+
+## Phase_4
+
+```asm
+(gdb) disas phase_4Dump of assembler code for function phase_4:   0x000000000040100c <+0>:		sub    $0x18,%rsp   0x0000000000401010 <+4>:		lea    0xc(%rsp),%rcx   0x0000000000401015 <+9>:		lea    0x8(%rsp),%rdx   0x000000000040101a <+14>:	mov    $0x4025cf,%esi ; the input of scanf   0x000000000040101f <+19>:	mov    $0x0,%eax   0x0000000000401024 <+24>:	callq  0x400bf0 <__isoc99_sscanf@plt>   0x0000000000401029 <+29>:	cmp    $0x2,%eax ; the arguement number should be 2   0x000000000040102c <+32>:	jne    0x401035 <phase_4+41>   0x000000000040102e <+34>:	cmpl   $0xe,0x8(%rsp)   0x0000000000401033 <+39>:	jbe    0x40103a <phase_4+46>   0x0000000000401035 <+41>:	callq  0x40143a <explode_bomb>   0x000000000040103a <+46>:	mov    $0xe,%edx   0x000000000040103f <+51>:	mov    $0x0,%esi   0x0000000000401044 <+56>:	mov    0x8(%rsp),%edi   0x0000000000401048 <+60>:	callq  0x400fce <func4>   0x000000000040104d <+65>:	test   %eax,%eax   0x000000000040104f <+67>:	jne    0x401058 <phase_4+76>; Jump if not zero   0x0000000000401051 <+69>:	cmpl   $0x0,0xc(%rsp)   0x0000000000401056 <+74>:	je     0x40105d <phase_4+81>   0x0000000000401058 <+76>:	callq  0x40143a <explode_bomb>   0x000000000040105d <+81>:	add    $0x18,%rsp   0x0000000000401061 <+85>:	retq   End of assembler dump.
+```
+
+Just like what we did above, the first thing is to find out the number of input, where there have two ways to find out it.
+
+One is to print out the input arguement for sscanf: we will found it should be `"%d %d"`
+
+The second way is to check the return variable for sscanf, we can see that in `0x401029 ` and `0x40102c`, where if the input arguement is not 2, the bomb will be triggered
+
+**Thus, the input number should be 2.**
+
+```bash
+(gdb) x/s 0x4025cf0x4025cf:	"%d %d"(gdb) i r eaxeax            0x2	2
+```
+
+Then, we need to check what the arguement should be. In `0x40102e` and `0x401033`, we can see that **the first arguement should be less or equal than 8**; if not, the bomb will be triggered. 
+ 
+ Next, when we see `0x401051`, we can see that **the second arguement should be 0**, otherwise the bomb will be triggered. (Note that, we can print the value in these address to see the `0x08(%rsp)` and `0xc(%rsp)` represent to the first and second arguement).
+ 
+ ```bash
+ # Take input "2 0" as example
+ (gdb) i r rsprsp            0x7fffffffde40	0x7fffffffde40(gdb) p *(0x7fffffffde40+0x08)$1 = 2 # first arguement(gdb) p *(0x7fffffffde40+0xc)$2 = 0 # second arguement
+ ```
+ 
+ Thus, the one thing left is to find what the first arguement should be. Just like what we did above, we find that the first arguement should be less or equal than 8. We also find that the first arguement is determined by a function call `func4`.  If it return 0,then we can avoid the bomb; otherwise the bomb will be triggered. **Therefore our goal change to make the return value of `func4` to be 0.** Before we see the code, we can see that there has three arguement pass into the `func4`, where the first is `edx = 0xe(14)`, the second is `esi = 0` and the third is `edi = the first input arguement(in our case is 2)`.
+ 
+ ```asm
+ (gdb) disasDump of assembler code for function func4:=> 0x0000000000400fce <+0>:		sub    $0x8,%rsp   0x0000000000400fd2 <+4>:		mov    %edx,%eax   0x0000000000400fd4 <+6>:		sub    %esi,%eax   0x0000000000400fd6 <+8>:		mov    %eax,%ecx   0x0000000000400fd8 <+10>:	shr    $0x1f,%ecx ; in here ecx is sign bit   0x0000000000400fdb <+13>:	add    %ecx,%eax   0x0000000000400fdd <+15>:	sar    %eax ; eax = (edx - esi + sign bit) >> 1   0x0000000000400fdf <+17>:	lea    (%rax,%rsi,1),%ecx ; ecx = rax +1*rsi;   0x0000000000400fe2 <+20>:	cmp    %edi,%ecx ; compare ecx and first arguement   0x0000000000400fe4 <+22>:	jle    0x400ff2 <func4+36> ; jump if ecx <= edi   0x0000000000400fe6 <+24>:	lea    -0x1(%rcx),%edx   0x0000000000400fe9 <+27>:	callq  0x400fce <func4>   0x0000000000400fee <+32>:	add    %eax,%eax ; eax *= 2   0x0000000000400ff0 <+34>:	jmp    0x401007 <func4+57>   0x0000000000400ff2 <+36>:	mov    $0x0,%eax ; eax = 0   0x0000000000400ff7 <+41>:	cmp    %edi,%ecx    0x0000000000400ff9 <+43>:	jge    0x401007 <func4+57>; jump if ecx >= edi   0x0000000000400ffb <+45>:	lea    0x1(%rcx),%esi   0x0000000000400ffe <+48>:	callq  0x400fce <func4>   0x0000000000401003 <+53>:	lea    0x1(%rax,%rax,1),%eax   0x0000000000401007 <+57>:	add    $0x8,%rsp   0x000000000040100b <+61>:	retq   End of assembler dump.
+ ``` 
+ 
+ As the func4 asm code shown, the `eax = (edx-esi+ecx)>>1  = 7` and `ecx = (rax+1*rsi) = 7+1*0 = 7`, when the three arguement is the `edx = 0xe(14), esi = 0, edi = the first input arguement(in our case is 2)`.
+ 
+ To make the return value `eax is zero`, we need to jump to `0x400ff2`, where we need to make `ecx <= edi` or `ecx - edi <=0`. Beside with that, we also need to make sure `ecx >= edi`. If all the condition is satisfied, eax will be become zero and we will avoid the bomb. ** Thus, edi should be equal to ecx.**
+ 
+ However, **if the condition is not satisfied(just like my input, which is 2), the edx will become `rcx-1` instead, and new ecx will become half value of new edx.**
+ 
+ I found that there only has four cases the edx might have : `7 3 1 0` and that is the options for first arguement.
+ 
+ Thus, the final input is:
+ 
+ + 7		0
+ + 3		0
+ + 1		0
+ + 0		0
+
+### Use any of these answers above can avoid the bomb.
