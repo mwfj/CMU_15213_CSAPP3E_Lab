@@ -204,6 +204,7 @@ Then, we found it has stored two argument into `esi` and `rdi`, where rdi is the
 ```bash
 (gdb) x/s 0x4024b00x4024b0 <array.3449>:	"maduiersnfotvbylSo you think you can stop the bomb with ctrl-c, do you?"(gdb) x/s 0x40245e0x40245e:	"flyers"
 ```
+This table shows the character in dictionary array and its index in the array:
 
 |       		    | 				  |		   |		       |
 | :----------: |:-----------:| :------:|:--------:|
@@ -212,7 +213,7 @@ Then, we found it has stored two argument into `esi` and `rdi`, where rdi is the
 | dict[8] : n       | dict[9] : f    | dict[10] : o | dict[11] : t |
 | dict[12] : v     | dict[13] : b  | dict[14] : y | dict[15] : l |
 
-Therefore, to avoid the bomb, we need to make sure that the final string `rdi` should be same as "flyers". **In other words, we need to ensure that under the same position, the last four binary codes of the ASCII code we input should be consistent with the index of the target character in dictionary array.** . For example, the index of first character is `'f' `is 9, and thus we need to input a character that its last four digits bits is 9 in hexadecimal and Decimal or 1001 in binary.
+Therefore, to avoid the bomb, we need to make sure that the final string `rdi` should be same as "flyers". **In other words, we need to ensure that under the same position, the last four bits ASCII binary codes we input should be consistent with the index of the target character in dictionary array.** . For example, the index of first character is `'f' `is 9, and thus we need to input a character that its last four digits bits is 9 in hexadecimal and Decimal or 1001 in binary.
 
 
 | target character        |  its last four bits in Decimal           |  the same character in ASCII table  |
