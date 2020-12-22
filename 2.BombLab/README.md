@@ -224,5 +224,5 @@ Therefore, to avoid the bomb, we need to make sure that the final string `rdi` s
 | r    			| 		6(0x6) 	|	 & 6 F V f v 	|
 | s    			| 		7(0x7) 	|	 ' 7 G W g w 	|
 
-### Choose any one of the last four ASCII codes displayed in the table, whose number is the same as the index of the target character in the dictionary array, and combine them can avoid the bomb.
+### Choose any one of the character displayed in the table, whose last four bits ASCII codes is the same as the index of the target character in the dictionary array, and combine them together can avoid the bomb.
 
