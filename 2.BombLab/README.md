@@ -152,7 +152,7 @@ Then, we need to check what the arguement should be. In `0x40102e` and `0x401033
  
  As the func4 asm code shown, the `eax = (edx-esi+ecx)>>1  = 7` and `ecx = (rax+1*rsi) = 7+1*0 = 7`, when the three arguement is the `edx = 0xe(14), esi = 0, edi = the first input arguement(in our case is 2)`.
  
- To make the return value `eax is zero`, we need to jump to `0x400ff2`, where we need to make `ecx <= edi` or `ecx - edi <=0`. Beside with that, we also need to make sure `ecx >= edi`. If all the condition is satisfied, eax will be become zero and we will avoid the bomb. **Thus, edi should be equal to ecx.**
+ To make the return value `eax is zero`, we need to jump to `0x400ff2`, where we need to make `ecx <= edi` or `ecx - edi <=0`. Beside with that, we also need to make sure `ecx >= edi`. If all the condition is satisfied, eax will be become zero and we will avoid the bomb. ** Thus, edi should be equal to ecx.**
  
  However, **if the condition is not satisfied(just like my input, which is 2), the edx will become `rcx-1` instead, and new ecx will become half value of new edx.**
  
@@ -166,3 +166,63 @@ Then, we need to check what the arguement should be. In `0x40102e` and `0x401033
  + 0		0
 
 ### Use any of these answers above can avoid the bomb.
+
+
+## Phase_5
+
+```asm
+(gdb) disas phase_5Dump of assembler code for function phase_5:   0x0000000000401062 <+0>:	push   %rbx   0x0000000000401063 <+1>:	sub    $0x20,%rsp   0x0000000000401067 <+5>:	mov    %rdi,%rbx ; input string   0x000000000040106a <+8>:	mov    %fs:0x28,%rax ; canary section   0x0000000000401073 <+17>:	mov    %rax,0x18(%rsp)   0x0000000000401078 <+22>:	xor    %eax,%eax ； eax = 0   0x000000000040107a <+24>:	callq  0x40131b <string_length>   0x000000000040107f <+29>:	cmp    $0x6,%eax ; the lens of input string should be equal to six   0x0000000000401082 <+32>:	je     0x4010d2 <phase_5+112>   0x0000000000401084 <+34>:	callq  0x40143a <explode_bomb>   0x0000000000401089 <+39>:	jmp    0x4010d2 <phase_5+112>   0x000000000040108b <+41>:	movzbl (%rbx,%rax,1),%ecx ; a char array, rax is index   0x000000000040108f <+45>:	mov    %cl,(%rsp) ; rbx is the base address    0x0000000000401092 <+48>:	mov    (%rsp),%rdx ; rdx = cl, then get the low 8 bytes to rdx   0x0000000000401096 <+52>:	and    $0xf,%edx ; each character & with 0xf (1111)   0x0000000000401099 <+55>:	movzbl 0x4024b0(%rdx),%edx ; movezbl: move from 8 byte to 32 type and fill with zero   0x00000000004010a0 <+62>:	mov    %dl,0x10(%rsp,%rax,1)   0x00000000004010a4 <+66>:	add    $0x1,%rax   0x00000000004010a8 <+70>:	cmp    $0x6,%rax   0x00000000004010ac <+74>:	jne    0x40108b <phase_5+41>   0x00000000004010ae <+76>:	movb   $0x0,0x16(%rsp) ; 0x10 + six chars   0x00000000004010b3 <+81>:	mov    $0x40245e,%esi   0x00000000004010b8 <+86>:	lea    0x10(%rsp),%rdi   0x00000000004010bd <+91>:	callq  0x401338 <strings_not_equal>   0x00000000004010c2 <+96>:	test   %eax,%eax ; if(eax == 0)   0x00000000004010c4 <+98>:	je     0x4010d9 <phase_5+119>   0x00000000004010c6 <+100>:	callq  0x40143a <explode_bomb>   0x00000000004010cb <+105>:	nopl   0x0(%rax,%rax,1)   0x00000000004010d0 <+110>:	jmp    0x4010d9 <phase_5+119>   0x00000000004010d2 <+112>:	mov    $0x0,%eax ; eax = 0;   0x00000000004010d7 <+117>:	jmp    0x40108b <phase_5+41>   0x00000000004010d9 <+119>:	mov    0x18(%rsp),%rax   0x00000000004010de <+124>:	xor    %fs:0x28,%rax ; canary secion   0x00000000004010e7 <+133>:	je     0x4010ee <phase_5+140> ; canary secion   0x00000000004010e9 <+135>:	callq  0x400b30 <__stack_chk_fail@plt> ; canary secion   0x00000000004010ee <+140>:	add    $0x20,%rsp   0x00000000004010f2 <+144>:	pop    %rbx   0x00000000004010f3 <+145>:	retq   End of assembler dump.
+```
+First, when we see `0x000000000040107a <+24>: callq  0x40131b <string_length>`, we can guess that the **input should a string**, where we can make sure it  in `040108b <+41>:	movzbl (%rbx,%rax,1),%ecx`. Then, after call `string_length` in `0040107a`, we find there has a comparsion between return value and six. Thus, we can make sure that the input should be **a string of length 6**, otherwise bomb triggered.
+
+Second, we found it jump to `0x4010d2 <+112>:	mov    $0x0,%eax` and jump back to `0x40108b`. Then we enter the key section in this code:
+
+```asm
+   0x000000000040108b <+41>:	movzbl (%rbx,%rax,1),%ecx ; a char array, rax is index   0x000000000040108f <+45>:	mov    %cl,(%rsp) ; rbx is the base address   0x0000000000401092 <+48>:	mov    (%rsp),%rdx ; rdx = cl    0x0000000000401096 <+52>:	and    $0xf,%edx ; each character & with 0xf (1111)   0x0000000000401099 <+55>:	movzbl 0x4024b0(%rdx),%edx ; movezbl: move from 8 byte to 32 type and fill with zero   0x00000000004010a0 <+62>:	mov    %dl,0x10(%rsp,%rax,1) ; create another array to save the and result   0x00000000004010a4 <+66>:	add    $0x1,%rax   0x00000000004010a8 <+70>:	cmp    $0x6,%rax   0x00000000004010ac <+74>:	jne    0x40108b <phase_5+41>   0x00000000004010ae <+76>:	movb   $0x0,0x16(%rsp) ; 0x10 + six chars   0x00000000004010b3 <+81>:	mov    $0x40245e,%esi   0x00000000004010b8 <+86>:	lea    0x10(%rsp),%rdi   0x00000000004010bd <+91>:	callq  0x401338 <strings_not_equal>   0x00000000004010c2 <+96>:	test   %eax,%eax ; if(eax == 0)
+```
+
+In this code section, we first can see that it create a char array `char [6]` then put the input char into `ecx`. Then we copy each char from %cl(lower 8 byte for ecx) to edx and do the `and    $0xf,%edx` operation for each character, where what that means is to only keep the lower 4 byte for each char. In `movzbl 0x4024b0(%rdx),%edx`,  we can see that the result char should be 0x4024b0+rdx, where rdx should be a number we calculate above.
+
+Finally, create another array to save the result (`mov    %dl,0x10(%rsp,%rax,1)`) into `rsp+10 - rsp+16`.
+
+For better understanding such process, we can name the input string as `char input[6] = input string;` and do the `and(&)` operation with 0xf for each string `index = input[i] & 0xf(1111)`. After that we use this index to find the result string in a given string and save it to a new string `char result[6] = dict[index]`, where dict is a string begin at `0x4024b0` `movzbl 0x4024b0(%rdx),%edx`.
+
+C Code like below:
+
+```c
+char input[6] = input_string;
+char result[6];
+int i = 0;
+while(i<6){
+	result[i] = dict[ input[i] & 0xf(1111) ];
+	i++;
+}
+```
+
+Then, we found it has stored two argument into `esi` and `rdi`, where rdi is the result string we got above. We guess that esi must be the target string, where the target string is `"flyers"` and the dict string is `"maduiersnfotvbyl"`. Those two string will make a comparsion, if it is not same, the bomb will be triggered.
+
+```bash
+(gdb) x/s 0x4024b00x4024b0 <array.3449>:	"maduiersnfotvbylSo you think you can stop the bomb with ctrl-c, do you?"(gdb) x/s 0x40245e0x40245e:	"flyers"
+```
+
+|       		    | 				  |		   |		       |
+| :----------: |:-----------:| :------:|:--------:|
+| dict[0] : m      | dict[1] : a   | dict[2] : d   | dict[3] : u   |
+| dict[4] : i        | dict[5] : e   | dict[6] : r    | dict[7] : s   |
+| dict[8] : n       | dict[9] : f    | dict[10] : o | dict[11] : t |
+| dict[12] : v     | dict[13] : b  | dict[14] : y | dict[15] : l |
+
+Therefore, to avoid the bomb, we need to make sure that the final string `rdi` should be same as "flyers". **In other words, we need to ensure that under the same position, the last four binary codes of the ASCII code we input should be consistent with the index of the target character in dictionary array.** . For example, the index of first character is `'f' `is 9, and thus we need to input a character that its last four digits bits is 9 in hexadecimal and Decimal or 1001 in binary.
+
+
+| target character        |  its last four bits in Decimal           |  the same character in ASCII table  |
+| :------------:| :------------:| :------------:|
+| f    			| 		9(0x9) 	|	 ) 9 I Y i y 	|
+| l    			| 		15(0xf) 	|	/ ? O _ o DEL|
+| y    			| 		14(0xe)	|	 . > N ^ n ~ 	|
+| e    			| 		5(0x5) 	|	 % 5 E U e u 	|
+| r    			| 		6(0x6) 	|	 & 6 F V f v 	|
+| s    			| 		7(0x7) 	|	 ' 7 G W g w 	|
+
+### Choose any one of the last four ASCII codes displayed in the table, whose number is the same as the index of the target character in the dictionary array, and combine them can avoid the bomb.
+
