@@ -187,7 +187,7 @@ Finally, create another array to save the result (`mov    %dl,0x10(%rsp,%rax,1)`
 
 For better understanding such process, we can name the input string as `char input[6] = input string;` and do the `and(&)` operation with 0xf for each string `index = input[i] & 0xf(1111)`. After that we use this index to find the result string in a given string and save it to a new string `char result[6] = dict[index]`, where dict is a string begin at `0x4024b0` `movzbl 0x4024b0(%rdx),%edx`.
 
-Psudo C Code like below:
+Psudo C Code like below in key section:
 
 ```c
 char input[6] = input_string;
