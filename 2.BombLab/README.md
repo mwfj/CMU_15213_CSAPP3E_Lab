@@ -197,8 +197,9 @@ while(i<6){
 	result[i] = dict[ input[i] & 0xf(1111) ];
 	i++;
 }
-if(result != target)
+if(result != target){
 	explodeBomb();
+}
 ```
 
 Then, we found it has stored two argument into `esi` and `rdi`, where rdi is the result string we got above. We guess that esi must be the target string, where the target string is `"flyers"` and the dict string is `"maduiersnfotvbyl"`. Those two string will make a comparsion, if it is not same, the bomb will be triggered.
