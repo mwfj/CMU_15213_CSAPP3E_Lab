@@ -344,7 +344,7 @@ After order, the structure beome `node1->node4->node5->node6->node3->node2`.
   ; 4011e9: next node > current node to trigger the bomb  4011e9:	e8 4c 02 00 00       	callq  40143a <explode_bomb>   4011ee:	48 8b 5b 08          	mov    0x8(%rbx),%rbx ; node = node->next;  4011f2:	83 ed 01             	sub    $0x1,%ebp  4011f5:	75 e8                	jne    4011df <phase_6+0xeb>  ; Loop End  4011f7:	48 83 c4 50          	add    $0x50,%rsp  4011fb:	5b                   	pop    %rbx  4011fc:	5d                   	pop    %rbp  4011fd:	41 5c                	pop    %r12  4011ff:	41 5d                	pop    %r13  401201:	41 5e                	pop    %r14  401203:	c3                   	retq  
 ```
 
-This part is the key part of the whole phase, cause it related to trigger the bomb. Specifically, it just check the node one by one and follow the relationship between nodes. What's more, the value of the current node must be larger then the next node it points to, otherwise, the bomb will be triggered.
+This part is the key part of the whole phase, cause it related to trigger the bomb. Specifically, it just check the node one by one and follow the relationship between nodes, where the order the original input that minus 7 for each input element. What's more, the value of the current node must be larger then the next node it points to, otherwise, the bomb will be triggered.
 
 ### Thus, by checking the value of each node, the node order should be `3,4,5,6,1,2`. Consider the condition that each input element has been subtracted by 7, to maintain the order above, our final input should be `4 3 2 1 6 5`.
 
