@@ -346,6 +346,8 @@ After order, the structure beome `node1->node4->node5->node6->node3->node2`.
 
 This part is the key part of the whole phase, cause it related to trigger the bomb. Specifically, it just check the node one by one and follow the relationship between nodes, where the order the original input that minus 7 for each input element. What's more, the value of the current node must be larger then the next node it points to, otherwise, the bomb will be triggered.
 
-### Thus, by checking the value of each node, the node order should be `3,4,5,6,1,2`. Consider the condition that each input element has been subtracted by 7, to maintain the order above, our final input should be `4 3 2 1 6 5`.
+### Thus, by checking the value of each node, the node order should be `3,4,5,6,1,2`. Consider the condition that each input element has been subtracted by 7, to maintain the order above.
+
+### Our final input should be `4 3 2 1 6 5`.
 
 ![defuse_the_bomb](pic/defuse_the_bomb.png)
