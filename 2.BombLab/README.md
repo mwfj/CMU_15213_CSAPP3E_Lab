@@ -49,7 +49,7 @@ Dump of assembler code for function phase_1:
 End of assembler dump.
 ```
 
-<font size =4>**The follow assembling code is from the function of `strings_not_equal`**</font>
+<font size =10>**The follow assembling code is from the function of `strings_not_equal`**</font>
 
 Basically, this function firstly compare the string length between two strings(one in the %rbx, the other in the %rbp);
 If the length is not equal, return false and function end.
