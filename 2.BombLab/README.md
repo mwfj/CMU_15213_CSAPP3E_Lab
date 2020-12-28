@@ -660,8 +660,8 @@ While(1){
 After this operation, our input has become `1 4 5 6 3 2`.
 
 ```bash
-# <a name="10">Take input of 6 3 2 1 4 5 as the example</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
-# <a name="11">The result of that every element of input subtracts 7 shown below</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+# Take input of 6 3 2 1 4 5 as the example
+#The result of that every element of input subtracts 7 shown below
 (gdb) x/6w $rsp
 0x7fffffffddb0:	1	4	5	6
 0x7fffffffddc0:	3	2
@@ -899,7 +899,7 @@ edi            0x603870	6305904
 (gdb) x/s 0x603870
 0x603870 <input_strings+240>:	"7 0"
 
-# <a name="16">Restart the program, add "adc" after phase_4 and then repeat the operation above.</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+#  Restart the program, add "adc" after phase_4 and then repeat the operation above
 (gdb) u *0x000000000040160e
 0x000000000040160e in phase_defused ()
 (gdb) x/s 0x402622
