@@ -1,23 +1,21 @@
-<a name="index">**Index**</a>
+Table of Content
+===================
+ <a name="index">**Index**</a>
 
-<a href="#0">Bomb Lab Report:</a>  
-<a href="#1">Phase 1</a>  
-&emsp;<a href="#2">Phase_2 </a>  
-&emsp;<a href="#3">Phase_3</a>  
-&emsp;<a href="#4">Phase_4</a>  
-<a href="#5"> Take input "2 0" as example</a>  
-&emsp;<a href="#6">Phase_5</a>  
-&emsp;<a href="#7"> Phase_6</a>  
-&emsp;&emsp;<a href="#8"> Section 1 : Input Validation Checking</a>  
-&emsp;&emsp;<a href="#9">Section 2 : Shuffling the array value.</a>  
-<a href="#10">Take input of 6 3 2 1 4 5 as the example</a>  
-<a href="#11">The result of that every element of input subtracts 7 shown below</a>  
-&emsp;&emsp;<a href="#12">Section 3 : Get the link relation between nodes</a>  
-&emsp;&emsp;<a href="#13">Section 4 : Find the right node order and avoid the bomb</a>  
-&emsp;<a href="#14">Bonus : Secret_phase</a>  
-&emsp;&emsp;<a href="#15">Section 1 : activate the secret phase</a>  
-<a href="#16">Restart the program, add "adc" after phase_4 and then repeat the operation above.</a>  
-&emsp;&emsp;<a href="#17">Section 2 : defused the bomb in secret phase</a>  
+* <a href="#0">Bomb Lab Report:</a>  
+	+ <a href="#1">Phase_1</a>  
+	+ <a href="#2">Phase_2 </a>  
+	+ <a href="#3">Phase_3</a>  
+	+ <a href="#4">Phase_4</a>  
+	+ <a href="#6">Phase_5</a>  
+	+ <a href="#7"> Phase_6</a>  
+		- <a href="#8"> Section 1 : Input Validation Checking</a>  
+		- <a href="#9">Section 2 : Shuffling the array value.</a>  
+		- <a href="#12">Section 3 : Get the link relation between nodes</a>  
+		- <a href="#13">Section 4 : Find the right node order and avoid the bomb</a>  
+	+ <a href="#14">Bonus : Secret_phase</a>  
+		- <a href="#15">Section 1 : activate the secret phase</a>  
+		- <a href="#17">Section 2 : defused the bomb in secret phase</a>  
 
 # <a name="0">Bomb Lab Report:</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
