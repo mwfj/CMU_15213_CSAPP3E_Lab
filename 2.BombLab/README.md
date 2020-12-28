@@ -8,7 +8,7 @@ Table of Content
 	+ <a href="#4">Phase_4</a>  
 	+ <a href="#6">Phase_5</a>  
 	+ <a href="#7"> Phase_6</a>  
-		- <a href="#8"> Section 1 : Input Validation Checking</a>  
+		- <a href="#8"> Section 1 : Input validation checking</a>  
 		- <a href="#9">Section 2 : Shuffling the array value.</a>  
 		- <a href="#12">Section 3 : Get the link relation between nodes</a>  
 		- <a href="#13">Section 4 : Find the right node order and avoid the bomb</a>  
@@ -549,7 +549,7 @@ Therefore, to avoid the bomb, we need to make sure that the final string `rdi` s
 
 **Since the assembly code is too long, I will be divided into multiple sections of code to explain.**
 
-### <a name="8"> Section 1 : Input Validation Checking</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+### <a name="8"> Section 1 : Input validation checking</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 ```asm
   4010f4:	41 56                	push   %r14
