@@ -384,7 +384,7 @@ To prove my speculation, I add a string "abc" after the answer of phase_4 and co
 ```bash
 (gdb) x/s 0x402622 #esi0x402622:	"DrEvil"(gdb) x/s $rdi0x7fffffffddc0:	"abc"
 ```
-### Thus, to activate the secret phase, we need to add a string "DrEvil" after the phase 4, where the updated phase 4 keyword should be `7 0 DrEvil`.
+### Thus, to activate the secret phase, we need to add a string "DrEvil" after the phase 4, where the updated phase 4 keyword now should be `7 0 DrEvil`.
 
 The full operation show below:
 
