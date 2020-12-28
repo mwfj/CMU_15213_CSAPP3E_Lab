@@ -7,7 +7,8 @@ to find out the key word to avoid the bomb
 
 [TOC]
 
-## Phase 1:
+## Phase 1
+
 Bascally, this function is to compare input string with a keyword string, if the string is the keyword, do nothing. 
 
 Explode the bomb otherwise.
@@ -89,7 +90,7 @@ End of assembler dump.
 0x402400:	"Border relations with Canada have never been better."
 ```
 
-## Phase_2 :
+## Phase_2 
 
 Next, we move on the `Phase_2`: just like what we did in the phase 1, we first set the break point to the function of phase_2 and disassemble it.
 
