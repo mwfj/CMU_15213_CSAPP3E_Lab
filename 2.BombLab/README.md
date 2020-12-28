@@ -49,7 +49,7 @@ Dump of assembler code for function phase_1:
 End of assembler dump.
 ```
 
-<font size =10>**The follow assembling code is from the function of `strings_not_equal`**</font>
+### **The follow assembling code is from the function of `strings_not_equal`**
 
 Basically, this function firstly compare the string length between two strings(one in the %rbx, the other in the %rbp);
 If the length is not equal, return false and function end.
@@ -99,7 +99,7 @@ Dump of assembler code for function strings_not_equal:
    0x00000000004013a1 <+105>:	retq   ; return
 End of assembler dump.
 ```
-<font size =4>**We get the key string and use it as the input string to avoid bomb**</font>
+### **We get the key string and use it as the input string to avoid bomb**
 
 ```bash
 (gdb) x/s 0x402400
@@ -205,7 +205,7 @@ gs             0x0	0
 
 As the gdb show to us, the third input(%rbx) is 3, but the compared value (eax) is 4(2*2), thus it will trigger the bomb. However, we have already discover the input rules, where **the input has six numbers at total, begin as 1, and the next digits is the double as before.**
 
-<font size =4>Thus the final answer is **1 2 4 8 16 32**</font>
+### Thus the final answer is **1 2 4 8 16 32**
 
 ```bash
 (gdb) r solution.txt 
@@ -318,7 +318,7 @@ From now, we have already calculate each target address of each case and its rel
 + 5 206
 + 6 682
 
-<font size =6>**Choose any one of the answers can avoid to trigger the bomb.**</font>
+### **Choose any one of the answers can avoid to trigger the bomb.**
 
 ## <a name="4">Phase_4</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
@@ -424,7 +424,7 @@ End of assembler dump.
  + 1		0
  + 0		0
 
-<font size =4>**Use any of these answers above can avoid the bomb.**</font>
+### **Use any of these answers above can avoid the bomb.**
 
 
 ## <a name="6">Phase_5</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
@@ -543,8 +543,8 @@ Therefore, to avoid the bomb, we need to make sure that the final string `rdi` s
 | r    			| 		6(0x6) 	|	 & 6 F V f v 	|
 | s    			| 		7(0x7) 	|	 ' 7 G W g w 	|
 
-<font size =4> **Choose any one of the character displayed in the table, whose last four bits ASCII codes is the same as the index of the target character in the dictionary array, and combine them together can avoid the bomb.**</font>
-
+ ### **Choose any one of the character displayed in the table, whose last four bits ASCII codes is the same as the index of the target character in the dictionary array, and combine them together can avoid the bomb.**
+ 
 
 ## <a name="7"> Phase_6</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
@@ -742,7 +742,7 @@ After order, the structure beome `node1->node4->node5->node6->node3->node2`.
 
 ![phase_6_reordered_connection_relation](pic/phase_6_reordered_connection_relation.png)
 
-<font size =4>**Until now, I found that what we input actually is the node order in the link list. Of course, what we input is not the final order, because each input element will be subtracted by 7.**</font>
+### **Until now, I found that what we input actually is the node order in the link list. Of course, what we input is not the final order, because each input element will be subtracted by 7.**
 
 ### <a name="13">Section 4 : Find the right node order and avoid the bomb</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
@@ -773,9 +773,9 @@ After order, the structure beome `node1->node4->node5->node6->node3->node2`.
 
 This part is the key part of the whole phase, cause it related to trigger the bomb. Specifically, it just check the node one by one and follow the relationship between nodes, where the order the original input that minus 7 for each input element. What's more, the value of the current node must be larger then the next node it points to, otherwise, the bomb will be triggered.
 
-<font size =4>**Thus, by checking the value of each node, the node order should be `3,4,5,6,1,2`. Consider the condition that each input element has been subtracted by 7, to maintain the order above.**</font>
+### **Thus, by checking the value of each node, the node order should be `3,4,5,6,1,2`. Consider the condition that each input element has been subtracted by 7, to maintain the order above.**
 
-<font size =4>**Our final input should be `4 3 2 1 6 5`.**</font>
+### **Our final input should be `4 3 2 1 6 5`.**
 
 ![defuse_the_bomb](pic/defuse_the_bomb.png)
 
@@ -856,7 +856,7 @@ To prove my speculation, I add a string "abc" after the answer of phase_4 and co
 0x7fffffffddc0:	"abc"
 ```
 
-<font size =4>**Thus, to activate the secret phase, we need to add a string "DrEvil" after the phase 4, where the updated phase 4 keyword now should be `7 0 DrEvil`.**</font>
+### **Thus, to activate the secret phase, we need to add a string "DrEvil" after the phase 4, where the updated phase 4 keyword now should be `7 0 DrEvil`.**
 
 The full operation show below:
 
