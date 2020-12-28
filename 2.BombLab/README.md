@@ -5,6 +5,8 @@ In this lab, we are required to defuse the bomb hide in the program. We need to 
 As the hint from the writeup, I firstly use gdb tool to print out the assemble code and figure out the position of bomb. Then use gdb tool to print the 'suspicious value'
 to find out the key word to avoid the bomb
 
+[TOC]
+
 ## Phase 1:
 Bascally, this function is to compare input string with a keyword string, if the string is the keyword, do nothing. 
 
@@ -30,7 +32,7 @@ Dump of assembler code for function phase_1:
 End of assembler dump.
 ```
 
-### The follow assembling code is from the function of `strings_not_equal`
+<font size =4>**The follow assembling code is from the function of `strings_not_equal`**</font>
 
 Basically, this function firstly compare the string length between two strings(one in the %rbx, the other in the %rbp);
 If the length is not equal, return false and function end.
@@ -80,7 +82,7 @@ Dump of assembler code for function strings_not_equal:
    0x00000000004013a1 <+105>:	retq   ; return
 End of assembler dump.
 ```
-### We get the key string and use it as the input string to avoid bomb
+<font size =4>**We get the key string and use it as the input string to avoid bomb**</font>
 
 ```bash
 (gdb) x/s 0x402400
@@ -186,7 +188,7 @@ gs             0x0	0
 
 As the gdb show to us, the third input(%rbx) is 3, but the compared value (eax) is 4(2*2), thus it will trigger the bomb. However, we have already discover the input rules, where **the input has six numbers at total, begin as 1, and the next digits is the double as before.**
 
-### Thus the final answer is **1 2 4 8 16 32**
+<font size =4>Thus the final answer is **1 2 4 8 16 32**</font>
 
 ```bash
 (gdb) r solution.txt 
@@ -299,7 +301,7 @@ From now, we have already calculate each target address of each case and its rel
 + 5 206
 + 6 682
 
-### Choose any one of the answers can avoid to trigger the bomb.
+<font size =4>**Choose any one of the answers can avoid to trigger the bomb.**</font>
 
 ## Phase_4
 
@@ -405,7 +407,7 @@ End of assembler dump.
  + 1		0
  + 0		0
 
-### Use any of these answers above can avoid the bomb.
+<font size =4>**Use any of these answers above can avoid the bomb.**</font>
 
 
 ## Phase_5
@@ -524,14 +526,14 @@ Therefore, to avoid the bomb, we need to make sure that the final string `rdi` s
 | r    			| 		6(0x6) 	|	 & 6 F V f v 	|
 | s    			| 		7(0x7) 	|	 ' 7 G W g w 	|
 
-### Choose any one of the character displayed in the table, whose last four bits ASCII codes is the same as the index of the target character in the dictionary array, and combine them together can avoid the bomb.
+<font size =4> **Choose any one of the character displayed in the table, whose last four bits ASCII codes is the same as the index of the target character in the dictionary array, and combine them together can avoid the bomb.**</font>
 
 
-## Phase_6
+##  Phase_6
 
 **Since the assembly code is too long, I will be divided into multiple sections of code to explain.**
 
-### Section 1 : Input Validation Checking
+###  Section 1 : Input Validation Checking
 
 ```asm
   4010f4:	41 56                	push   %r14
@@ -723,7 +725,7 @@ After order, the structure beome `node1->node4->node5->node6->node3->node2`.
 
 ![phase_6_reordered_connection_relation](pic/phase_6_reordered_connection_relation.png)
 
-**Until now, I found that what we input actually is the node order in the link list. Of course, what we input is not the final order, because each input element will be subtracted by 7.**
+<font size =4>**Until now, I found that what we input actually is the node order in the link list. Of course, what we input is not the final order, because each input element will be subtracted by 7.**</font>
 
 ### Section 4 : Find the right node order and avoid the bomb
 
@@ -754,9 +756,9 @@ After order, the structure beome `node1->node4->node5->node6->node3->node2`.
 
 This part is the key part of the whole phase, cause it related to trigger the bomb. Specifically, it just check the node one by one and follow the relationship between nodes, where the order the original input that minus 7 for each input element. What's more, the value of the current node must be larger then the next node it points to, otherwise, the bomb will be triggered.
 
-### Thus, by checking the value of each node, the node order should be `3,4,5,6,1,2`. Consider the condition that each input element has been subtracted by 7, to maintain the order above.
+<font size =4>**Thus, by checking the value of each node, the node order should be `3,4,5,6,1,2`. Consider the condition that each input element has been subtracted by 7, to maintain the order above.**</font>
 
-### Our final input should be `4 3 2 1 6 5`.
+<font size =4>**Our final input should be `4 3 2 1 6 5`.**</font>
 
 ![defuse_the_bomb](pic/defuse_the_bomb.png)
 
@@ -829,13 +831,15 @@ In the second condition `0x04015ff <+59>: cmp  $0x3,%eax` and its previous instr
 0x603870 <input_strings+240>:	"7 0"
 ```
 To prove my speculation, I add a string "abc" after the answer of phase_4 and continue run the program instruction by instruction. When run at `0x40160e`, I found there has a string comparison function to make a comparison between `%esi`and `%rdi`. Moreover, when I printed out these two registers, aha, I found the keyword storage in `%esi (0x402622)`, which is **"DrEvil"**. 
+
 ```bash
 (gdb) x/s 0x402622 #esi
 0x402622:	"DrEvil"
 (gdb) x/s $rdi
 0x7fffffffddc0:	"abc"
 ```
-### Thus, to activate the secret phase, we need to add a string "DrEvil" after the phase 4, where the updated phase 4 keyword now should be `7 0 DrEvil`.
+
+<font size =4>**Thus, to activate the secret phase, we need to add a string "DrEvil" after the phase 4, where the updated phase 4 keyword now should be `7 0 DrEvil`.**</font>
 
 The full operation show below:
 
