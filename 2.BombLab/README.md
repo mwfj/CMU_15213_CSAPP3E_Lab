@@ -396,4 +396,4 @@ The full operation show below:
 After add "DrEvil" string to the answer of phase 4, we successfully enter the secret phase.
 
 ```bash
-(gdb) r solution.txt Starting program: /home/mwfj/cmu-15-213-CSAPP3E-lab/2.BombLab/bomb-solution/bomb solution.txtWelcome to my fiendish little bomb. You have 6 phases withwhich to blow yourself up. Have a nice day!Phase 1 defused. How about the next one?That's number 2.  Keep going!Halfway there!So you got that one.  Try this one.Good work!  On to the next...Curses, you've found the secret phase!But finding it and solving it are quite different...```
+(gdb) r solution.txt #phase 4 answer now should be updated as 7 0 DrEvilStarting program: /home/mwfj/cmu-15-213-CSAPP3E-lab/2.BombLab/bomb-solution/bomb solution.txtWelcome to my fiendish little bomb. You have 6 phases withwhich to blow yourself up. Have a nice day!Phase 1 defused. How about the next one?That's number 2.  Keep going!Halfway there!So you got that one.  Try this one.Good work!  On to the next...Curses, you've found the secret phase!But finding it and solving it are quite different...```
