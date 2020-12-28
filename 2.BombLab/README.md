@@ -14,8 +14,8 @@ Table of Content
 		- <a href="#12">Section 3 : Get the link relation between nodes</a>  
 		- <a href="#13">Section 4 : Find the right node order and avoid the bomb</a>  
 	+ <a href="#14">Bonus : Secret_phase</a>  
-		- <a href="#15">Section 1 : activate the secret phase</a>  
-		- <a href="#17">Section 2 : defused the bomb in secret phase</a>  
+		- <a href="#15">Section 1 : Activate the secret phase</a>  
+		- <a href="#17">Section 2 : Defused the bomb in secret phase</a>  
 
 # <a name="0">Bomb Lab Report:</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
@@ -782,7 +782,7 @@ This part is the key part of the whole phase, cause it related to trigger the bo
 
 ## <a name="14">Bonus : Secret_phase</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
-### <a name="15">Section 1 : activate the secret phase</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+### <a name="15">Section 1 : Activate the secret phase</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 When watching the assembly code of the whole bomb program, I found the existence of the `secret phase`. However, this secret phase seems to require some **" special way "** to activate. Thus, the first thing we need to do is to find that **" Password "** to activate such phase.
 
@@ -923,4 +923,4 @@ Curses, you've found the secret phase!
 But finding it and solving it are quite different...
 ```
 
-### <a name="17">Section 2 : defused the bomb in secret phase</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+### <a name="17">Section 2 : Defused the bomb in secret phase</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
