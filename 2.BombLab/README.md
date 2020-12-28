@@ -5,30 +5,6 @@ In this lab, we are required to defuse the bomb hide in the program. We need to 
 As the hint from the writeup, I firstly use gdb tool to print out the assemble code and figure out the position of bomb. Then use gdb tool to print the 'suspicious value'
 to find out the key word to avoid the bomb
 
-- [Bomb Lab Report:](#bomb-lab-report-)
-  * [Phase 1:](#phase-1-)
-    + [The follow assembling code is from the function of `strings_not_equal`](#the-follow-assembling-code-is-from-the-function-of--strings-not-equal-)
-    + [We get the key string and use it as the input string to avoid bomb](#we-get-the-key-string-and-use-it-as-the-input-string-to-avoid-bomb)
-  * [Phase_2 :](#phase-2--)
-    + [Thus the final answer is **1 2 4 8 16 32**](#thus-the-final-answer-is---1-2-4-8-16-32--)
-  * [Phase_3](#phase-3)
-    + [Choose any one of the answers can avoid to trigger the bomb.](#choose-any-one-of-the-answers-can-avoid-to-trigger-the-bomb)
-  * [Phase_4](#phase-4)
-    + [Use any of these answers above can avoid the bomb.](#use-any-of-these-answers-above-can-avoid-the-bomb)
-  * [Phase_5](#phase-5)
-    + [Choose any one of the character displayed in the table, whose last four bits ASCII codes is the same as the index of the target character in the dictionary array, and combine them together can avoid the bomb.](#choose-any-one-of-the-character-displayed-in-the-table--whose-last-four-bits-ascii-codes-is-the-same-as-the-index-of-the-target-character-in-the-dictionary-array--and-combine-them-together-can-avoid-the-bomb)
-  * [Phase_6](#phase-6)
-    + [Section 1 : Input Validation Checking](#section-1---input-validation-checking)
-    + [Section 2 : Shuffling the array value.](#section-2---shuffling-the-array-value)
-    + [Section 3 : Get the link relation between nodes](#section-3---get-the-link-relation-between-nodes)
-    + [Section 4 : Find the right node order and avoid the bomb](#section-4---find-the-right-node-order-and-avoid-the-bomb)
-    + [Thus, by checking the value of each node, the node order should be `3,4,5,6,1,2`. Consider the condition that each input element has been subtracted by 7, to maintain the order above.](#thus--by-checking-the-value-of-each-node--the-node-order-should-be--3-4-5-6-1-2--consider-the-condition-that-each-input-element-has-been-subtracted-by-7--to-maintain-the-order-above)
-    + [Our final input should be `4 3 2 1 6 5`.](#our-final-input-should-be--4-3-2-1-6-5-)
-  * [Bonus : Secret_phase](#bonus---secret-phase)
-    + [Section 1 : activate the secret phase](#section-1---activate-the-secret-phase)
-    + [Thus, to activate the secret phase, we need to add a string "DrEvil" after the phase 4, where the updated phase 4 keyword now should be `7 0 DrEvil`.](#thus--to-activate-the-secret-phase--we-need-to-add-a-string--drevil--after-the-phase-4--where-the-updated-phase-4-keyword-now-should-be--7-0-drevil-)
-    + [Section 2 : defused the bomb in secret phase](#section-2---defused-the-bomb-in-secret-phase)
-
 ## Phase 1:
 Bascally, this function is to compare input string with a keyword string, if the string is the keyword, do nothing. 
 
