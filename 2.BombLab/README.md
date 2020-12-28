@@ -7,12 +7,19 @@ to find out the key word to avoid the bomb
 
 [TOC]
 - [Bomb Lab Report:](#bomb-lab-report-)
+
   * [Phase 1](#phase-1)
+
   * [Phase_2](#phase-2)
+
   * [Phase_3](#phase-3)
+
   * [Phase_4](#phase-4)
+
   * [Phase_5](#phase-5)
+
   * [Phase_6](#phase-6)
+  
     + [Section 1 : Input Validation Checking](#section-1---input-validation-checking)
     + [Section 2 : Shuffling the array value.](#section-2---shuffling-the-array-value)
     + [Section 3 : Get the link relation between nodes](#section-3---get-the-link-relation-between-nodes)
@@ -316,7 +323,7 @@ From now, we have already calculate each target address of each case and its rel
 + 5 206
 + 6 682
 
-<font size =4>**Choose any one of the answers can avoid to trigger the bomb.**</font>
+<font size =6>**Choose any one of the answers can avoid to trigger the bomb.**</font>
 
 ## Phase_4
 
