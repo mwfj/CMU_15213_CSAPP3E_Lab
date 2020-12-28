@@ -1,34 +1,30 @@
-# Bomb Lab Report:
+<a name="index">**Index**</a>
+<a href="#0">Bomb Lab Report:</a>  
+&emsp;<a href="#1">Phase 1</a>  
+&emsp;<a href="#2">Phase_2 </a>  
+&emsp;<a href="#3">Phase_3</a>  
+&emsp;<a href="#4">Phase_4</a>  
+<a href="#5"> Take input "2 0" as example</a>  
+&emsp;<a href="#6">Phase_5</a>  
+&emsp;<a href="#7"> Phase_6</a>  
+&emsp;&emsp;<a href="#8"> Section 1 : Input Validation Checking</a>  
+&emsp;&emsp;<a href="#9">Section 2 : Shuffling the array value.</a>  
+<a href="#10">Take input of 6 3 2 1 4 5 as the example</a>  
+<a href="#11">The result of that every element of input subtracts 7 shown below</a>  
+&emsp;&emsp;<a href="#12">Section 3 : Get the link relation between nodes</a>  
+&emsp;&emsp;<a href="#13">Section 4 : Find the right node order and avoid the bomb</a>  
+&emsp;<a href="#14">Bonus : Secret_phase</a>  
+&emsp;&emsp;<a href="#15">Section 1 : activate the secret phase</a>  
+<a href="#16">Restart the program, add "adc" after phase_4 and then repeat the operation above.</a>  
+&emsp;&emsp;<a href="#17">Section 2 : defused the bomb in secret phase</a>  
+
+# <a name="0">Bomb Lab Report:</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 In this lab, we are required to defuse the bomb hide in the program. We need to use the disassemble way to find the bombs.
 
 As the hint from the writeup, I firstly use gdb tool to print out the assemble code and figure out the position of bomb. Then use gdb tool to print the 'suspicious value'
-to find out the key word to avoid the bomb
 
-[TOC]
-- [Bomb Lab Report:](#bomb-lab-report-)
-
-  * [Phase 1](#phase-1)
-
-  * [Phase_2](#phase-2)
-
-  * [Phase_3](#phase-3)
-
-  * [Phase_4](#phase-4)
-
-  * [Phase_5](#phase-5)
-
-  * [Phase_6](#phase-6)
-  
-    + [Section 1 : Input Validation Checking](#section-1---input-validation-checking)
-    + [Section 2 : Shuffling the array value.](#section-2---shuffling-the-array-value)
-    + [Section 3 : Get the link relation between nodes](#section-3---get-the-link-relation-between-nodes)
-    + [Section 4 : Find the right node order and avoid the bomb](#section-4---find-the-right-node-order-and-avoid-the-bomb)
-  * [Bonus : Secret_phase](#bonus---secret-phase)
-    + [Section 1 : activate the secret phase](#section-1---activate-the-secret-phase)
-    + [Section 2 : defused the bomb in secret phase](#section-2---defused-the-bomb-in-secret-phase)
-
-## Phase 1
+## <a name="1">Phase 1</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 Bascally, this function is to compare input string with a keyword string, if the string is the keyword, do nothing. 
 
@@ -111,7 +107,7 @@ End of assembler dump.
 0x402400:	"Border relations with Canada have never been better."
 ```
 
-## Phase_2 
+## <a name="2">Phase_2 </a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 Next, we move on the `Phase_2`: just like what we did in the phase 1, we first set the break point to the function of phase_2 and disassemble it.
 
@@ -222,7 +218,7 @@ Phase 1 defused. How about the next one?
 That's number 2.  Keep going!
 ```
 
-## Phase_3
+## <a name="3">Phase_3</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 When we see the assemble code in the phase 3, we can see there has one indirect jump and six direct jumps, we can guess that there must be a switch structure in the code inside.
 Also, in the assembly code, not every jump will trigger the bomb. Thus, we can guess that, only default case will trigger the bomb, where **trigger every case except default one will avoid this bomb**.
 
@@ -325,7 +321,7 @@ From now, we have already calculate each target address of each case and its rel
 
 <font size =6>**Choose any one of the answers can avoid to trigger the bomb.**</font>
 
-## Phase_4
+## <a name="4">Phase_4</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 ```asm
 (gdb) disas phase_4
@@ -375,7 +371,7 @@ Then, we need to check what the arguement should be. In `0x40102e` and `0x401033
  Next, when we see `0x401051`, we can see that **the second arguement should be 0**, otherwise the bomb will be triggered. (Note that, we can print the value in these address to see the `0x08(%rsp)` and `0xc(%rsp)` represent to the first and second arguement).
  
  ```bash
- # Take input "2 0" as example
+ # <a name="5">Take input "2 0" as example</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
  (gdb) i r rsp
 rsp            0x7fffffffde40	0x7fffffffde40
 (gdb) p *(0x7fffffffde40+0x08)
@@ -432,7 +428,7 @@ End of assembler dump.
 <font size =4>**Use any of these answers above can avoid the bomb.**</font>
 
 
-## Phase_5
+## <a name="6">Phase_5</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 ```asm
 (gdb) disas phase_5
@@ -551,11 +547,11 @@ Therefore, to avoid the bomb, we need to make sure that the final string `rdi` s
 <font size =4> **Choose any one of the character displayed in the table, whose last four bits ASCII codes is the same as the index of the target character in the dictionary array, and combine them together can avoid the bomb.**</font>
 
 
-##  Phase_6
+## <a name="7"> Phase_6</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 **Since the assembly code is too long, I will be divided into multiple sections of code to explain.**
 
-###  Section 1 : Input Validation Checking
+### <a name="8"> Section 1 : Input Validation Checking</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 ```asm
   4010f4:	41 56                	push   %r14
@@ -623,7 +619,7 @@ for( int i=0; i<6; i++ ){
 }
 ```
 
-### Section 2 : Shuffling the array value.
+### <a name="9">Section 2 : Shuffling the array value.</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 ```asm
   ; Second 2: 
@@ -665,13 +661,13 @@ While(1){
 After this operation, our input has become `1 4 5 6 3 2`.
 
 ```bash
-# Take input of 6 3 2 1 4 5 as the example
-# The result of that every element of input subtracts 7 shown below
+# <a name="10">Take input of 6 3 2 1 4 5 as the example</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+# <a name="11">The result of that every element of input subtracts 7 shown below</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 (gdb) x/6w $rsp
 0x7fffffffddb0:	1	4	5	6
 0x7fffffffddc0:	3	2
 ```
-### Section 3 : Get the link relation between nodes
+### <a name="12">Section 3 : Get the link relation between nodes</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 ```asm
   ; Second 3:
@@ -749,7 +745,7 @@ After order, the structure beome `node1->node4->node5->node6->node3->node2`.
 
 <font size =4>**Until now, I found that what we input actually is the node order in the link list. Of course, what we input is not the final order, because each input element will be subtracted by 7.**</font>
 
-### Section 4 : Find the right node order and avoid the bomb
+### <a name="13">Section 4 : Find the right node order and avoid the bomb</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 ```asm
   ; Section 4
@@ -785,9 +781,9 @@ This part is the key part of the whole phase, cause it related to trigger the bo
 ![defuse_the_bomb](pic/defuse_the_bomb.png)
 
 
-## Bonus : Secret_phase
+## <a name="14">Bonus : Secret_phase</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
-### Section 1 : activate the secret phase
+### <a name="15">Section 1 : activate the secret phase</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 When watching the assembly code of the whole bomb program, I found the existence of the `secret phase`. However, this secret phase seems to require some **" special way "** to activate. Thus, the first thing we need to do is to find that **" Password "** to activate such phase.
 
@@ -904,7 +900,7 @@ edi            0x603870	6305904
 (gdb) x/s 0x603870
 0x603870 <input_strings+240>:	"7 0"
 
-# Restart the program, add "adc" after phase_4 and then repeat the operation above.
+# <a name="16">Restart the program, add "adc" after phase_4 and then repeat the operation above.</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 (gdb) u *0x000000000040160e
 0x000000000040160e in phase_defused ()
 (gdb) x/s 0x402622
@@ -928,4 +924,4 @@ Curses, you've found the secret phase!
 But finding it and solving it are quite different...
 ```
 
-### Section 2 : defused the bomb in secret phase
+### <a name="17">Section 2 : defused the bomb in secret phase</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
