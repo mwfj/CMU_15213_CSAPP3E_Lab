@@ -355,6 +355,8 @@ This part is the key part of the whole phase, cause it related to trigger the bo
 
 ## Bonus : Secret_phase
 
+### Section 1 : activate the secret phase
+
 When watching the assembly code of the whole bomb program, I found the existence of the `secret phase`. However, this secret phase seems to require some **" special way "** to activate. Thus, the first thing we need to do is to find that **" Password "** to activate such phase.
 
 Specifically, when I use "secret phase" as keyword to search all the assembly code in the bomb program, I found that the secret phase is called by the function of `phase_defused`.
@@ -397,3 +399,5 @@ After add "DrEvil" string to the answer of phase 4, we successfully enter the se
 
 ```bash
 (gdb) r solution.txt #phase 4 answer now should be updated as "7 0 DrEvil"Starting program: /home/mwfj/cmu-15-213-CSAPP3E-lab/2.BombLab/bomb-solution/bomb solution.txtWelcome to my fiendish little bomb. You have 6 phases withwhich to blow yourself up. Have a nice day!Phase 1 defused. How about the next one?That's number 2.  Keep going!Halfway there!So you got that one.  Try this one.Good work!  On to the next...Curses, you've found the secret phase!But finding it and solving it are quite different...```
+
+### Section 2 : defused the bomb in secret phase
