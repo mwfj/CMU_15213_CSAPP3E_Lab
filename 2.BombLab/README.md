@@ -1,4 +1,4 @@
-# Bomb Lab Report:
+# 1. Bomb Lab Report:
 
 In this lab, we are required to defuse the bomb hide in the program. We need to use the disassemble way to find the bombs.
 
@@ -6,8 +6,9 @@ As the hint from the writeup, I firstly use gdb tool to print out the assemble c
 to find out the key word to avoid the bomb
 
 [TOC]
+<!-- TOC -->autoauto- [1. Bomb Lab Report:](#1-bomb-lab-report)auto    - [1.1. Phase 1](#11-phase-1)auto    - [1.2. Phase_2](#12-phase_2)auto    - [1.3. Phase_3](#13-phase_3)auto    - [1.4. Phase_4](#14-phase_4)auto    - [1.5. Phase_5](#15-phase_5)auto    - [1.6. Phase_6](#16-phase_6)auto        - [1.6.1. Section 1 : Input Validation Checking](#161-section-1--input-validation-checking)auto        - [1.6.2. Section 2 : Shuffling the array value.](#162-section-2--shuffling-the-array-value)auto        - [1.6.3. Section 3 : Get the link relation between nodes](#163-section-3--get-the-link-relation-between-nodes)auto        - [1.6.4. Section 4 : Find the right node order and avoid the bomb](#164-section-4--find-the-right-node-order-and-avoid-the-bomb)auto    - [1.7. Bonus : Secret_phase](#17-bonus--secret_phase)auto        - [1.7.1. Section 1 : activate the secret phase](#171-section-1--activate-the-secret-phase)auto        - [1.7.2. Section 2 : defused the bomb in secret phase](#172-section-2--defused-the-bomb-in-secret-phase)autoauto<!-- /TOC -->
 
-## Phase 1
+## 1.1. Phase 1
 
 Bascally, this function is to compare input string with a keyword string, if the string is the keyword, do nothing. 
 
@@ -90,7 +91,7 @@ End of assembler dump.
 0x402400:	"Border relations with Canada have never been better."
 ```
 
-## Phase_2 
+## 1.2. Phase_2 
 
 Next, we move on the `Phase_2`: just like what we did in the phase 1, we first set the break point to the function of phase_2 and disassemble it.
 
@@ -201,7 +202,7 @@ Phase 1 defused. How about the next one?
 That's number 2.  Keep going!
 ```
 
-## Phase_3
+## 1.3. Phase_3
 When we see the assemble code in the phase 3, we can see there has one indirect jump and six direct jumps, we can guess that there must be a switch structure in the code inside.
 Also, in the assembly code, not every jump will trigger the bomb. Thus, we can guess that, only default case will trigger the bomb, where **trigger every case except default one will avoid this bomb**.
 
@@ -304,7 +305,7 @@ From now, we have already calculate each target address of each case and its rel
 
 <font size =4>**Choose any one of the answers can avoid to trigger the bomb.**</font>
 
-## Phase_4
+## 1.4. Phase_4
 
 ```asm
 (gdb) disas phase_4
@@ -411,7 +412,7 @@ End of assembler dump.
 <font size =4>**Use any of these answers above can avoid the bomb.**</font>
 
 
-## Phase_5
+## 1.5. Phase_5
 
 ```asm
 (gdb) disas phase_5
@@ -530,11 +531,11 @@ Therefore, to avoid the bomb, we need to make sure that the final string `rdi` s
 <font size =4> **Choose any one of the character displayed in the table, whose last four bits ASCII codes is the same as the index of the target character in the dictionary array, and combine them together can avoid the bomb.**</font>
 
 
-##  Phase_6
+## 1.6. Phase_6
 
 **Since the assembly code is too long, I will be divided into multiple sections of code to explain.**
 
-###  Section 1 : Input Validation Checking
+### 1.6.1. Section 1 : Input Validation Checking
 
 ```asm
   4010f4:	41 56                	push   %r14
@@ -602,7 +603,7 @@ for( int i=0; i<6; i++ ){
 }
 ```
 
-### Section 2 : Shuffling the array value.
+### 1.6.2. Section 2 : Shuffling the array value.
 
 ```asm
   ; Second 2: 
@@ -650,7 +651,7 @@ After this operation, our input has become `1 4 5 6 3 2`.
 0x7fffffffddb0:	1	4	5	6
 0x7fffffffddc0:	3	2
 ```
-### Section 3 : Get the link relation between nodes
+### 1.6.3. Section 3 : Get the link relation between nodes
 
 ```asm
   ; Second 3:
@@ -728,7 +729,7 @@ After order, the structure beome `node1->node4->node5->node6->node3->node2`.
 
 <font size =4>**Until now, I found that what we input actually is the node order in the link list. Of course, what we input is not the final order, because each input element will be subtracted by 7.**</font>
 
-### Section 4 : Find the right node order and avoid the bomb
+### 1.6.4. Section 4 : Find the right node order and avoid the bomb
 
 ```asm
   ; Section 4
@@ -764,9 +765,9 @@ This part is the key part of the whole phase, cause it related to trigger the bo
 ![defuse_the_bomb](pic/defuse_the_bomb.png)
 
 
-## Bonus : Secret_phase
+## 1.7. Bonus : Secret_phase
 
-### Section 1 : activate the secret phase
+### 1.7.1. Section 1 : activate the secret phase
 
 When watching the assembly code of the whole bomb program, I found the existence of the `secret phase`. However, this secret phase seems to require some **" special way "** to activate. Thus, the first thing we need to do is to find that **" Password "** to activate such phase.
 
@@ -907,4 +908,4 @@ Curses, you've found the secret phase!
 But finding it and solving it are quite different...
 ```
 
-### Section 2 : defused the bomb in secret phase
+### 1.7.2. Section 2 : defused the bomb in secret phase
