@@ -375,8 +375,25 @@ Thus, to activate the secret phase, we need to figure out how to pass these thre
 
 In the **first condition** `0x4015d8 `, it compare between `0x6` and `0x202181(%rip)`. After using gdb the print out the value of `0x202181(%rip)` when rip is `0x4015df`, **I found that `0x202181(%rip)` represents the number of phases that have been defused, where it means that this condition will be passed only when all 6 phases have been defused.**
 
-In the second condition `0x04015ff <+59>: cmp  $0x3,%eax` and its previous instruction `0x4015fa <+54>: callq  0x400bf0 <__isoc99_sscanf@plt>`, it represents the number of input should be 3. However, we currently do not have a phase where its number of input is 3. The two input variables to the function of sscanf attracts my attention: 
+In the second condition `0x04015ff <+59>: cmp  $0x3,%eax` and its previous instruction `0x4015fa <+54>: callq  0x400bf0 <__isoc99_sscanf@plt>`, it represents the number of input should be 3. However, we currently do not have a phase where its number of input is 3. But, the two input variables to the function of sscanf attracts my attention: `mov  $0x402619,%esi`  and `mov  $0x603870,%edi`, where these two registers will be used as parameters passed to sscanf. As the result shown below, `%esi` should record the format of the input, where it is two number and one string; and `%edi` record the input we enter. Interestingly, the content that `%edi` record is `7 0`, where it is my keyword for **phase_4**. Based on the previous judgment on the input format, I speculate that we need to add a string after the phase_4 ciphertext to activate secret_phase.  The answer should be found in the third judgment condition we mentioned above.
+
+```bash
+(gdb) x/s 0x4026190x402619:	"%d %d %s"(gdb) x/s 0x6038700x603870 <input_strings+240>:	"7 0"
+```
+To prove my speculation, I add a string "abc" after the answer of phase_4 and continue run the program instruction by instruction. When run at `0x40160e`, I found there has a string comparison function to make a comparison between `%esi`and `%rdi`. Moreover, when I printed out these two registers, aha, I found the keyword storage in `%esi (0x402622)`, which is **"DrEvil"**. 
+```bash
+(gdb) x/s 0x402622 #esi0x402622:	"DrEvil"(gdb) x/s $rdi0x7fffffffddc0:	"abc"
+```
+### Thus, to activate the secret phase, we need to add a string "DrEvil" after the phase 4, where the updated phase 4 keyword should be `7 0 DrEvil`.
+
+The full operation show below:
 
 ```bash
 (gdb) b phase_6Breakpoint 5 at 0x4010f4(gdb) r solution.txt Starting program: /home/mwfj/cmu-15-213-CSAPP3E-lab/2.BombLab/bomb-solution/bomb solution.txtWelcome to my fiendish little bomb. You have 6 phases withwhich to blow yourself up. Have a nice day!Phase 1 defused. How about the next one?That's number 2.  Keep going!Halfway there!So you got that one.  Try this one.Good work!  On to the next...Breakpoint 5, 0x00000000004010f4 in phase_6 ()(gdb) b phase_defused Breakpoint 6 at 0x4015c4(gdb) cContinuing.Breakpoint 6, 0x00000000004015c4 in phase_defused ()(gdb) u* 0x00000000004015fa0x00000000004015fa in phase_defused ()(gdb) i r r8 rcx rdx esi edir8             0x7fffffffddc0	140737488346560rcx            0x7fffffffddbc	140737488346556rdx            0x7fffffffddb8	140737488346552esi            0x402619	4204057edi            0x603870	6305904(gdb) x 0x7fffffffddc00x7fffffffddc0:	0x00000001(gdb) x/d 0x7fffffffddc00x7fffffffddc0:	1(gdb) x/d 0x7fffffffddbc0x7fffffffddbc:	6(gdb) x/d0x7fffffffddb80x7fffffffddb8:	5(gdb) x/s 0x4026190x402619:	"%d %d %s"(gdb) x/s 0x6038700x603870 <input_strings+240>:	"7 0"
-```
+
+# Restart the program, add "adc" after phase_4 and then repeat the operation above.
+(gdb) u *0x000000000040160e0x000000000040160e in phase_defused ()(gdb) x/s 0x4026220x402622:	"DrEvil"(gdb) x/s $rdi0x7fffffffddc0:	"abc"```
+After add "DrEvil" string to the answer of phase 4, we successfully enter the secret phase.
+
+```bash
+(gdb) r solution.txt Starting program: /home/mwfj/cmu-15-213-CSAPP3E-lab/2.BombLab/bomb-solution/bomb solution.txtWelcome to my fiendish little bomb. You have 6 phases withwhich to blow yourself up. Have a nice day!Phase 1 defused. How about the next one?That's number 2.  Keep going!Halfway there!So you got that one.  Try this one.Good work!  On to the next...Curses, you've found the secret phase!But finding it and solving it are quite different...```
