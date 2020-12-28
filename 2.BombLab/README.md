@@ -205,7 +205,7 @@ gs             0x0	0
 
 As the gdb show to us, the third input(%rbx) is 3, but the compared value (eax) is 4(2*2), thus it will trigger the bomb. However, we have already discover the input rules, where **the input has six numbers at total, begin as 1, and the next digits is the double as before.**
 
-### Thus the final answer is **1 2 4 8 16 32**
+### Thus the final answer is `1 2 4 8 16 32`
 
 ```bash
 (gdb) r solution.txt 
