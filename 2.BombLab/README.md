@@ -1,7 +1,6 @@
 Table of Content
 ===================
- <a name="index">**Index**</a>
-
+ 
 * <a href="#0">Bomb Lab Report:</a>  
 	+ <a href="#1">Phase_1</a>  
 	+ <a href="#2">Phase_2 </a>  
