@@ -1041,7 +1041,7 @@ In order to better understand this BST, I drew a picture to describe this binary
 
 ![secret_phase_bts](pic/secret_phase_bts.png)
 
-Now, we back to the answer we look for. Specifically, we need the return value of `fun7` to be 2.
+Now, we back to the part of finding the right input of secret_phase in order to avoid to bomb.  Specifically, we need to input something to make the return value of `fun7` to be 2.
 
 According to the structure of the binary search tree and the picture I draw. There only have two nodes can achieve this, where they are `n32`(its value are 22) and `n43`(its value are 20). When I search the value of `n32` and `n43`, by following the logic of fun7, the return value of `fun7` will be 2.
 
