@@ -499,7 +499,7 @@ Finally, create another array to save the result (`mov    %dl,0x10(%rsp,%rax,1)`
 
 For better understanding such process, we can name the input string as `char input[6] = input string;` and do the `and(&)` operation with 0xf for each string `index = input[i] & 0xf(1111)`. After that we use this index to find the result string in a given string and save it to a new string `char result[6] = dict[index]`, where dict is a string begin at `0x4024b0` `movzbl 0x4024b0(%rdx),%edx`.
 
-Psudo C Code like below in key section:
+Pseudo C Code like below in key section:
 
 ```c
 char input[6] = input_string;
@@ -597,7 +597,7 @@ In the inner loop, it mainly to check whether the rest of value in the array is 
 
 Thus, we first assume the input is `6 3 2 1 4 5` and do the test to figure it out the right one.
 
-**Psudo C code in this section:**
+**Pseudo C code in this section:**
 
 ```c
 // i = r12d; ebx : j = i+1; current_value = eax;
@@ -638,7 +638,7 @@ for( int i=0; i<6; i++ ){
 
 In this section, the main logic is that it subtracts 7 from each element in the array, where esi is the pointer that point to the end of array and eax is the pointer that pointer to current element in the array. In the while loop, it iterators every element in the array and subtracts seven from each elements until eax reach the end of array(%esi).
 
-**Psudo C Code:**
+**Pseudo C Code:**
 
 ```c
 /**
@@ -923,4 +923,128 @@ Curses, you've found the secret phase!
 But finding it and solving it are quite different...
 ```
 
-### <a name="17">Section 2 : Defused the bomb in secret phase</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+### <a name="17">Section 2 : Defused the bomb</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+
+```asm
+(gdb) disas secret_phase Dump of assembler code for function secret_phase:   0x0000000000401242 <+0>:	push   %rbx   0x0000000000401243 <+1>:	callq  0x40149e <read_line>   0x0000000000401248 <+6>:	mov    $0xa,%edx   0x000000000040124d <+11>:	mov    $0x0,%esi   0x0000000000401252 <+16>:	mov    %rax,%rdi ; rax = "22" (string)   0x0000000000401255 <+19>:	callq  0x400bd0 <strtol@plt> ; String to Long   0x000000000040125a <+24>:	mov    %rax,%rbx ; rax = 22 (long)   0x000000000040125d <+27>:	lea    -0x1(%rax),%eax   0x0000000000401260 <+30>:	cmp    $0x3e8,%eax ; eax should be less than 1000   0x0000000000401265 <+35>:	jbe    0x40126c <secret_phase+42> ; To avoid the bomb   0x0000000000401267 <+37>:	callq  0x40143a <explode_bomb>   0x000000000040126c <+42>:	mov    %ebx,%esi ; pass our input into func7
+   ; where 0x6030f0 is a magic number that points to the root of binary search tree   0x000000000040126e <+44>:	mov    $0x6030f0,%edi ; another input into func7   0x0000000000401273 <+49>:	callq  0x401204 <fun7>   0x0000000000401278 <+54>:	cmp    $0x2,%eax ; the return number of func7 should be 2   0x000000000040127b <+57>:	je     0x401282 <secret_phase+64> ; To aviod the bomb   0x000000000040127d <+59>:	callq  0x40143a <explode_bomb>   0x0000000000401282 <+64>:	mov    $0x402438,%edi   0x0000000000401287 <+69>:	callq  0x400b10 <puts@plt>   0x000000000040128c <+74>:	callq  0x4015c4 <phase_defused>   0x0000000000401291 <+79>:	pop    %rbx   0x0000000000401292 <+80>:	retq   End of assembler dump.
+```
+The first function attact our notice is `<strtol@plt>`, which it might be convert a string to long. 
+
+To prove my conjecture，I print the number passed into `<strtol@plt>` and the value it returns, where both are store at `%eax`. 
+
+```bash
+(gdb) u *0x00000000004012520x0000000000401252 in secret_phase ()(gdb) ni0x0000000000401255 in secret_phase ()(gdb) i r eaxeax            0x603960	6306144
+# Before pass eax into <strtol@pl>, eax is a string(gdb) x/s $eax0x603960 <input_strings+480>:	"20"(gdb) ni0x000000000040125a in secret_phase ()(gdb) ni0x000000000040125d in secret_phase ()# After excute <strtol@pl>, it returns a number(gdb) i r eaxeax            0x14	20
+```
+Then, I met the first branch that might be trigger the bomb, where it subtract eax with 1 and compared with 0x3e8(1000). If it lower or equal than it, avoid the bomb; trigger the bomb otherwise. **This tells us that the input should be less or equal than 1001.**
+
+The next thing that the code do is to pass two parameters in to `fun7`, where one is the `esi` and the other is `edi`. Furthermore, the `esi` record out input number, and `edi` record a magic number `0x6030f0`.
+
+This magic number attract my attention. When I print it out, I find it record a structure just like phase_6, where the address that prints out has the name `n1`. But I still cannot make sure what kind of structure it should be. Thus, at that time, I just mark it and continue.
+
+```bash
+(gdb) x 0x6030f00x6030f0 <n1>:	0x00000024
+```
+
+Finally, we find the another branch that can trigger the bomb. At this time, the return value from `func7` become crucial, where if this function return 2, then we can avoid the bomb; the bomb will be triggered otherwise.
+
+The pseudo-C code of **secret_phase function** is as follows:
+
+```c
+	edx = 10; 
+	esi = 0; 
+	rax = input;
+	rax = stol(input); // convert string to long
+	rbx = rax;
+	if( (*rax-1) > 1000 ){
+		explode_bomb();
+	}
+	rsi = rbx;
+	edi = 36;
+	if( fun7(rsi,edi) != 2 ){
+		explode_bomb();
+	}
+```
+
+Next, I moved my attention to `func7`:
+
+```asm
+(gdb) disas fun7Dump of assembler code for function fun7:=> 0x0000000000401204 <+0>:	sub    $0x8,%rsp   0x0000000000401208 <+4>:	test   %rdi,%rdi   0x000000000040120b <+7>:	je     0x401238 <fun7+52>   0x000000000040120d <+9>:	mov    (%rdi),%edx   0x000000000040120f <+11>:	cmp    %esi,%edx   0x0000000000401211 <+13>:	jle    0x401220 <fun7+28> ; if (esi == edx)
+   ; else part   0x0000000000401213 <+15>:	mov    0x8(%rdi),%rdi ; rdi -> left_sub-tree   0x0000000000401217 <+19>:	callq  0x401204 <fun7>   0x000000000040121c <+24>:	add    %eax,%eax ; eax *=2   0x000000000040121e <+26>:	jmp    0x40123d <fun7+57>
+   ;   0x0000000000401220 <+28>:	mov    $0x0,%eax ; eax = 0   0x0000000000401225 <+33>:	cmp    %esi,%edx   0x0000000000401227 <+35>:	je     0x40123d <fun7+57> ;  Find the target value //inner if
+   ; inner else   0x0000000000401229 <+37>:	mov    0x10(%rdi),%rdi ; rdi -> right_sub-tree   0x000000000040122d <+41>:	callq  0x401204 <fun7>   0x0000000000401232 <+46>:	lea    0x1(%rax,%rax,1),%eax ; eax = 2*rax +1
+   ;   0x0000000000401236 <+50>:	jmp    0x40123d <fun7+57>   0x0000000000401238 <+52>:	mov    $0xffffffff,%eax ; eax = -1   0x000000000040123d <+57>:	add    $0x8,%rsp   0x0000000000401241 <+61>:	retq   End of assembler dump.
+```
+
+In `fun7`, it first check the validation of rdi. If it is validate, then compared `rdi` with our input value `rsi`. If they are same, return 0; If our input `rsi` is higher, then it will recursively call fun7 and return `2 * fun7() + 1`; Otherwise, it will also recursively call fun7 and return `2 * fun7`. 
+
+The pseudo-C code shows below: 
+
+```c
+// two parameters: *pnode = rdi, input_value = rsi
+int fun7(int *pnode, int input_value){
+	// rdi == 0
+	if(pnode == NULL){
+		return -1; // 0xffffffff
+	}
+	//edx = *rdi;
+	edx = pnode->value;
+	// when edx < = rsi
+	if(edx <= input_value ){
+		eax = 0;
+		// when the value is found
+		// edx == esi
+		if(edx == input_value){
+			return eax;
+		}else{
+			// go to right sub tree
+			/**
+			rdi = rdi+0x10(16); // go to address of right sub-tree
+			return 2 * fun7(rsi,rdi)+1;
+			**/
+			return 2 * fun7(pnode->right, input_value) + 1;
+		}
+	}else{
+		/**
+			rdi += 0x8; // go to // go to address of left sub-tree
+			return 2 * fun7(rsi,rdi);
+		**/
+		return 2 * fun7(pnode->left, input_value);
+	}
+}
+```
+After analyze `fun7` and combine it with what I saw in the magic number `0x6030f0`, I found that the structure that this magic number stored is a **Binary Search Tree**. **The input of the secret phase should be the target value we want to find in the binary search tree**.
+
+Here is the structure of this BST:
+
+```bash
+(gdb) x/120x 0x6030f00x6030f0 <n1>:	0x00000024	0x00000000	0x00603110	0x000000000x603100 <n1+16>:	0x00603130	0x00000000	0x00000000	0x000000000x603110 <n21>:	0x00000008	0x00000000	0x00603190	0x000000000x603120 <n21+16>:	0x00603150	0x00000000	0x00000000	0x000000000x603130 <n22>:	0x00000032	0x00000000	0x00603170	0x000000000x603140 <n22+16>:	0x006031b0	0x00000000	0x00000000	0x000000000x603150 <n32>:	0x00000016	0x00000000	0x00603270	0x000000000x603160 <n32+16>:	0x00603230	0x00000000	0x00000000	0x000000000x603170 <n33>:	0x0000002d	0x00000000	0x006031d0	0x000000000x603180 <n33+16>:	0x00603290	0x00000000	0x00000000	0x000000000x603190 <n31>:	0x00000006	0x00000000	0x006031f0	0x000000000x6031a0 <n31+16>:	0x00603250	0x00000000	0x00000000	0x000000000x6031b0 <n34>:	0x0000006b	0x00000000	0x00603210	0x000000000x6031c0 <n34+16>:	0x006032b0	0x00000000	0x00000000	0x000000000x6031d0 <n45>:	0x00000028	0x00000000	0x00000000	0x000000000x6031e0 <n45+16>:	0x00000000	0x00000000	0x00000000	0x000000000x6031f0 <n41>:	0x00000001	0x00000000	0x00000000	0x000000000x603200 <n41+16>:	0x00000000	0x00000000	0x00000000	0x000000000x603210 <n47>:	0x00000063	0x00000000	0x00000000	0x000000000x603220 <n47+16>:	0x00000000	0x00000000	0x00000000	0x000000000x603230 <n44>:	0x00000023	0x00000000	0x00000000	0x000000000x603240 <n44+16>:	0x00000000	0x00000000	0x00000000	0x000000000x603250 <n42>:	0x00000007	0x00000000	0x00000000	0x000000000x603260 <n42+16>:	0x00000000	0x00000000	0x00000000	0x000000000x603270 <n43>:	0x00000014	0x00000000	0x00000000	0x000000000x603280 <n43+16>:	0x00000000	0x00000000	0x00000000	0x000000000x603290 <n46>:	0x0000002f	0x00000000	0x00000000	0x000000000x6032a0 <n46+16>:	0x00000000	0x00000000	0x00000000	0x000000000x6032b0 <n48>:	0x000003e9	0x00000000	0x00000000	0x000000000x6032c0 <n48+16>:	0x00000000	0x00000000	0x00000000	0x00000000
+```
+As we can see in this structure, there have **three values in each node**, where they are : 
+
++ `the pointer that pointer to its node value` : first address of this node;
++ `the pointer points to its left child` : first address + 0x8;
++ `the pointer points to its right child` : first addrest + 0x10(16);
+
+Here is the  psudo-C code that represent such tree node structure:
+
+```c
+// In the code, register rdi store the first address of such structure
+struct *pnode{
+	int value;
+	*pnode left; // rdi + 0x8
+	*pnode right; // rdi + 0x10(16);
+}
+```
+In order to better understand this BST, I drew a picture to describe this binary search tree, where it is stored in the address of magic number `0x6030f0`:
+
+![secret_phase_bts](pic/secret_phase_bts.png)
+
+Now, we back to the answer we look for. Specifically, we need the return value of `fun7` to be 2.
+
+According to the structure of the binary search tree and the picture I draw. There only have two nodes can achieve this, where they are `n32`(its value are 22) and `n43`(its value are 20). When I search the value of `n32` and `n43`, by following the logic of fun7, the return value of `fun7` will be 2.
+
+### Thus, the final answer of secret_phase is `20` or `22` 
+
+Bomb lab finished.
