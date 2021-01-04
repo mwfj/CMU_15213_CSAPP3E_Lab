@@ -37,19 +37,19 @@ Here is the summary of lab phases:
 
 **where CI = Code Injection; ROP = Return-Oriented Programming.**
 
-#	Part I: Code Injection Attacks
+##	Part I: Code Injection Attacks
 
-## 1.1 Level 1
-
-
-## 1.2 Level 2
+### 1.1 Level 1
 
 
-## 1.3 Level 3
+### 1.2 Level 2
 
 
-#	Part II: Return-Oriented Programming
+### 1.3 Level 3
 
-##  2.1 Level 2
 
-##  2.2 Level 3
+##	Part II: Return-Oriented Programming
+
+###  2.1 Level 2
+
+###  2.2 Level 3
