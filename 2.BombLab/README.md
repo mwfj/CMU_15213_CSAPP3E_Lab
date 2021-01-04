@@ -21,7 +21,9 @@ Table of Content
 
 In this lab, we are required to defuse the bomb hide in the program. We need to use the disassemble way to find the bombs.
 
-As the hint from the writeup, I firstly use gdb tool to print out the assemble code and figure out the position of bomb. Then use gdb tool to print the 'suspicious value'
+As the hint from the writeup, I firstly use gdb tool to print out the assemble code and figure out the position of bomb. Then use gdb tool to print the 'suspicious value' and the assembly code of "suspicious" function
+
+To see my solution, go to `bomb-solution` and check the readme in this folder.
 
 ## <a name="1">Phase 1</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
