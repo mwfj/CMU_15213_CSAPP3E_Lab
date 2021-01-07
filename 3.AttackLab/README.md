@@ -37,7 +37,8 @@ Here is the summary of lab phases:
 
 **where CI = Code Injection; ROP = Return-Oriented Programming.**
 
-![stack_layout](pic/stack_layout.JPG "Figure 1. Stack Layout in  Memory")
+![stack_layout](pic/stack_layout.JPG )
+<center>Figure 1. Stack Layout in  Memory</center>
 
 ![code_injection_attack](pic/code_injection_attack.JPG)
 
