@@ -38,10 +38,14 @@ Here is the summary of lab phases:
 **where CI = Code Injection; ROP = Return-Oriented Programming.**
 
 ![stack_layout](pic/stack_layout.JPG )
-<p align="center">Figure 1. Stack Layout in  Memory</p>
+<p align="center">Figure 1. Stack Layout in  Memory</p></br>
 
 ![code_injection_attack](pic/code_injection_attack.JPG)
-<p align="center">Figure 2. Code Injection Attack</p>
+<p align="center">Figure 2. Code Injection Attack</p></br>
+
+In the code injection attack, the attacker just filled out the caller frame in the stack frame until it reaches the return address section (**shown in Figure 1**). Then the attacker will utilize the vulnerable function like `gets()`, where it never checks the length of the input string, to overwrite the content in the `ret` area and replace it with the address that the attacker intends to reach.(**shown in Figure 2**)
+
+When it go the function that attack would like to go, then the next operation will control by attacker and they can do whatever they want.
 
 ##	Part I: Code Injection Attacks
 
