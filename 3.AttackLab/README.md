@@ -41,6 +41,7 @@ Here is the summary of lab phases:
 <p align="center">Figure 1. Stack Layout in  Memory</p>
 
 ![code_injection_attack](pic/code_injection_attack.JPG)
+<p align="center">Figure 2. Code Injection Attack</p>
 
 ##	Part I: Code Injection Attacks
 
