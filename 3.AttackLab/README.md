@@ -203,7 +203,7 @@ We pass the test:
 	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 78 DC 61 55 00 00 00 00 
 ```
 
-The **second way** is to **not only overwrite the next 8 bytes address, but next 24 bytes address**, where the return area should point to the next line of assembly code `0x5561dca8`. The `Hexadecimal code` we made should be after the return address:
+The **Second way** is to **not only overwrite the next 8 bytes address, but next 24 bytes address**, where the return area should point to the next line of assembly code `0x5561dca8`. The `Hexadecimal code` we made should be after the return address:
 
 The exploit string should be like this:
 
