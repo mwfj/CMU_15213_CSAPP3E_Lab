@@ -23,6 +23,17 @@ In this lab, it used the vulnerability of function `Gets()` to do the correspond
 6 }
 ```
 
+The code of `test`:
+
+```c
+1 void test() 
+2 { 
+3	int val;
+4	val = getbuf();
+5	printf("No exploit);.
+6 }
+```
+
 Specifically, this lab uses two types of attack : `Code Injection` and `Return-Oriented Programming`
 
 Here is the summary of lab phases: 
@@ -52,17 +63,6 @@ When it go the function that attack would like to go, then the next operation wi
 ### 1.1 Level 1
 
 In this part, I used the vulnerability of the function `unsigned getbuf()` to get the **CTarget**  to execute the code for `touch 1`, when `getbuf()` executes its return statement, rather than executes the function of `test()`.
-
-The code of `test`:
-
-```c
-1 void test() 
-2 { 
-3	int val;
-4	val = getbuf();
-5	printf("No exploit);.
-6 }
-```
 
 The code of `touch 1`:
 
