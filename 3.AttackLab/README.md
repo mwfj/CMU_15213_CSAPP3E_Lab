@@ -104,7 +104,7 @@ We will get the layout like this:
 Here is the assembly code for `test()`:
 
 ```asm
-(gdb) disas testDump of assembler code for function test:   0x0000000000401968 <+0>:	sub    $0x8,%rsp   0x000000000040196c <+4>:	mov    $0x0,%eax   0x0000000000401971 <+9>:	callq  0x4017a8 <getbuf>   0x0000000000401976 <+14>:	mov    %eax,%edx   0x0000000000401978 <+16>:	mov    $0x403188,%esi   0x000000000040197d <+21>:	mov    $0x1,%edi   0x0000000000401982 <+26>:	mov    $0x0,%eax   0x0000000000401987 <+31>:	callq  0x400df0 <__printf_chk@plt>   0x000000000040198c <+36>:	add    $0x8,%rsp   0x0000000000401990 <+40>:	retq   End of assembler dump.
+(gdb) disas testDump of assembler code for function test:   0x0000000000401968 <+0>:	sub    $0x8,%rsp   0x000000000040196c <+4>:	mov    $0x0,%eax   0x0000000000401971 <+9>:	callq  0x4017a8 <getbuf>   0x0000000000401976 <+14>:	mov    %eax,%edx ; the place should have jumped back to   0x0000000000401978 <+16>:	mov    $0x403188,%esi   0x000000000040197d <+21>:	mov    $0x1,%edi   0x0000000000401982 <+26>:	mov    $0x0,%eax   0x0000000000401987 <+31>:	callq  0x400df0 <__printf_chk@plt>   0x000000000040198c <+36>:	add    $0x8,%rsp   0x0000000000401990 <+40>:	retq   End of assembler dump.
 ```
 
 Moreover, we can get the adderss of `touch1()` by seeing its assembly code, which is `0x4017c0`.
