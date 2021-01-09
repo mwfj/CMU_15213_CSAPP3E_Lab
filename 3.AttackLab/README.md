@@ -295,7 +295,7 @@ Here is the assembly code of `hexmatch`
 
 Just like what we did in CI-Level2, the return address of `getbuf()` should be overwritten by the first address where the injected code is placed. However, another difference from CI-Level2 is that the parameter passed to `$rdi `should not be the cookie value itself, but **the first address where the cookie string is stored**.
 
-To avoid the stack frame of `hexmatch` overwritten our exploit string, due to the stack frame of `hexmatch` is created after we pass the exploit string into `touch3`, we need to put  cookie string into the space the `hexmatch` will never reach. Thus, we decide to put cookie string into the padding area. Specifcally，we plan to put the Injection code to the top of stack frame for `getbuf()`, where it is `0x5561dc78`. Also, we will put the cookie string into after the return value, which is `0x5561dca0 + 0x8 = 0x5561dca8`
+To avoid the stack frame of `hexmatch` overwritten our exploit string, due to the stack frame of `hexmatch` is created after we pass the exploit string into `touch3`, we need to put  cookie string into the space the `hexmatch` will never reach.  We found that the `hexmatch` will overwrite the first 40 bytes of input string. Thus, we decide to put cookie string into the address that higher than return address of `getbuf`. Specifcally，we plan to put the Injection code to the top of stack frame for `getbuf()`, where it is `0x5561dc78`. Also, we will put the cookie string into after the return value, which is `0x5561dca0 + 0x8 = 0x5561dca8`
 
 Here is our code:
 
