@@ -1,4 +1,4 @@
-### To see the solution  of exploit string, go to the `target1/solution` folder 
+### To see the solution  of exploit string, go to the `target1/solutions` folder 
 
 ###  Table Of Content
 
