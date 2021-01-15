@@ -1,0 +1,28 @@
+
+method2.o:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000000000 <.text>:
+   0:	48 89 e0             	mov    %rsp,%rax
+   3:	c3                   	retq   
+   4:	48 89 c7             	mov    %rax,%rdi
+   7:	90                   	nop
+   8:	c3                   	retq   
+   9:	58                   	pop    %rax
+   a:	90                   	nop
+   b:	c3                   	retq   
+   c:	89 c2                	mov    %eax,%edx
+   e:	89 d1                	mov    %edx,%ecx
+  10:	38 c9                	cmp    %cl,%cl
+  12:	c3                   	retq   
+  13:	89 ce                	mov    %ecx,%esi
+  15:	90                   	nop
+  16:	90                   	nop
+  17:	c3                   	retq   
+  18:	48 8d 04 37          	lea    (%rdi,%rsi,1),%rax
+  1c:	c3                   	retq   
+  1d:	48 89 c7             	mov    %rax,%rdi
+  20:	90                   	nop
+  21:	c3                   	retq   
