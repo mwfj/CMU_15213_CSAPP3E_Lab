@@ -2,7 +2,7 @@
 
 ### This Repo is for the lab of [CMU-15-213: Intro to Computer Systems](http://csapp.cs.cmu.edu/3e/labs.html) 
 ### or 
-### The lab from book *Computer Systems: A Programmer's Perspective, 3/E (CS:APP3e)*
+### The lab from book :  *Computer Systems: A Programmer's Perspective, 3/E (CS:APP3e)*
 
 ### **Updating...**
 
