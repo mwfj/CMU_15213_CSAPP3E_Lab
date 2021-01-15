@@ -1,3 +1,5 @@
+### To see the solution, go to the `solution` folder in target1 path
+
 ###  Table Of Content
 
 - [Part I: Code Injection Attacks](#part-i-code-injection-attacks)
