@@ -1,4 +1,4 @@
-### To see the solution, go to the `solution` folder in target1 path
+### To see the solution, go to the `target1/solution` folder 
 
 ###  Table Of Content
 
