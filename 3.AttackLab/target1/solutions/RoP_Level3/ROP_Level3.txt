@@ -1,4 +1,8 @@
-00 00 00 00 00 00 00 00 
+/*
+   To run this file, go to target1 folder
+   and run this command: ./hex2raw < solutions/RoP_Level3/ROP_Level3.txt | ./rtarget -q
+*/
+00 00 00 00 00 00 00 00
 00 00 00 00 00 00 00 00
 00 00 00 00 00 00 00 00
 00 00 00 00 00 00 00 00
