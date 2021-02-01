@@ -87,7 +87,7 @@ void phase_command(int argc, char **argv, int *verbose, uint64_t* s, uint64_t* E
 
 // Init the cache simulator structure
 // Where the cache totally has s sets and E lines in each set
-cache_line_ptr* cache_init(cache_line_ptr *cache,uint64_t sets, uint64_t E){
+cache_line_ptr* cache_init(uint64_t sets, uint64_t E){
     cache_line_ptr* cache_tmp;
     // Initialize the set
     if( (cache_tmp = calloc(sets,sizeof(cache_line_ptr)))==NULL ){
@@ -112,7 +112,7 @@ cache_line_ptr* cache_init(cache_line_ptr *cache,uint64_t sets, uint64_t E){
     return cache_tmp;
 }
 // Free Request Heap Space
-void relese_space(cache_line_ptr* cache, uint64_t sets, uint64_t E){
+void relese_space(cache_line_ptr* cache, uint64_t sets){
     for(uint64_t i=0; i<sets; i++)
         free(cache[i]);
     free(cache);
@@ -258,7 +258,8 @@ int main(int argc, char **argv)
     // Init the cache line
     uint64_t sets = 1<<s;
     cache_line_ptr* cache = NULL;
-    cache = cache_init(cache,sets,E);
+
+    cache = cache_init(sets,E);
     // Open the file
     FILE* file = fopen(file_path,"r");
     if(!file){
@@ -272,6 +273,6 @@ int main(int argc, char **argv)
     // Close the file after used it
     fclose(file);
     // Release the space
-    relese_space(cache,sets,E);
+    relese_space(cache,sets);
     return 0;
 }
