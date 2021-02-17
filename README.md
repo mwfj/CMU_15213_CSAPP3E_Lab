@@ -13,4 +13,4 @@
 
 - [x] **3. AttackLab** : Students are asked to modify the behavior of the targets by developing exploits based on either **code injection or return-oriented programming**. This lab teaches the students about the stack discipline and teaches them about the danger of writing code that is vulnerable to buffer overflow attacks.
 
-- [ ] **4. CacheLab:** Students write a general-purpose cache simulator, and then optimize a small matrix transpose kernel to minimize the number of misses on a simulated cache. This lab uses the Valgrind tool to generate address traces. **Note: This lab must be run on a 64-bit x86-64 system.**
+- [ ] **4. CacheLab:** Students write a general-purpose cache simulator, and then optimize a small matrix transpose kernel to minimize the number of misses on a simulated cache. This lab uses the Valgrind tool to generate address traces. **Note: This lab must be run on a 64-bit x86-64 Linux system.**
