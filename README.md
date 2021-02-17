@@ -4,6 +4,8 @@
 ### or 
 ### The lab from book :  *Computer Systems: A Programmer's Perspective, 3/E (CS:APP3e)*
 
+### Running Environment: Ubuntu 18.04
+
 ### **Updating...**
 
 - [x] **1. DataLab** : Students implement simple logical, **two's complement, and floating point functions**, but using a highly restricted subset of C.This lab helps students understand the bit-level representations of C data types and the **bit-level behavior** of the operations on data.
