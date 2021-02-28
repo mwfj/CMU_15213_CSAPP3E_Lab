@@ -9,7 +9,35 @@
 #include <getopt.h> // getopt_long, getopt_long_only
 #include <unistd.h> // getopt
 // #include <time.h>
+/*
+Data structure:
 
+                                                             +-----+
+                                                +-----+   +-->Valid|
+                                           +---->line0+---+  +-----+
+                                           |    +-----+   |
+                         +---------------+ |              |  +---+
+                         | set0          | |    +-----+   +-->Tag|
+                      +--> entry_of_lines+------>line1|   |  +---+
+                      |  +---------------+ |    +-----+   |
+                      |                    |              |  +-------+
+                      |  +---------------+ |    +-----+   +-->Counter|
+                      |  | set1          | +---->line2|      +-------+
+                      +--> entry_of_lines| |    +-----+
++--------------+      |  +---------------+ |
+| cache0       +------+                    |    +-----+
+| entry_of_sets|      |  +---------------+ +---->lineX|
++--------------+      |  | set2          |      +-----+
+                      +--> entry_of_lines|
+                      |  +---------------+
+                      |
+                      |  +---------------+
+                      |  | setX          |
+                      +--> entry_of_lines|
+                         +---------------+
+
+
+*/
 // the structure of word address in cache
 typedef struct cache_line{
     uint64_t tag; // used for 64 bit
