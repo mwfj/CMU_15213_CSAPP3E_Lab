@@ -23,3 +23,12 @@ We have provided you with the binary executable of a reference cache simulator, 
 
 Your job for Part A is to **ﬁll in the `csim.c` ﬁle so that it takes the same command line arguments and produces the identical output as the reference simulator**. Notice that this ﬁle is almost completely empty. You’ll need to write it from scratch.
 
++ Your simulator must work correctly for arbitrary `s`, `E`, and `b`. This means that you will need to allocate storage for your simulator’s data structures using the malloc function. Type “man malloc” for information about this function.
++ For this lab, we are interested only in **data cache performance**, so your simulator should **ignore all instruction cache accesses** (lines starting with “I”). Recall that valgrind always puts “I” in the ﬁrst column (with no preceding space), and “M”, “L”, and “S” in the second column (with a preceding space). This may help you parse the trace.
+
+### Solution
+
+To solve this problem, we need to figure out two things:
+
+1. The cache line structure and how it works(from Book or slides)
+2. How to parse the key word from the input instruction and use these key words to implement the relative features.
