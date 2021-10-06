@@ -28,7 +28,12 @@ Your job for Part A is to **ﬁll in the `csim.c` ﬁle so that it takes the sam
 
 ### Solution
 
-To solve this problem, we need to figure out two things:
+First of all, we need to figure out **the cache line structure** and how it works, where it should from the Book([CSApp3E](https://csapp.cs.cmu.edu/)) or [slides](https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/schedule.html).
 
-1. The cache line structure and how it works(from Book or slides)
-2. How to parse the key word from the input instruction and use these key words to implement the relative features.
+Basically, in the memory syetem, there have two types of chips from the memory system:  **Dynamic Random-Access Memory(DRAM)** and **Static Random-Access Memory(SRAM)**, where **main memory** is composed of DRAM and **cache memory** is composed of SRAM. The reason they use different types of chips is that SRAM is more stable by disturbance and faster but cannot make intense and expensive, whereas DRAM can be made more intensive and cheaper but more sensitive by a noise like the light ray and need to refresh around 10 to 100 millisecond.
+
+|          | Transistors per bit | Relative Access Time | Persistent? | Sensitive | Relative Cost | Applications                  |
+| :------: | :-----------------: | :------------------: | :---------: | :-------: | :-----------: | ----------------------------- |
+| **SRAM** |          6          |          1x          |     Yes     |    No     |     1000x     | Cache Memory                  |
+| **DRAM** |          2          |         10x          |     No      |    Yes    |      1x       | Main Memory, <br>frame buffer |
+
