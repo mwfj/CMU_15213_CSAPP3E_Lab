@@ -23,11 +23,7 @@ Due to the **memory hierarchy** conception, the storage devices get slower, chea
 
 ![cache_concept](./readme-pic/cache_concept.png)
 
-These pictures are from [cmu-213 slide](https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/11-memory-hierarchy.pdf)
-
-
-
-<p align="center">These pictures are from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/11-memory-hierarchy.pdf">cmu-213 slide</a></p>
+<p align="center">These figures are from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/11-memory-hierarchy.pdf">cmu-213 slide</a></p>
 
 
 
