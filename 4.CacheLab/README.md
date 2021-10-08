@@ -21,7 +21,7 @@ Due to the **memory hierarchy** conception, the storage devices get slower, chea
 
 ![mem_hierarchy](./readme-pic/memory_hierarchy.png)
 
-This picture from [cmu-213 slide](
+This picture from [cmu-213 slide](https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/11-memory-hierarchy.pdf)
 
 ## Part A: Writing a Cache Simulator
 
@@ -46,8 +46,6 @@ Your job for Part A is to **ﬁll in the `csim.c` ﬁle so that it takes the sam
 
 + Your simulator must work correctly for arbitrary `s`, `E`, and `b`. This means that you will need to allocate storage for your simulator’s data structures using the malloc function. Type “man malloc” for information about this function.
 + For this lab, we are interested only in **data cache performance**, so your simulator should **ignore all instruction cache accesses** (lines starting with “I”). Recall that valgrind always puts “I” in the ﬁrst column (with no preceding space), and “M”, “L”, and “S” in the second column (with a preceding space). This may help you parse the trace.
-
-https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/11-memory-hierarchy.pdf)
 
 ### Solution
 
