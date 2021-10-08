@@ -21,11 +21,27 @@ Due to the **memory hierarchy** conception, the storage devices get slower, chea
 
 ![mem_hierarchy](./readme-pic/memory_hierarchy.png)
 
+In general, devices lower in the hierarchy(further from the CPU) have **longer access times**, and thus tend to use larger block sizes in order to **amortize** these longer access times.
+
 ![cache_concept](./readme-pic/cache_concept.png)
 
 <p align="center">These figures are from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/11-memory-hierarchy.pdf">cmu-213 slide</a></p>
 
+|      Type      |      What cached      |     where cached     | Latency(clock cycles) |       Managed by       |
+| :------------: | :-------------------: | :------------------: | :-------------------: | :--------------------: |
+|  CPU register  | 4-byte or 8-byte word | On-chip CPU register |           0           |        Compiler        |
+|      TLB       |  Address translation  |     On-chip TLB      |           0           |      Hardware MMU      |
+|    L1 Cache    |    64-byte blocks     |   On-chip L1 cache   |           4           |        Hardware        |
+|    L2 Cache    |    64-byte blocks     |   On-chip L2 cache   |          10           |        Hardware        |
+|    L3 Cache    |    64-byte blocks     |   On-chip L3 cache   |          50           |        Hardware        |
+| Virtual Memory |      4-KB pages       |     Main memory      |          200          |     Hardware + OS      |
+|  Buffer Cache  |    Parts of files     |     Main memory      |          200          |           OS           |
+|   Disk Cache   |     Disk sectors      |   Disk controller    |        100,000        | Controller<br>firmware |
+| Network Cache  |    Parts of files     |      Local disk      |      10,000,000       |       NFS client       |
+| Browser Cache  |       Web pages       |      Local disk      |      10,000,000       |      Web browser       |
+|   Web Cache    |       Web pages       | Remote server disks  |     1,000,000,000     |    Web proxy server    |
 
+<p align="center">This table is from the book <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 6</p>
 
 ## Part A: Writing a Cache Simulator
 
