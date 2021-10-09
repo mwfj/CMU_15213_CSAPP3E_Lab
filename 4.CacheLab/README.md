@@ -70,3 +70,5 @@ Your job for Part A is to **ﬁll in the `csim.c` ﬁle so that it takes the sam
 ### Solution
 
 First of all, we need to figure out **the cache line structure** and how it works, where it should from the Book([CSApp3E](https://csapp.cs.cmu.edu/)) or [slides](https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/schedule.html).
+
+Just like the book talks about,
