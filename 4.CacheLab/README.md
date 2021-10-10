@@ -71,4 +71,83 @@ Your job for Part A is to **ﬁll in the `csim.c` ﬁle so that it takes the sam
 
 First of all, we need to figure out **the cache line structure** and how it works, where it should from the Book([CSApp3E](https://csapp.cs.cmu.edu/)) or [slides](https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/schedule.html).
 
-Just like the book talks about,
+Just like the book talks about, the cache memory structure as figure show below:
+
+![cache_memory_structure](./readme-pic/cache_memory_structure.png)
+
+<p align="center">Cache line structure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/11-memory-hierarchy.pdf">cmu-213 slide</a></p>
+
+How cache hardware implements read: 
+
+1. Program executes instructions first, it reference some word to read in memory.
+2. CPU will send the address to cache and asks the cache to return the word(the data it looking for) at that address
+3. Cache will take that address and divides the address into a number of regions, which determined by the organization of the cache, where it characterized by tuple(S.E.B).
+
+Generally, the size(capacity) of cache `C = S x E x B` **(valid bits and tag bits are not include)**
+
++ `s set index` bits form a index into the array of S sets, where the first is 0, the second is 1 and so on.
+
++ Once we know which set the word must be contained in, **tag bits** `t` tell us which line(if any) in the set contains the word.
+
++ A line in the set contains the word if and only if the `valid bit` is set and `the tag bit` in the line **match the tag bit** in the addresses.
+
++ Once we have **located the line** identified by **the tag** in the set identified by **the set index**, then the `b block offset bits` gives us the offset of the word in the **B-byte data block**. 
+
+  
+
+<p align="center"><strong>Fundamental Parameters Table</strong></p>
+
+| Parameter   | Description                                       |
+| ----------- | ------------------------------------------------- |
+| S = 2ˢ      | Number of **sets**                                |
+| E           | Number of **lines per set**                       |
+| B = 2ᵇ      | Block size (bytes)                                |
+| m = log₂(M) | Number of **physical (main memory) address bits** |
+
+<p align="center">This table is from the book <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 6</p>
+
+
+
+<p align="center"><strong>Derived quantities Table</strong></p>
+
+| Parameter       | Description                                                  |
+| --------------- | ------------------------------------------------------------ |
+| M = 2ᵐ          | **Maxinum** number of **unique** memory addresses            |
+| s = log₂(S)     | Number of **set index bits**                                 |
+| b = log₂(B)     | Number of **block offset bits**                              |
+| t = m - (s + b) | Number of **tag bits**                                       |
+| C  = B x E x S  | **Cache size(bytes)**, not including overhead such as the valid and tag bits |
+
+<p align="center">This table is from the book <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 6</p>
+
+
+
+The code structure would be like this :
+
+```c
+/**
+ * Structure for block in Cache line:
+ *      +-----------+----------+---------------+
+ *      + Valid Bit + Tag Bit  +  Cache Block  + 
+ *      +-----------+----------+---------------+    
+ *
+ *
+ * Address of word that CPU send to Cache: 64bit 
+ *      +-----------+------------+---------------+
+ *      + Tag Bit   +  Set Index +  Block Offset +
+ *      +-----------+------------+---------------+
+**/ 
+
+// the structure of word address in cache
+typedef struct cache_line{
+    uint64_t tag; // used for 64 bit
+  	// Because we use LRU as the evict rules
+    // we need to record the current cache create time
+    uint64_t time;
+    int valid; // valid bit
+    // int block; // block offset(unused in this simulator)
+}cache_line_t;
+
+typedef cache_line_t *cache_line_ptr;
+```
+
