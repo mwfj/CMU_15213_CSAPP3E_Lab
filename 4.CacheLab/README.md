@@ -122,7 +122,7 @@ Generally, the size(capacity) of cache `C = S x E x B` **(valid bits and tag bit
 
 
 
-The code structure would be like this :
+The code structure should be like this :
 
 ```c
 /**
