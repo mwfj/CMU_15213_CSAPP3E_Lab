@@ -122,6 +122,22 @@ Generally, the size(capacity) of cache `C = S x E x B` **(valid bits and tag bit
 
 
 
+### Direct-Mapped Caches
+
+A cache line with **exactly one line per set(E = 1)** is known as a direct-mapped caches.
+
+The process that a cache goes through of determinging whhether a request is a hit or miss and then extracting word consists of three steps
+
++ ***set selection***
++ ***line matching***
++ ***word extraction***
+
+
+
+![direct-mapped_cache](./readme-pic/direct_mapped_cache.png)
+
+<p align="center">Direct-mapped cache from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/11-memory-hierarchy.pdf">cmu-213 slide</a></p>
+
 The code structure should be like this :
 
 ```c
