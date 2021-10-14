@@ -77,7 +77,26 @@ Just like the book talks about, the cache memory structure as figure show below:
 
 <p align="center">Cache line structure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/11-memory-hierarchy.pdf">cmu-213 slide</a></p>
 
-How cache hardware implements read: 
+Look the picture above, we need to clearly distinguish two different types of address before we move on. The left side is `structure of cache memory`; whereas the right side the `structure of address of word`.  `s bits` is the index number of the whole cache memory, which help us to location the position of data we looking for by set sizze. Furthermore, if we look at these structures closely, we will find that there have one common section between these two structure : **tag bit**, where it help us to make sure whether the current cache line is the one we looking for. Actually, there also has a connection between **cache block** and **block offset**, where it is that block offset just like an index of an array to point that position of the first byte of the data we looking for in cache block. In the final, `valid bit` is to tell us whether current cache line in the selected set is meaningful.
+
+```
+/**
+ * Structure for block in Cache line:
+ *      +-----------+----------+---------------+
+ *      + Valid Bit +  Tag Bit +  Cache Block  + 
+ *      +-----------+----------+---------------+    
+ *
+ *
+ * Address of word that CPU send to Cache: 64bit 
+ *      +-----------+------------+---------------+
+ *      + Tag Bit   +  Set Index +  Block Offset +
+ *      +-----------+------------+---------------+
+**/ 
+```
+
+
+
+Then, we need to figure out how cache hardware implements read: 
 
 1. Program executes instructions first, it reference some word to read in memory.
 2. CPU will send the address to cache and asks the cache to return the word(the data it looking for) at that address
@@ -124,27 +143,43 @@ Generally, the size(capacity) of cache `C = S x E x B` **(valid bits and tag bit
 
 ### Direct-Mapped Caches
 
-A cache line with **exactly one line per set(E = 1)** is known as a direct-mapped caches.
+A cache line with **exactly one line per set(E = 1)** is known as a direct-mapped caches. We use this simple structure of go through the process of cache read.
 
-The process that a cache goes through of determinging whhether a request is a hit or miss and then extracting word consists of three steps
-
-+ ***set selection***
-+ ***line matching***
-+ ***word extraction***
-
-
-
-![direct-mapped_cache](./readme-pic/direct_mapped_cache.png)
+![direct-mapped_cache](file:///Users/mwfj/Documents/Clemson_University/Course/2020_Fall_Online_Self_Study/CMU_15-213_Intro_to_Computer_Systems_CSAPP3E/lab/git/4.CacheLab/readme-pic/direct_mapped_cache.png?lastModify=1634221687)
 
 <p align="center">Direct-mapped cache from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/11-memory-hierarchy.pdf">cmu-213 slide</a></p>
 
-The code structure should be like this :
+The process that a cache goes through of determinging whether a request is a hit or miss and then extracting word consists of three steps
+
++ ***set selection***:
+
+  In this section, the cache extracts that **s set** index bits from the middle of the address for `target word ω`, where these bits interprets as an **unsigned integer** that corresponds to a set number. In other words, if we think of the cache as a one-dimensional array of sets, then the set index bits form an index into this array.
+
+  ![set_selection](./readme-pic/set_selection.jpg)
+
+  <p align="center">This figure is from the book <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 6</p>
+
++ ***line matching***:
+
+  After making sure that the word ω we looking for is located at **set i**, we start to look for the exact position that the data located by comparing the `tag bit` and checking the `valid bit`. Specifically,  the valid bit indicate whether the current cache line in selected set  is meanning for or not and tag bit help to us to check whether the current cache line is right one.
+
+  **The `cache hit` occurs only if the valid bit is 1 and the tag bit matches.** Otherwise, we would have a `cache miss`.
+
++ ***word extraction***
+
+  Once we have a hit, we know that target word ω is somewhere in this block. All the things we need to do is to find the start poistion of the data we looking for in this block. To get this purpose, we need to use the `block offset` from the word address, where it provides us with the offset of the first byte in the desired word ω. Simliar to our view of a cache as an array of lines, we also can regards the data block as an array, and the block offset is the index number of that array.
+
+  ![set_selection](./readme-pic/line_matching.jpg)
+
+<p align="center">This figure is from the book <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 6</p>
+
+The cache line structure in our code should be like this :
 
 ```c
 /**
  * Structure for block in Cache line:
  *      +-----------+----------+---------------+
- *      + Valid Bit + Tag Bit  +  Cache Block  + 
+ *      + Valid Bit +  Tag Bit +  Cache Block  + 
  *      +-----------+----------+---------------+    
  *
  *
