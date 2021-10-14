@@ -145,7 +145,7 @@ Generally, the size(capacity) of cache `C = S x E x B` **(valid bits and tag bit
 
 A cache line with **exactly one line per set(E = 1)** is known as a direct-mapped caches. We use this simple structure of go through the process of cache read.
 
-![direct-mapped_cache](file:///Users/mwfj/Documents/Clemson_University/Course/2020_Fall_Online_Self_Study/CMU_15-213_Intro_to_Computer_Systems_CSAPP3E/lab/git/4.CacheLab/readme-pic/direct_mapped_cache.png?lastModify=1634221687)
+![direct-mapped_cache](./readme-pic/direct_mapped_cache.png?lastModify=1634221687)
 
 <p align="center">Direct-mapped cache from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/11-memory-hierarchy.pdf">cmu-213 slide</a></p>
 
