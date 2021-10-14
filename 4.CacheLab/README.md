@@ -173,6 +173,8 @@ The process that a cache goes through of determinging whether a request is a hit
 
 <p align="center">This figure is from the book <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 6</p>
 
++ Unfortunately, if we encounter a cache miss, then we need to retrieve the requested block from the next level in the memory hierarchy and store the new block in one of the cache lines of the set indicated by the set index bits. In general, if the current set is full of valid cache line, then one of the existing lines must be evicted.
+
 The cache line structure in our code should be like this :
 
 ```c
