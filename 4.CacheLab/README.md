@@ -452,5 +452,16 @@ Points (s,E,b)    Hits  Misses  Evicts    Hits  Misses  Evicts
     27
 
 TEST_CSIM_RESULTS=27
+
+➜  ~ ./csim-ref -v -s 4 -E 1 -b 4 -t traces/yi.trace
+L 10,1 miss 
+M 20,1 miss hit 
+L 22,1 hit 
+S 18,1 hit 
+L 110,1 miss eviction 
+L 210,1 miss eviction 
+M 12,1 miss eviction hit 
+hits:4 misses:5 evictions:3
+
 ```
 
