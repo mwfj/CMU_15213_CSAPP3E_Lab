@@ -47,6 +47,8 @@ In general, devices lower in the hierarchy(further from the CPU) have **longer a
 
 ### Cache Memory Read Background
 
+Before staring to write the code, we need to figure out **the cache line structure** and how it works first, where it should from the Book([CSApp3E](https://csapp.cs.cmu.edu/)) or [slides](https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/schedule.html).
+
 Just like the book talks about, the cache memory structure as figure show below:
 
 ![cache_memory_structure](./readme-pic/cache_memory_structure.png)
@@ -179,11 +181,9 @@ Your job for Part A is to **ﬁll in the `csim.c` ﬁle so that it takes the sam
 + Your simulator must work correctly for arbitrary `s`, `E`, and `b`. This means that you will need to allocate storage for your simulator’s data structures using the malloc function. Type “man malloc” for information about this function.
 + For this lab, we are interested only in **data cache performance**, so your simulator should **ignore all instruction cache accesses** (lines starting with “I”). Recall that valgrind always puts “I” in the ﬁrst column (with no preceding space), and “M”, “L”, and “S” in the second column (with a preceding space). This may help you parse the trace.
 
-### Solution
+### My Solution
 
-First of all, we need to figure out **the cache line structure** and how it works, where it should from the Book([CSApp3E](https://csapp.cs.cmu.edu/)) or [slides](https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/schedule.html).
-
-The cache line structure in our code should be like this :
+Just like the related content in the previous section, the cache line structure in our code should be like this :
 
 ```c
 /**
