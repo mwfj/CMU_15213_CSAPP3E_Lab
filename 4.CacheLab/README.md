@@ -465,3 +465,5 @@ hits:4 misses:5 evictions:3
 
 ```
 
+## Part B: Optimizing Matrix Transpose
+
