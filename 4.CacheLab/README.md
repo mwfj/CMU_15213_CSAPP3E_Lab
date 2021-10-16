@@ -212,3 +212,245 @@ typedef struct cache_line{
 typedef cache_line_t *cache_line_ptr;
 ```
 
+The first thing that our cache simulator need to do is to input the cache memory information and  parse that input file by line into our simulator and extract the useful information and fomred into the word address structure above. Furthermore, we will use the function `getopt()` to parse the input line,
+
+```c
+// Phase the command line by using getopt()
+void phase_command(int argc, char **argv, int *verbose, uint64_t* s, uint64_t* E, uint64_t* b, char **t){
+    int option;
+    while( (option = getopt(argc,argv,"hvs:E:b:t:"))!=-1 ){
+        switch (option)
+        {
+            // pop out the help flag
+            case 'h':
+                usage();
+                exit(EXIT_SUCCESS);
+            // Optional verbose ﬂag that displays trace info
+            case 'v':
+                *verbose = 1;
+                // usage();
+                break;
+            // Number of set index bits (S = 2^s is the number of sets)
+            case 's':
+                *s = atoi(optarg);
+                if(*s<0){
+                    printf("Error: Invalid input for <s>, exit program \n \n");
+                    usage();
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            // Specify the line per set(Associativity)
+            case 'E':
+                *E = atoi(optarg);
+                if(*E<0){
+                    printf("Error: Invalid input for <b>, exit program \n \n");
+                    usage();
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            // Number of block bits (B = 2^b bis the block size)
+            case 'b':
+                *b = atoi(optarg);
+                if(*b<0){
+                    printf("Error: Invalid input for <E>, exit program \n \n");
+                    usage();
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            // Name of the valgrind trace to replay
+            case 't':
+                *t = optarg;
+                break;
+            default:
+                printf("\n----------------------------------\n");
+                printf("Invalid option input!! Try again. \n");
+                printf("----------------------------------\n");
+                usage();
+                exit(EXIT_FAILURE);
+        }
+    }
+}
+```
+
+After get the information of the cache memory, we will "create a fake cache memory" by using the `calloc`, where `calloc` is to allocate the heap memory from the system by the specific size and initialize all the block in this allocated space as zero.
+
+As you can see the code below,  we required two-dimensional layout memory, where we allocate the memory firstly by set size, and, in each set, we also allocate memory by cache line size.
+
+```c
+// Init the cache simulator structure
+// Where the cache totally has s sets and E lines in each set
+cache_line_ptr* cache_init(uint64_t sets, uint64_t E){
+    cache_line_ptr* cache_tmp;
+    // Initialize the set
+    if( (cache_tmp = calloc(sets,sizeof(cache_line_ptr)))==NULL ){
+        perror("Failed to allocate space for calloc\n");
+        exit(EXIT_FAILURE);
+    }
+    // Initialize the lines in each set
+    for(int i=0; i<sets;i++){
+        if( (cache_tmp[i] =calloc(E,sizeof(cache_line_t))) == NULL){
+            perror("Failed to allocate space for lines\n");
+            printf("sets number %d\n",i);
+            exit(EXIT_FAILURE);
+        }
+    }
+    // Return by the cache line structure
+    return cache_tmp;
+}
+```
+
+Correspondingly, we also need to free up the heap space before the end of the program.:
+
+```c
+// Free Request Heap Space
+void relese_space(cache_line_ptr* cache, uint64_t sets){
+    for(uint64_t i=0; i<sets; i++)
+        free(cache[i]);
+    free(cache);
+}
+```
+
+Then, we will parse the input file first, then parse the address, the instruction flag and the number of bytes accessd per operation by cache line structure. As the code shown, in the function `read_trace`, we just did two things basically
+
+1. using the **bitwise operation** to prase the set index and tag index.
+2. we do the different operation by using the `set` and `tag` bit according to the instruction flag.
+
+```c
+// phase trace
+void read_trace(FILE* file, cache_line_ptr* cache, uint64_t s, 
+                uint64_t sets, uint64_t E,uint64_t b, 
+                int verbose,int *hit,int *miss, int *evictions)
+{
+    char flag;
+    uint64_t addr;
+    int len; 
+    // Read the trace file line by line
+    while(fscanf(file," %c %lx, %d",&flag,&addr,&len) != EOF){
+        if(flag == 'I')
+            continue; // skip when flag is 'I'
+        /**
+         * Structure for block in Cache line:
+         *      +-----------+----------+---------------+
+         *      + Valid Bit + Tag Bit  +  Cache Block  + 
+         *      +-----------+----------+---------------+    
+         *
+         *
+         * Address of word that CPU send to Cache: 64bit 
+         *      +-----------+------------+---------------+
+         *      + Tag Bit   +  Set Index +  Block Offset +
+         *      +-----------+------------+---------------+
+        **/ 
+        // Extract Set index 
+        uint64_t set_index_mask = ( 1 << s )-1;
+        uint64_t set_index = ( addr >> b ) & set_index_mask;
+        uint64_t tag_bit = ( addr >> b ) >> s;
+        cache_line_ptr search_line = cache[set_index];
+
+        // Load or Store will cause at most one cache miss
+        // When both of valid bit is 1 and tag bit is matched, cache hit
+        // Cache miss otherwise
+        if(flag == 'L' || flag == 'S'){ 
+            // Display trace info
+            if(verbose)
+                printf("Flag: %c, Address: %lx\n",flag,addr);
+            load_in_cache(hit,miss,evictions,search_line,E,tag_bit,verbose);
+          
+        }else if(flag == 'M'){
+            /*
+                Due to Modify operation involved both load and store
+                Thus, a modify operation may make two hit operation or one miss(might plus one eviction)+hit. 
+            */
+           if(verbose)  printf("Flag: %c, Address: %lx",flag,addr);
+           // Load Operation: one miss or one miss + one eviction
+           load_in_cache(hit,miss,evictions,search_line,E,tag_bit,verbose);
+           // Store Operation: Must hit
+           load_in_cache(hit,miss,evictions,search_line,E,tag_bit,verbose);
+        }
+    }
+}
+```
+
+The main purpose of the function `load_in_cache` is to fetch the data into the cache memory by using both of **the valid bit** and **the tag bit**. If cache hit occur, then finished the program. Otherwise, we will use the **LRU strategy** to evict the old block and replace it with the new data. 
+
+```c
+// Using LRU strategy to calculate the miss, hit and evictions 
+// Find the least recent used block and replace it with newly cache block.
+void load_in_cache(int *hit, int *miss, int *evictions, 
+                cache_line_ptr search_line,int E, int tag, int verbose){
+  
+    // Initialize time stamp
+    uint64_t recent_time = 0;
+    uint64_t oldest_time = UINT64_MAX;
+    uint64_t oldest_block = UINT64_MAX;
+
+    // Verify whether is hit in the current cache line
+    for(uint64_t i=0; i<E;i++){
+        if( (search_line[i].tag == tag) && (search_line[i].valid == 1) ){
+            if(verbose)
+                printf("Hit Occured\n");
+            (*hit)++;
+            search_line[i].time++;
+            return ;
+        }
+    }
+    // Hit Miss
+    if(verbose) printf("Miss Occured\n");
+    (*miss)++;
+
+    // Find the Least Recent Used Block
+    for(uint64_t i=0; i<E;i++){
+        if(search_line[i].time < oldest_time){
+            oldest_time = search_line[i].time;
+            oldest_block = i;
+        }
+        // find the recent used block
+        if(search_line[i].time > recent_time){
+            recent_time = search_line[i].time;
+        }
+    }
+    // Replace Block
+    search_line[oldest_block].time = recent_time+1;
+    search_line[oldest_block].tag = tag;
+
+    // Check whether the target block has been filled
+    if(search_line[oldest_block].valid){ // Was an filled block
+        if(verbose) printf("Eviction Occured \n");
+        (*evictions)++;
+    }else{ // The target block was an empty block
+        search_line[oldest_block].valid = 1;
+    }
+}
+```
+
+Simultaneously, we will count the number of cache hit and the cache miss.
+
+```c
+void printInfo(uint64_t* s, uint64_t* E, uint64_t* b,char** t){
+    printf("s: %ld\n",*s);
+    printf("E: %ld\n",*E);
+    printf("b: %ld\n",*b);
+    printf("t: %s\n",*t);
+}
+```
+
+### Result
+
+We pass all the test.
+
+```bash
+➜  ~ ./test-csim 
+                        Your simulator     Reference simulator
+Points (s,E,b)    Hits  Misses  Evicts    Hits  Misses  Evicts
+     3 (1,1,1)       9       8       6       9       8       6  traces/yi2.trace
+     3 (4,2,4)       4       5       2       4       5       2  traces/yi.trace
+     3 (2,1,4)       2       3       1       2       3       1  traces/dave.trace
+     3 (2,1,3)     167      71      67     167      71      67  traces/trans.trace
+     3 (2,2,3)     201      37      29     201      37      29  traces/trans.trace
+     3 (2,4,3)     212      26      10     212      26      10  traces/trans.trace
+     3 (5,1,5)     231       7       0     231       7       0  traces/trans.trace
+     6 (5,1,5)  265189   21775   21743  265189   21775   21743  traces/long.trace
+    27
+
+TEST_CSIM_RESULTS=27
+```
+
