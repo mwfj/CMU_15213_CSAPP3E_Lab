@@ -473,5 +473,7 @@ In Part B you will write a transpose function in trans.c that causes as few cach
 
 To make the cache friendly code, we need to follow these basic rules:
 
-+ **Repeated references to local variable** are good because the compiler can cache them in the register file(temporal locality).
-+ **Stride-1 reference patterns** are good because caches at all levels of the memory hierarchy store data as contiguous blocks (spatial locality)
++ **Focus on the inner loops**, where bulk of computa;ons and memory accesses occur.
+
++ **Repeated references to local variable** are good because the compiler can cache them in the register file to maximize **temporal locality**.
++ **Stride-1 reference patterns** are good because caches at all levels of the memory hierarchy store data as contiguous blocks to maximize **spatial locality**.
