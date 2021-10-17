@@ -467,3 +467,7 @@ hits:4 misses:5 evictions:3
 
 ## Part B: Optimizing Matrix Transpose
 
+### Problem Description
+
+In Part B you will write a transpose function in trans.c that causes as few cache misses as possible.
+
