@@ -477,3 +477,48 @@ To make the cache friendly code, we need to follow these basic rules:
 
 + **Repeated references to local variable** are good because the compiler can cache them in the register file to maximize **temporal locality**.
 + **Stride-1 reference patterns** are good because caches at all levels of the memory hierarchy store data as contiguous blocks to maximize **spatial locality**.
+
+### Using `Blocking` technique to improve the locality of inner loops
+
+The **general idea** of blocking is to origanize the data structures in a program into large chunks (In this context, **“block”** refers to an **application-level chunk of data**, not to a cache block). The program is structured so that it load chunk into L1 cache, does all reads and writes that it needs to on that chunk, then discard the chunk, loads the next chunk and so on. 
+
+```c
+/**
+ * @param  n 		: Array size
+ * @param bsize : the size of block
+**/
+void bijk(array A, array B, array C, int n, int bsize)
+{
+    int i, j, k, kk, jj;
+    double sum;
+    int en = bsize * (n / bsize); /* Amount that fits evenly into blocks */
+
+    for (i = 0; i < n; i++)
+        for (j = 0; j < n; j++)
+            C[i][j] = 0.0;
+
+    for (kk = 0; kk < en; kk += bsize)
+    {
+        for (jj = 0; jj < en; jj += bsize)
+        {
+            for (i = 0; i < n; i++)
+            {
+                for (j = jj; j < jj + bsize; j++)
+                {
+                    sum = C[i][j];
+                    for (k = kk; k < kk + bsize; k++)
+                    {
+                        sum += A[i][k] * B[k][j];
+                    }
+                    C[i][j] = sum;
+                }
+            }
+        }
+    }
+}
+
+```
+
+![matmul_block](./readme-pic/matmul_block.png)
+
+<p align="center">This figure is from <a href = "http://csapp.cs.cmu.edu/public/waside/waside-blocking.pdf">the extra content of CS:APP3e</a> in chapter 6</p>
