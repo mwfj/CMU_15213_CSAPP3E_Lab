@@ -469,7 +469,7 @@ hits:4 misses:5 evictions:3
 
 ### Problem Description
 
-In Part B you will write a transpose function in trans.c that causes as few cache misses as possible.
+In Part B you will write a transpose function in `trans.c` that causes as few cache misses as possible.
 
 To make the cache friendly code, we need to follow these basic rules:
 
