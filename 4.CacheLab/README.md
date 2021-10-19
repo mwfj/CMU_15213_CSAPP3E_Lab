@@ -478,6 +478,42 @@ To make the cache friendly code, we need to follow these basic rules:
 + **Repeated references to local variable** are good because the compiler can cache them in the register file to maximize **temporal locality**.
 + **Stride-1 reference patterns** are good because caches at all levels of the memory hierarchy store data as contiguous blocks to maximize **spatial locality**.
 
+For matrix multiplication, better use of spatial locality and reducing the cache miss rate for each data load would be a good way to improve the performance due to the reason that we cannot reduce the time complexity(`O(n³)`).
+
+For example, if we think the problem of multiplying  a pair of `n x n` matrices : `C = AB`. Different access methods (by row or by column) of the inner loop iteration will result in completely different cache miss rates. Like the code below, using `i` or `j`  or `k` as the inner loop will result in totally different  cache miss rate.
+
+```c
+void ijk(array A, array B, array C, int n) 
+{
+    int i, j, k;
+    double sum;
+
+    /* $begin mm-ijk */
+    for (i = 0; i < n; i++) 
+        for (j = 0; j < n; j++) {
+      sum = 0.0;
+            for (k = 0; k < n; k++)
+                sum += A[i][k]*B[k][j];
+            C[i][j] += sum;
+        }
+    /* $end mm-ijk */
+}
+```
+
+As we can see in the picture below, miss rates may vary due to the different ways to compose the matrix multiplication.
+
+![inner_loop_order](./readme-pic/inner_loop_order.png)
+
+<p align="center">This picture is from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/11-memory-hierarchy.pdf">cmu-213 slide</a></p>
+
+![mat_best_performance](./readme-pic/mat_best_performance.png)
+
+<p align="center">The best way to reduce the cache miss rate from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/11-memory-hierarchy.pdf">cmu-213 slide</a></p>
+
+![mat_performance](./readme-pic/mat_performance.png)
+
+<p align="center">This picture is from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/11-memory-hierarchy.pdf">cmu-213 slide</a></p>
+
 ### Using `Blocking` technique to improve the locality of inner loops
 
 The **general idea** of blocking is to origanize the data structures in a program into large chunks (In this context, **“block”** refers to an **application-level chunk of data**, not to a cache block). The program is structured so that it load chunk into L1 cache, does all reads and writes that it needs to on that chunk, then discard the chunk, loads the next chunk and so on. 
