@@ -557,7 +557,7 @@ void bijk(array A, array B, array C, int n, int bsize)
 
 <p align="center">This figure is from <a href = "http://csapp.cs.cmu.edu/public/waside/waside-blocking.pdf">the extra content of CS:APP3e</a> in chapter 6</p>
 
-## My Solution
+
 
 For part B, what we need to do is that we need to transpose three different sizes of matrix : `32X32`, `64X64` and `61X67`. For each transpose operation, we need to make the miss rate as less as we could by using the block technique and what we learned in the cache memory. Specifically, to get the full score, we need to ensure the **miss rate** `m` of each size of the matrix should be as lower as follows:
 
@@ -618,4 +618,6 @@ The cache memory layout in this part should be like this:
  * 
 **/
 ```
+
+## My Solution
 
