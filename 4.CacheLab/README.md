@@ -585,7 +585,7 @@ The cache memory layout in this part should be like this:
  *      +-----------+----------+---------------+    
  *
  *
- * Address of word that CPU send to Cache: 64bit 
+ * Address of word that CPU send to Cache: 
  *      +-----------+------------+---------------+
  *      + Tag Bit   +  Set Index +  Block Offset +
  *      +-----------+------------+---------------+
