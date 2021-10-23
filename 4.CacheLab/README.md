@@ -330,9 +330,7 @@ void read_trace(FILE* file, cache_line_ptr* cache, uint64_t s,
             continue; // skip when flag is 'I'
         /**
          * Structure for block in Cache line:
-         *      +-----------+----------+---------------+
-         *      + Valid Bit + Tag Bit  +  Cache Block  + 
-         *      +-----------+----------+---------------+    
+   
          *
          *
          * Address of word that CPU send to Cache: 64bit 
@@ -558,3 +556,54 @@ void bijk(array A, array B, array C, int n, int bsize)
 ![matmul_block](./readme-pic/matmul_block.png)
 
 <p align="center">This figure is from <a href = "http://csapp.cs.cmu.edu/public/waside/waside-blocking.pdf">the extra content of CS:APP3e</a> in chapter 6</p>
+
+## My Solution
+
+For part B, what we need to do is that we need to transpose three different sizes of matrix : `32X32`, `64X64` and `61X67`. For each transpose operation, we need to make the miss rate as less as we could by using the block technique and what we learned in the cache memory. Specifically, to get the full score, we need to ensure the **miss rate** `m` of each size of the matrix should be as lower as follows:
+
++ 32 × 32: 8 points if `m `< 300, 0 points if `m `> 600
++ 64 × 64: 8 points if `m `< 1, 300, 0 points if `m `> 2, 000
++ 61 × 67: 10 points if `m `< 2, 000, 0 points if `m `> 3, 000
+
+Furthermore, this part of lab give us some restricions:
+
++ Your code in `trans.c `must compile without warnings to receive credit.
++ You are allowed to deﬁne **at most 12 local variables of type int** per transpose function.
++ You are **not allowed** to side-step the previous rule by using any variables of **type long** or by using any bit tricks to **store more than one value to a single variable**.
++ If you choose to **use helper functions**, you **may not have more than 12 local variables on the stack** at a time between your helper functions and your top level transpose function.
++ Your transpose function may **not modify array A**. You may, however, do whatever you want with the contents of array B.
++ You are **NOT allowed to deﬁne any arrays** in your code or to **use any variant of malloc**.
+
+The cache memory layout in this part should be like this:
+
+```c
+/**
+ * 
+ * The cache layout for this program
+ *  
+ *                                                	2^5 = 32 bytes per cache block
+ *                                                   8 blocks & 4 bytes per block
+ *                                                               /\
+ *                                       /-----------------------  ----------------------\
+ *              / +-----------+----------+-----------------------------------------------+
+ *             |  + Valid Bit + Tag Bit  +  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  | 
+ *             |  +-----------+----------+-----------------------------------------------+ 
+ *             |  + Valid Bit + Tag Bit  +  8  |  9  |  10 |  11 |  12 |  13 |  14 |  15 |
+ *             |   +-----------+----------+----------------------------------------------+
+ *             |  + Valid Bit + Tag Bit  +  16 |  17 |  18 |  19 |  20 |  21 |  22 |  23 |
+ *             |  +-----------+----------+-----------------------------------------------+
+ * 2^5 = 32   /   | ...         ...      26 lines omitted here     ...      ...      ... | 
+ *   sets     \   +-----------+----------+-----------------------------------------------+
+ *             |  + Valid Bit + Tag Bit  +  232|  233|  234|  235|  236|  237|  238|  239| 
+ *             |  +-----------+----------+-----------------------------------------------+
+ *             |  + Valid Bit + Tag Bit  +  240|  241|  242|  243|  244|  245|  246|  247|
+ *             |  +-----------+----------+-----------------------------------------------+
+ *             |  + Valid Bit + Tag Bit  +  248|  249|  250|  251|  252|  253|  254|  255|
+ *              \ +-----------+----------+-----------------------------------------------+
+ *                 \----------------------------------  ---------------------------------/
+ *                                                    \/
+ *                                             1 cache line per set
+ * 
+**/
+```
+
