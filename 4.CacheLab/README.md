@@ -579,10 +579,22 @@ The cache memory layout in this part should be like this:
 ```c
 /**
  * 
- * The cache layout for this program:
+ * Structure for block in Cache line:
+ *      +-----------+----------+---------------+
+ *      + Valid Bit +  Tag Bit +  Cache Block  + 
+ *      +-----------+----------+---------------+    
+ *
+ *
+ * Address of word that CPU send to Cache: 64bit 
+ *      +-----------+------------+---------------+
+ *      + Tag Bit   +  Set Index +  Block Offset +
+ *      +-----------+------------+---------------+
+ * 
+ * The cache layout for this program: 
+ * 
  *  
- *                                                	2^5 = 32 bytes per cache block
- *                                                   8 blocks & 4 bytes per block
+ *                                                2^5 = 32 bytes per cache block
+ *                                                       4 bytes per block
  *                                                               /\
  *                                       /-----------------------  ----------------------\
  *              / +-----------+----------+-----------------------------------------------+
