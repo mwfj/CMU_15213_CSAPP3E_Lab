@@ -579,7 +579,7 @@ The cache memory layout in this part should be like this:
 ```c
 /**
  * 
- * The cache layout for this program
+ * The cache layout for this program:
  *  
  *                                                	2^5 = 32 bytes per cache block
  *                                                   8 blocks & 4 bytes per block
