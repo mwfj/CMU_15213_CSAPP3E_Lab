@@ -590,7 +590,7 @@ The cache memory layout in this part should be like this:
  *      + Tag Bit   +  Set Index +  Block Offset +
  *      +-----------+------------+---------------+
  * 
- * The cache layout for this program: 
+ * The cache memory layout for this program: 
  * 
  *  
  *                                                2^5 = 32 bytes per cache block
