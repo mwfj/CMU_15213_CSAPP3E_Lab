@@ -620,3 +620,73 @@ The cache memory layout in this part should be like this:
 
 ## My Solution
 
+### 32 X 32 Matrix
+
+The first thought that came to my mind is to use the block technique, where I will use `8x8` block. Actually, the size of the design block is an empirical value. In here, we find that one cache line can hold 8 elements of matrix and thus we use `8x8` as our block size.
+
+```txt
+ 	Each block represent 1 byte
+ 			 +--+--+--+--+
+ A[0]  | 0| 1| 2| 3|
+       +--+--+--+--+
+ A[1]  | 4| 5| 6| 7|
+       +--+--+--+--+
+ A[2]  | 8| 9|10|11|
+       +--+--+--+--+
+ A[3]  |12|13|14|15|
+       +--+--+--+--+
+ A[4]  |16|17|18|19|
+       +--+--+--+--+
+ A[5]  |20|21|22|23|
+       +--+--+--+--+
+ A[6]  |24|25|26|27|
+       +--+--+--+--+
+ A[7]  |28|29|30|31|
+       +--+--+--+--+
+ A[8]  | 0| 1| 2| 3| <--- Confilct here, miss occur
+       +--+--+--+--+
+    ...
+```
+
+
+
+The miss times I expected is `2x8x16 = 256`, where, in each block both of matrix A and matrix B, we will miss **8 times**, and also **16 blocks** exist in the cache memory simultaneously. Thus, I write a code block shown below, which just simple use the block technique:
+
+```c
+/**
+ * A test program to transpose 8x8 matrix
+ * by simply using block strategy.
+ **/
+char trans_naive_desc[] = "Matrix Transpose with block";
+void trans_naive(int M, int N , int A[N][M], int B[M][N]){
+    int i, j, bi, bj, tmp;
+    for(i=0; i<N; i += 8)
+        for(j=0; j<M; j+=8)
+            // Iterate inside of block
+            for(bi = i; bi < min(i + 8, N); bi++)
+                for(bj = j; bj < min(j+8, M); bj++){
+                    tmp = A[bi][bj];
+                    B[bj][bi] = tmp;
+                }
+
+}
+```
+
+However, after I run with program with our block matrix transpose, **the result is 343** rather than 256.
+
+```bash
+➜  ~/cmu-15-213-CSAPP3E-lab/4.Cache_lab/cachelab-handout ./test-trans -M 32 -N 32
+
+Function 0 (1 total)
+Step 1: Validating and generating memory traces
+Step 2: Evaluating performance (s=5, E=1, b=5)
+func 0 (Transpose submission): hits:1710, misses:343, evictions:311
+
+Summary for official submission (func 0): correctness=1 misses=343
+
+TEST_TRANS_RESULTS=1:343
+
+```
+
+The reason resulting in such inconsistency is we missed counting some cache block conflicts.
+
