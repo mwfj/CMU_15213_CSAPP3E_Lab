@@ -624,8 +624,11 @@ The cache memory layout in this part should be like this:
 
 The first thought that came to my mind is to use the block technique, where I will use `8x8` block. Actually, the size of the design block is an empirical value. In here, we find that one cache line can hold 8 elements of matrix and thus we use `8x8` as our block size.
 
+The miss times I expected is `2x8x16 = 256`, where, in each block both of matrix A and matrix B, we will miss **8 times**, and also **16 blocks** exist in the cache memory simultaneously. 
+
 ```txt
  	Each block represent 1 byte
+ 	Each line represent one element of the matrix
  			 +--+--+--+--+
  A[0]  | 0| 1| 2| 3|
        +--+--+--+--+
@@ -643,14 +646,14 @@ The first thought that came to my mind is to use the block technique, where I wi
        +--+--+--+--+
  A[7]  |28|29|30|31|
        +--+--+--+--+
- A[8]  | 0| 1| 2| 3| <--- Confilct here, miss occur
+ A[8]  | 0| 1| 2| 3| <--- Confilct here, cache miss occur
        +--+--+--+--+
     ...
 ```
 
 
 
-The miss times I expected is `2x8x16 = 256`, where, in each block both of matrix A and matrix B, we will miss **8 times**, and also **16 blocks** exist in the cache memory simultaneously. Thus, I write a code block shown below, which just simple use the block technique:
+Thus, I write a code block shown below, which just simple use the block technique:
 
 ```c
 /**
