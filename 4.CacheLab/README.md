@@ -651,8 +651,6 @@ The miss times I expected is `2x8x16 = 256`, where, in each block both of matrix
     ...
 ```
 
-
-
 Thus, I write a code block shown below, which just simple use the block technique:
 
 ```c
