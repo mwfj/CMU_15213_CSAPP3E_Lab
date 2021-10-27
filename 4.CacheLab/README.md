@@ -691,3 +691,7 @@ TEST_TRANS_RESULTS=1:343
 
 The reason resulting in such inconsistency is we missed counting some cache block conflicts.
 
+Thus, we find that there has 87 times miss we don't count in the previous analysis, where three of them are extra cache accesses in this program and we can ignore these three misses.
+
+**After analysis, we found that the diagonal lines in each matrix block will produce additional misses.**
+
