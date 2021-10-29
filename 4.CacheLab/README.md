@@ -624,7 +624,7 @@ The cache memory layout in this part should be like this:
 
 The first thought that came to my mind is to use the block technique, where I will use `8x8` block. Actually, the size of the design block is an empirical value. In here, we find that one cache line can hold 8 elements of matrix and thus we use `8x8` as our block size.
 
-The miss times I expected is `2x8x16 = 256`, where, in each block both of matrix A and matrix B, we will miss **8 times**, and also **16 blocks** exist in the cache memory simultaneously. 
+The miss times I expected is `2x8x16 = 256`, where, in each block both of matrix A and matrix B, we will miss **8 times**, and also, the 32x32 matrix can be divided into **16 blocks**. Specifically, the 8 misses come from each time we read a new row of the matrix, which allows us to write the newly read data into a new set of cache line.
 
 ```txt
  	Each block represent 1 byte
@@ -691,7 +691,27 @@ TEST_TRANS_RESULTS=1:343
 
 The reason resulting in such inconsistency is we missed counting some cache block conflicts.
 
-Thus, we find that there has 87 times miss we don't count in the previous analysis, where three of them are extra cache accesses in this program and we can ignore these three misses.
+Thus, we find that there has 87 times miss gap that we don't count in the previous analysis, where three of them are extra cache accesses in this program and we can ignore these three misses.
 
-**After analysis, we found that the diagonal lines in each matrix block will produce additional misses.**
+**We found that the diagonal lines in each matrix block will produce additional misses.** Actually, the write-up file gives us the hint:
+
+```txt
+Since your transpose function is being evaluated on a direct-mapped cache, conﬂict misses are a potential problem. Think about the potential for conﬂict misses in your code, especially along the diagonal.
+```
+
+So now the problem is: why the diagonal will make the cache line conflicts between Matrix A and Matrix B that result in the cache miss?
+
+Firstly, as the word layout shown in the last section,you need to understand that the last part of address is the block offset, and the middle part the set index.
+
+Because the writeup file has already tell us the cache line structure is `s = 5, E = 1, b = 5`. That means our cache memory has 32 sets, and thus we can use 5-bits binary number to represent set index. Similarly, the block offset is 32 bytes and we also use the 5-bits to represent the block offset. The remain bits should be the tag bit. 
+
+![mat_cache_memory_layout](./readme-pic/part_b_cache_memory_layout.jpeg)
+
+Because of the cache memory in this problem is the directly mapped cache(one line per set), the factors that determine whether the current cache line is missed or hit are **the valid bit** and **the pattern matches both of set index bit** and **tag bit**.
+
+Furthermore, **the cache miss occurred** if we find that **the valid bit** of the current cache line is **false** or the **tag bit is unmatched** but **the set index bit the matched**, where it represents that the data we looking for is from a different location but will be stored in the same cache set. For the case of the valid bit is false and the part of case of set index bit is unmatched, we have explained in the text above, where it refers to the cache miss when we read a new row of matrix.
+
+However, there are still some cache misses, which happen when matrices **A and B read their diagonal elements**. The reason is that, in this situation, the 8x8 block in Matrix A and Matrix B share the same cache memory, especially for the element in the same set. When we read elements from matrix B, the entire row of elements from matrix A in the same cache set (or relatively the same row position) will be evicted. Imagine that when the CPU required the data from `A[0][0]` , nothing in the cache line right now, so a cache miss occured. Then we will transfer this data into the `B[0][0]`, where `A[0][0]` and `B[0][0]` will be in the same cache set, because the set index bit from both of them are the same. In this case, the part of line of `A[0][0] ~ A[0][7]` will be evicted and  `B[0][0] ~ B[0][7]` will move into the same place. The same thing happened when we transfer the data from `B[0][0]` to `A[0][0]`. During those processes, one extra cache misses occurred in each transfer. The same thing happens when we transfer data from matrix A to matrix B at the other diagonal positions. However, If this not happened in the diagonal, such as `A[0][1]` to `B[1][0]`, there has no extra cache miss occurred, because `A[0][1]` to `B[1][0]` belong to totally different cache set, where the writing of data `A[0][1]` does not affect `B[1][[0]` in the cache memory.
+
+**If you still confused of the principle behind that, I highly recommend you to watch this [Youtube Video](https://www.youtube.com/watch?v=huz6hJPl_cU&ab_channel=TomNurkkala) from [Dr. Tom Nurkkala](https://www.taylor.edu/employees/faculty/tom-nurkkala).**
 
