@@ -701,7 +701,7 @@ Thus, we find that there has 87 times miss gap that we don't count in the previo
 
 So now the problem is: why the diagonal will make the cache line conflicts between Matrix A and Matrix B that result in the cache miss?
 
-Firstly, as the word layout shown in the last section,you need to understand that the last part of address is the block offset, and the middle part the set index.
+Firstly, as the word address layout shown in the last section,you need to understand that the last part of address is the block offset, and the middle part the set index.
 
 Because the writeup file has already tell us the cache line structure is `s = 5, E = 1, b = 5`. That means our cache memory has 32 sets, and thus we can use 5-bits binary number to represent set index. Similarly, the block offset is 32 bytes and we also use the 5-bits to represent the block offset. The remain bits should be the tag bit. 
 
