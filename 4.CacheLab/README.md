@@ -696,6 +696,7 @@ Thus, we find that there has 87 times miss gap that we don't count in the previo
 **We found that the diagonal lines in each matrix block will produce additional misses.** Actually, the write-up file gives us the hint:
 
 > Since your transpose function is being evaluated on a direct-mapped cache, conﬂict misses are a potential problem. 
+>
 > Think about the potential for conﬂict misses in your code, especially along the diagonal.
 
 So now the problem is: why the diagonal will make the cache line conflicts between Matrix A and Matrix B that result in the cache miss?
