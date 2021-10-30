@@ -76,6 +76,10 @@ int main(int argc, char* argv[]){
     /* Fill A with data */
     initMatrix(M,N, A, B); 
 
+    /* Print address of the matrix A and B */
+    printf("Address Matrix A : %p \n", A);
+    printf("Address Matrix B : %p \n", B);
+
     /* Record marker addresses */
     FILE* marker_fp = fopen(".marker","w");
     assert(marker_fp);

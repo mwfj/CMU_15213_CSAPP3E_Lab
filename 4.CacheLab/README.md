@@ -733,6 +733,8 @@ Now the question is how to reduce such cache miss as much as we could ?
 
 **The answer is to use the local variable.** Most of cache miss we can reduce is the extra miss from the matrix diagonal. As the analysis before, the diagonal cache misses comes from multiple and repeated read and write operations between the corresponding rows of matrix A and matrix B. Thus, we can use the local variables to record the whole line of matrix A and when matrix B gets the data from matrix A, it can directly read these elements from the register rather than cache memory.
 
+### Basic Solution
+
 ```c
 /**
  * Reduce the cache miss by using the local variable
@@ -740,10 +742,10 @@ Now the question is how to reduce such cache miss as much as we could ?
 char trans_32_32_desc[] = "32X32 matrix transposition using local variable";
 void trans_32_32(int M, int N, int A[N][M], int B[M][N]){
     int i,j,k;
-    for(i=0; i<N; i+=BLOCK_Size_32)
-        for(j=0; j<M; j+=BLOCK_Size_32)
+    for(i=0; i<N; i+=BLOCK_SIZE_32)
+        for(j=0; j<M; j+=BLOCK_SIZE_32)
             // Iterate inside of block
-            for(k=i; k<i+BLOCK_Size_32; k++){
+            for(k=i; k<i+BLOCK_SIZE_32; k++){
                 // Save the elements from the current matrix row
                 // to register
                 int tmp0 = A[k][j];
@@ -784,10 +786,87 @@ Summary for official submission (func 0): correctness=1 misses=287
 TEST_TRANS_RESULTS=1:287
 ```
 
+### Optimize Solution
+
+But 287 cache misses still has a way to 256 cache miss. Is there a way to make cache misses even less?
+
+Well, If we get the result is not "that close to 256", that means we are not perfectly resolving the diagonal cache conflict problem. Specifically, the root cause of the diagonal cache confilct is that Matrix A and Matrix B has the opposite way to access the matrix element, where Matrix A access by row, whereas Matrix B access by column. What's more if we repeatedly and alternately access matrix A and matrix B, many unused elements in the same row of the target element will also be loaded/evicted from the cache line. For example, Matrix B will load all the elements in the same row into the cache line at a certain moment, and the access to matrix A at the next moment will cause the partial cache of matrix B to be swapped out. When the CPU needs it again, the data in matrix B Those elements will also be reloaded. Obviously, the previous solution does not solve this problem, and thus there still has diagonal conflict problem exist. 
+
+**To perfectly solve the problem above, just using the local variable is not enough.** Instead, we need to copy the element from Matrix A to Matrix B first, then do the transpose operation inside of Matrix B. **The reason of we doing this is that we should follow the access order of each matrix instead of going against it.** 
+
+```c
+/**
+ * The optimize way to reduce the cache miss in 32 x 32 matrix
+**/
+char trans_32_32_opt_desc[] = "The optimize way to do the 32x32 matrix transposition";
+void trans_32_32_opt(int M, int N, int A[N][M], int B[M][N]){
+
+    int i,j,bi,bj;
+    int tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
+    for(i=0; i<N; i += BLOCK_SIZE_32)
+        for(j=0; j<M;  j+= BLOCK_SIZE_32){
+
+            // Iterate inside of block
+            
+            // Firstlt, copy the transpose elements from Matrix A to Matrix B
+            for(bi = i, bj = j; bi < i + BLOCK_SIZE_32; bi++, bj++){
+                // Save the elements from the current matrix row
+                // to register
+                tmp0 = A[bi][j];
+                tmp1 = A[bi][j+1];
+                tmp2 = A[bi][j+2];
+                tmp3 = A[bi][j+3];
+                tmp4 = A[bi][j+4];
+                tmp5 = A[bi][j+5];
+                tmp6 = A[bi][j+6];
+                tmp7 = A[bi][j+7];
+                // Copy the element to matrix by row
+                // which is the access order of matrix A
+                B[bj][i] = tmp0;
+                B[bj][i+1] = tmp1;
+                B[bj][i+2] = tmp2;
+                B[bj][i+3] = tmp3;
+                B[bj][i+4] = tmp4;
+                B[bj][i+5] = tmp5;
+                B[bj][i+6] = tmp6;
+                B[bj][i+7] = tmp7;
+            }
+
+            // Then do the transpose operation inside of matrix B
+            for(bi = 0; bi < BLOCK_SIZE_32; bi++)
+                for(bj = bi+1; bj < BLOCK_SIZE_32; bj++){
+                    tmp0 = B[bi + j][bj + i];
+                    B[bi + j][bj + i] = B[bj + j][bi + i];
+                    B[bj + j][bi + i] = tmp0;
+                }
+            
+        }
+
+}
+```
+
+Wow, the result is 259, almost perfect!
+
+```bash
+➜  ~/cmu-15-213-CSAPP3E-lab/4.Cache_lab/cachelab-handout ./test-trans -M 32 -N 32
+
+Function 0 (1 total)
+Step 1: Validating and generating memory traces
+Step 2: Evaluating performance (s=5, E=1, b=5)
+func 0 (Transpose submission): hits:3586, misses:259, evictions:227
+
+Summary for official submission (func 0): correctness=1 misses=259
+
+TEST_TRANS_RESULTS=1:259
+
+```
+
 
 
 ### Reference Link in Part B
 
-[CSAPP Cache Lab 缓存实验 in Chinese](https://yangtau.me/computer-system/csapp-cache.html#_17)
+[CSAPP Cache Lab 缓存实验(in Chinese)](https://yangtau.me/computer-system/csapp-cache.html#_17)
 
 [Introduction to CSAPP（二十一）：这可能是你能找到的最详细的cachelab了(In Chinese)](https://zhuanlan.zhihu.com/p/138881600)
+
+[CSAPP - Cache Lab的更(最)优秀的解法(In Chinese)](https://zhuanlan.zhihu.com/p/387662272)
