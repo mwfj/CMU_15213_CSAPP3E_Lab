@@ -713,9 +713,7 @@ Furthermore, **the cache miss occurred** if we find that **the valid bit** of th
 
 However, there are still some cache misses, which happen when matrices **A and B read their diagonal elements**. The reason is that, in this situation, the 8x8 block in Matrix A and Matrix B share the same cache memory, especially for the element in the same set. When we read elements from matrix B, the entire row of elements from matrix A in the same cache set (or relatively the same row position) will be evicted. Imagine that when the CPU required the data from `A[0][0]` , nothing in the cache line right now, so a cache miss occured. Then we will transfer this data into the `B[0][0]`, where `A[0][0]` and `B[0][0]` will be in the same cache set, because the set index bit from both of them are the same. In this case, the part of line of `A[0][0] ~ A[0][7]` will be evicted and  `B[0][0] ~ B[0][7]` will move into the same place. The same thing happened when we transfer the data from `B[0][0]` to `A[0][0]`. During those processes, one extra cache misses occurred in each transfer. The same thing happens when we transfer data from matrix A to matrix B at the other diagonal positions. However, If this not happened in the diagonal, such as `A[0][1]` to `B[1][0]`, there has no extra cache miss occurred, because `A[0][1]` to `B[1][0]` belong to totally different cache set, where the writing of data `A[0][1]` does not affect `B[1][[0]` in the cache memory. **Each diagonal date transfer will cause two extra cache misses** except the first element `A[0][0]/B[0][0]` and the last element `A[7][7]/B[7][7]`, where one of replacement from  `A[0][0]/B[0][0]` and `A[7][7]/B[7][7]` has already been counted in the normal eviction, and thus it just cause one extra cache miss.
 
-**If you still confused of the principle behind that, I highly recommend you to watch this [Youtube Video](https://www.youtube.com/watch?v=huz6hJPl_cU&ab_channel=TomNurkkala) from [Dr. Tom Nurkkala](https://www.taylor.edu/employees/faculty/tom-nurkkala).**
-
-Now the question is how to reduce such cache miss as much as we could ?
+For better explain the process of the cache line, the figures below show how the cache layout changes for `3x3` matrix. Note that, for convenience, the cache layout in the figure below only shows the cache block part, where one grid represents one cache block.
 
 <p float="left">
   	<img src="./readme-pic/mat_3_x_3_1.jpeg" width=502>
@@ -723,3 +721,20 @@ Now the question is how to reduce such cache miss as much as we could ?
     <img src="./readme-pic/mat_3_x_3_3.jpeg" width=502>
 </p>
 
+**If you still confused of the principle behind that, I highly recommend you to watch this [Youtube Video](https://www.youtube.com/watch?v=huz6hJPl_cU&ab_channel=TomNurkkala) from [Dr. Tom Nurkkala](https://www.taylor.edu/employees/faculty/tom-nurkkala).**
+
+Back to `8x8` cache block, we have already know that diagonal position will cause 2 extra cache misses except the first position `mat[0][0]` and `mat[7][7]`, where they only cause extra miss. Furthermore, when we do the transpose condition of the last position, the cache miss count may be less than we thought, the reason is that most of the data at that time we want already in the cache, and Matrix A may just evict a few lines and cause a few cache misses.
+
+Specifically, for `32x32` matrix transpose perspective, it can be divided into 16 `8x8` block, where 12 is the block that not involve the diagonal element, and 4 blocks contain the diagonal element. For each `8x8` **regular block**, we have `2x8=16`regular cache miss(8 times for filling each empty cache line and 8 times cache eviction per line). In the matrix transpose of `8x8` block that **contains the diagonal element**, one matrix line transpose, except the first one and the last one, will cause two extra cache misses, where that should be 4 in total(2 regular misses and 2 extra misses). For the **first diagonal** matrix transposition in the `8x8` block, the number of cache misses should be 8 empty rows to fill or cache line eviction from matrix B plus 1 single row replacement of matrix B to matrix A plus another replacement of matrix A to Matrix B due to the diagonal feature. For the last diagonal matrix transposition, only 3 times cache misses occur due to the most element of Matrix B has already in the cache.
+
+For the 12 regular block that total cache miss should be `12X16 = 192`. Whereas for the 4 block contain the diagonal element, each block will have `8+1+1(first line) + 3(last line) + 4*6(6 middle lines) = 37` cache misses. Therefore, the total cache miss for all blocks should be `192+ 4*37 = 340`, which is very close to the cache miss result from `test-tran.c`(as we mentioned before the 3 cache misses that differ from the analysis result should be the fixed 3 additional cache misses from the test program).
+
+Now the question is how to reduce such cache miss as much as we could ?
+
+**The answer is to use the local variable.**
+
+### Reference Link in Part B
+
+[CSAPP Cache Lab 缓存实验 in Chinese](https://yangtau.me/computer-system/csapp-cache.html#_17)
+
+[Introduction to CSAPP（二十一）：这可能是你能找到的最详细的cachelab了(In Chinese)](https://zhuanlan.zhihu.com/p/138881600)
