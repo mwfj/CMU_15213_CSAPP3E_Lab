@@ -77,6 +77,14 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
     // trans_naive(M, N, A, B);
     // trans_32_32(M, N, A, B);
     trans_32_32_opt(M, N, A, B);
+
+    // Check the correctness of the answer
+    if(is_transpose(M, N, A, B))
+        printf("Transpose Succeed!!\n");
+    else{
+        printf("Nah, wrong matrix transpose answer \n.");
+        printf("Double check your function.\n");
+    }
 }
 
 /**
