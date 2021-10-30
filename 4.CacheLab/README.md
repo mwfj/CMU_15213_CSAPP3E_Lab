@@ -861,6 +861,27 @@ TEST_TRANS_RESULTS=1:259
 
 ```
 
+Using the official provided function to check the correctness of matrix transposition.
+
+```c
+// Check the correctness of the answer
+if(is_transpose(M, N, A, B))
+    printf("Transpose Succeed!!\n");
+else{
+    printf("Nah, wrong matrix transpose answer.\n.");
+    printf("Double check your function.\n");
+}
+```
+
+Transpose is correct!!
+
+```bash
+➜  ~/cmu-15-213-CSAPP3E-lab/4.Cache_lab/cachelab-handout ./tracegen
+Address Matrix A : 0x5629fad01120 
+Address Matrix B : 0x5629fad41120 
+Transpose Succeed!!
+```
+
 
 
 ### Reference Link in Part B
