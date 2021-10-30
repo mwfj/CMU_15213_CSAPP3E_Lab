@@ -725,13 +725,66 @@ For better explain the process of the cache line, the figures below show how the
 
 Back to `8x8` cache block, we have already know that diagonal position will cause 2 extra cache misses except the first position `mat[0][0]` and `mat[7][7]`, where they only cause extra miss. Furthermore, when we do the transpose condition of the last position, the cache miss count may be less than we thought, the reason is that most of the data at that time we want already in the cache, and Matrix A may just evict a few lines and cause a few cache misses.
 
-Specifically, for `32x32` matrix transpose perspective, it can be divided into 16 `8x8` block, where 12 is the block that not involve the diagonal element, and 4 blocks contain the diagonal element. For each `8x8` **regular block**, we have `2x8=16`regular cache miss(8 times for filling each empty cache line and 8 times cache eviction per line). In the matrix transpose of `8x8` block that **contains the diagonal element**, one matrix line transpose, except the first one and the last one, will cause two extra cache misses, where that should be 4 in total(2 regular misses and 2 extra misses). For the **first diagonal** matrix transposition in the `8x8` block, the number of cache misses should be 8 empty rows to fill or cache line eviction from matrix B plus 1 single row replacement of matrix B to matrix A plus another replacement of matrix A to Matrix B due to the diagonal feature. For the last diagonal matrix transposition, only 3 times cache misses occur due to the most element of Matrix B has already in the cache.
+Specifically, for `32x32` matrix transpose perspective, it can be divided into 16 `8x8` block, where 12 is the block that not involve the diagonal element, and 4 blocks contain the diagonal element. For each `8x8` **regular block**, we have `2x8=16`regular cache miss(8 times for filling each empty cache line and 8 times cache eviction per line). In the matrix transpose of `8x8` block that **contains the diagonal element**, one matrix line transpose, except the first one and the last one, will cause two extra cache misses, where that should be 4 in total(2 regular misses and 2 extra misses). For the **first diagonal** matrix transposition in the `8x8` block, the number of cache misses should be 8 empty rows to fill or cache line eviction from matrix B plus 1 single row replacement of matrix B to matrix A plus another replacement of matrix A to Matrix B due to the diagonal feature. For the last diagonal matrix transposition, only 3 times cache misses occur due to the most element of Matrix B has already in the cache(you can reference the `3x3` case above).
 
 For the 12 regular block that total cache miss should be `12X16 = 192`. Whereas for the 4 block contain the diagonal element, each block will have `8+1+1(first line) + 3(last line) + 4*6(6 middle lines) = 37` cache misses. Therefore, the total cache miss for all blocks should be `192+ 4*37 = 340`, which is very close to the cache miss result from `test-tran.c`(as we mentioned before the 3 cache misses that differ from the analysis result should be the fixed 3 additional cache misses from the test program).
 
 Now the question is how to reduce such cache miss as much as we could ?
 
-**The answer is to use the local variable.**
+**The answer is to use the local variable.** Most of cache miss we can reduce is the extra miss from the matrix diagonal. As the analysis before, the diagonal cache misses comes from multiple and repeated read and write operations between the corresponding rows of matrix A and matrix B. Thus, we can use the local variables to record the whole line of matrix A and when matrix B gets the data from matrix A, it can directly read these elements from the register rather than cache memory.
+
+```c
+/**
+ * Reduce the cache miss by using the local variable
+**/
+char trans_32_32_desc[] = "32X32 matrix transposition using local variable";
+void trans_32_32(int M, int N, int A[N][M], int B[M][N]){
+    int i,j,k;
+    for(i=0; i<N; i+=BLOCK_Size_32)
+        for(j=0; j<M; j+=BLOCK_Size_32)
+            // Iterate inside of block
+            for(k=i; k<i+BLOCK_Size_32; k++){
+                // Save the elements from the current matrix row
+                // to register
+                int tmp0 = A[k][j];
+                int tmp1 = A[k][j+1];
+                int tmp2 = A[k][j+2];
+                int tmp3 = A[k][j+3];
+                int tmp4 = A[k][j+4];
+                int tmp5 = A[k][j+5];
+                int tmp6 = A[k][j+6];
+                int tmp7 = A[k][j+7];
+
+                // Get the element from A[k][*] from register
+                // and copy it to Matrix B
+                B[j][k] = tmp0;
+                B[j+1][k] = tmp1;
+                B[j+2][k] = tmp2;
+                B[j+3][k] = tmp3;
+                B[j+4][k] = tmp4;
+                B[j+5][k] = tmp5;
+                B[j+6][k] = tmp6;
+                B[j+7][k] = tmp7;
+            }
+}
+```
+
+The cache miss of the code above is **287**, looks good.
+
+```bash
+➜  ~/cmu-15-213-CSAPP3E-lab/4.Cache_lab/cachelab-handout ./test-trans -M 32 -N 32
+
+Function 0 (1 total)
+Step 1: Validating and generating memory traces
+Step 2: Evaluating performance (s=5, E=1, b=5)
+func 0 (Transpose submission): hits:1766, misses:287, evictions:255
+
+Summary for official submission (func 0): correctness=1 misses=287
+
+TEST_TRANS_RESULTS=1:287
+```
+
+
 
 ### Reference Link in Part B
 
