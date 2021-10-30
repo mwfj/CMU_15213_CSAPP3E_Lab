@@ -699,7 +699,7 @@ Thus, we find that there has 87 times miss gap that we don't count in the previo
 >
 > Think about the potential for conﬂict misses in your code, especially along the diagonal.
 
-So now the problem is: why the diagonal will make the cache line conflicts between Matrix A and Matrix B that result in the cache miss?
+So now the problem is: **why the diagonal will make the cache line conflicts between Matrix A and Matrix B that result in the cache miss?**
 
 Firstly, as the word address layout shown in the last section,you need to understand that the last part of address is the block offset, and the middle part the set index.
 
@@ -714,4 +714,12 @@ Furthermore, **the cache miss occurred** if we find that **the valid bit** of th
 However, there are still some cache misses, which happen when matrices **A and B read their diagonal elements**. The reason is that, in this situation, the 8x8 block in Matrix A and Matrix B share the same cache memory, especially for the element in the same set. When we read elements from matrix B, the entire row of elements from matrix A in the same cache set (or relatively the same row position) will be evicted. Imagine that when the CPU required the data from `A[0][0]` , nothing in the cache line right now, so a cache miss occured. Then we will transfer this data into the `B[0][0]`, where `A[0][0]` and `B[0][0]` will be in the same cache set, because the set index bit from both of them are the same. In this case, the part of line of `A[0][0] ~ A[0][7]` will be evicted and  `B[0][0] ~ B[0][7]` will move into the same place. The same thing happened when we transfer the data from `B[0][0]` to `A[0][0]`. During those processes, one extra cache misses occurred in each transfer. The same thing happens when we transfer data from matrix A to matrix B at the other diagonal positions. However, If this not happened in the diagonal, such as `A[0][1]` to `B[1][0]`, there has no extra cache miss occurred, because `A[0][1]` to `B[1][0]` belong to totally different cache set, where the writing of data `A[0][1]` does not affect `B[1][[0]` in the cache memory. **Each diagonal date transfer will cause two extra cache misses** except the first element `A[0][0]/B[0][0]` and the last element `A[7][7]/B[7][7]`, where one of replacement from  `A[0][0]/B[0][0]` and `A[7][7]/B[7][7]` has already been counted in the normal eviction, and thus it just cause one extra cache miss.
 
 **If you still confused of the principle behind that, I highly recommend you to watch this [Youtube Video](https://www.youtube.com/watch?v=huz6hJPl_cU&ab_channel=TomNurkkala) from [Dr. Tom Nurkkala](https://www.taylor.edu/employees/faculty/tom-nurkkala).**
+
+Now the question is how to reduce such cache miss as much as we could ?
+
+<figure>
+  	<img src="./readme-pic/mat_3_x_3_1.jpeg" width=330>
+    <img src="./readme-pic/mat_3_x_3_2.jpeg" width=330>
+    <img src="./readme-pic/mat_3_x_3_3.jpeg" width=330>
+</figure>
 
