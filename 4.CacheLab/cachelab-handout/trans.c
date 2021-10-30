@@ -82,7 +82,7 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
     if(is_transpose(M, N, A, B))
         printf("Transpose Succeed!!\n");
     else{
-        printf("Nah, wrong matrix transpose answer \n.");
+        printf("Nah, wrong matrix transpose answer.\n.");
         printf("Double check your function.\n");
     }
 }
