@@ -845,7 +845,7 @@ void trans_32_32_opt(int M, int N, int A[N][M], int B[M][N]){
 }
 ```
 
-Wow, the result is 259, almost perfect!
+Wow, the result is 259(always three extra cache misses by testing program), almost perfect!
 
 ```bash
 ➜  ~/cmu-15-213-CSAPP3E-lab/4.Cache_lab/cachelab-handout ./test-trans -M 32 -N 32
