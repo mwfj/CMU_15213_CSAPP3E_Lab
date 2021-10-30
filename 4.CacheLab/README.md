@@ -718,8 +718,8 @@ However, there are still some cache misses, which happen when matrices **A and B
 Now the question is how to reduce such cache miss as much as we could ?
 
 <p float="left">
-  	<img src="./readme-pic/mat_3_x_3_1.jpeg" width=520>
-    <img src="./readme-pic/mat_3_x_3_2.jpeg" width=520>
-    <img src="./readme-pic/mat_3_x_3_3.jpeg" width=520>
+  	<img src="./readme-pic/mat_3_x_3_1.jpeg" width=515>
+    <img src="./readme-pic/mat_3_x_3_2.jpeg" width=515>
+    <img src="./readme-pic/mat_3_x_3_3.jpeg" width=515>
 </p>
 
