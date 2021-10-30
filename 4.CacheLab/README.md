@@ -620,7 +620,7 @@ The cache memory layout in this part should be like this:
 
 ## My Solution
 
-### 32 X 32 Matrix
+### 32 X 32 Matrix Transposition
 
 The first thought that came to my mind is to use the block technique, where I will use `8x8` block. Actually, the size of the design block is an empirical value. In here, we find that one cache line can hold 8 elements of matrix and thus we use `8x8` as our block size.
 
@@ -733,7 +733,7 @@ Now the question is how to reduce such cache miss as much as we could ?
 
 **The answer is to use the local variable.** Most of cache miss we can reduce is the extra miss from the matrix diagonal. As the analysis before, the diagonal cache misses comes from multiple and repeated read and write operations between the corresponding rows of matrix A and matrix B. Thus, we can use the local variables to record the whole line of matrix A and when matrix B gets the data from matrix A, it can directly read these elements from the register rather than cache memory.
 
-### Basic Solution
+#### Basic Solution
 
 ```c
 /**
@@ -786,7 +786,7 @@ Summary for official submission (func 0): correctness=1 misses=287
 TEST_TRANS_RESULTS=1:287
 ```
 
-### Optimize Solution
+#### Optimize Solution
 
 But 287 cache misses still has a way to 256 cache miss. Is there a way to make cache misses even less?
 
@@ -882,7 +882,7 @@ Address Matrix B : 0x5629fad41120
 Transpose Succeed!!
 ```
 
-
+### 64x64 Matrix Transposition
 
 ### Reference Link in Part B
 
