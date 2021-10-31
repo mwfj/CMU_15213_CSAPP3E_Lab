@@ -460,7 +460,6 @@ L 110,1 miss eviction
 L 210,1 miss eviction 
 M 12,1 miss eviction hit 
 hits:4 misses:5 evictions:3
-
 ```
 
 ## Part B: Optimizing Matrix Transpose
@@ -735,6 +734,10 @@ Now the question is how to reduce such cache miss as much as we could ?
 
 #### Basic Solution
 
+In short the key of this method is:
+
++ Utilize the local variables.(no more than 12)
+
 ```c
 /**
  * Reduce the cache miss by using the local variable
@@ -787,6 +790,11 @@ TEST_TRANS_RESULTS=1:287
 ```
 
 #### Optimize Solution
+
+In short the key of this method is:
+
++ Utilize the local variables.(no more than 12)
++ Copy the matrix element from Matrix A to Matrix B first, then do the transpose operation inside of Matrix B
 
 But 287 cache misses still has a way to 256 cache miss. Is there a way to make cache misses even less?
 
@@ -883,6 +891,25 @@ Transpose Succeed!!
 ```
 
 ### 64x64 Matrix Transposition
+
+When we use the same method to run the `64x64` matrix transposition, we find that the cache miss the huge and far beyond with the requirment: `64 × 64: 8 points if m < 1, 300, 0 points if m > 2, 000`
+
+```bash
+➜  ~/cmu-15-213-CSAPP3E-lab/4.Cache_lab/cachelab-handout ./test-trans -M 64 -N 64
+
+Function 0 (1 total)
+Step 1: Validating and generating memory traces
+Step 2: Evaluating performance (s=5, E=1, b=5)
+func 0 (Transpose submission): hits:15659, misses:7939, evictions:7907
+
+Summary for official submission (func 0): correctness=1 misses=7939
+
+TEST_TRANS_RESULTS=1:7939
+```
+
+This means that in addition to diagonal cache line conflicts, it also have a lot of additional cache conflicts in the normal block.
+
+First of all, we need to rethink arrangement of the block for caching the `64x64` matrix. In `64x64` matrix, each row will take 8 cache lines, where each cache line can take 8 integers. Thus,simply use the `8x8` block is not enough for `64x64` matrix transposition. The size of block should also be `8x8`, but we need to regrad this `8x8` block as four `4x4` block instead of treating the `8x8` block as a whole. The reason is that it is hard to avoid the most of confilct without change the arrangement inside of `8x8` block, where the cache blocks inside of the same matrix will also confilct with each other. Thus, we need to use the same method of the optimize solution of the previous solution: **1. Utilize the local variable;** **2. copy first then do the transposition**. However, unlike the code in the previous section, we need to **treat diagonal blocks and non-diagonal blocks differently** in the code. 
 
 ### Reference Link in Part B
 
