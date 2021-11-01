@@ -911,6 +911,10 @@ This means that in addition to diagonal cache line conflicts, it also have a lot
 
 First of all, we need to rethink arrangement of the block for caching the `64x64` matrix. In `64x64` matrix, each row will take 8 cache lines, where each cache line can take 8 integers. Thus,simply use the `8x8` block is not enough for `64x64` matrix transposition. The size of block should also be `8x8`, but we need to regrad this `8x8` block as four `4x4` block instead of treating the `8x8` block as a whole. The reason is that it is hard to avoid the most of confilct without change the arrangement inside of `8x8` block, where the cache blocks inside of the same matrix will also confilct with each other. Thus, we need to use the same method of the optimize solution of the previous solution: **1. Utilize the local variable;** **2. copy first then do the transposition**. However, unlike the code in the previous section, we need to **treat diagonal blocks and non-diagonal blocks differently** in the code. 
 
+For the normal block(non-diagonal one).
+
+For the diagonal block.
+
 ### Reference Link in Part B
 
 [CSAPP Cache Lab 缓存实验(in Chinese)](https://yangtau.me/computer-system/csapp-cache.html#_17)
