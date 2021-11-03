@@ -911,19 +911,27 @@ This means that in addition to diagonal cache line conflicts, it also have a lot
 
 First of all, we need to rethink arrangement of the block for caching the `64x64` matrix. In `64x64` matrix, each row will take 8 cache lines, where each cache line can take 8 integers. Thus,simply use the `8x8` block is not enough for `64x64` matrix transposition. The size of block should also be `8x8`, but we need to regrad this `8x8` block as four `4x4` block instead of treating the `8x8` block as a whole. The reason is that it is hard to avoid the most of confilct without change the arrangement inside of `8x8` block, where the cache blocks inside of the same matrix will also confilct with each other. Thus, we need to use the same method of the optimize solution of the previous solution: **1. Utilize the local variable;** **2. copy first then do the transposition**. However, unlike the code in the previous section, we need to **treat diagonal blocks and non-diagonal blocks differently** in the code. 
 
-The reason is that the upper and lower sides of the cache block conflict with each other. In other words, each `8x8` block can load exactly one line for `64x64`, where the first half part of the matrix line will load the upper side of the `8x8` block whereas the second half load the downside of this block. That means the upper side will load exactly the same cache line that the downside loads, which is the extra conflict come from.
+The reason is that the upper and lower sides of the cache block conflict with each other. In other words, each `8x8` block can load exactly one line for `64x64`, where the first half part of the matrix line will load the upper side of the `8x8` block whereas the second half load the downside of this block. The corresponding rows of the upper and lower parts are all mapped to the same cache set. That means the upper side will load exactly the same cache line that the downside loads, which is the extra conflict come from.
 
 To eliminate the extra confilct from Matrix B cache read, our strategy is to load the first four elements in four matrix lines into the first `4x4` block to warm up the cache line. Then, we can load another four elements from the same matrix lines into the second `4x4` block, where this time our cache miss should be zero, because these cache sets have already held the data from the previous `4x4` block. That is the process we fill in the upper part of `8x8` block.
 
 For the down part of the `8x8` block, to avoid the unnecessary cache miss and the reading order of Matrix B, we use the copy technique just like what we did in the previous section. But this time, we copy the data of the second `4x4` block to the third `4x4` block.
 
-In the final, we fill the rest of the data into the remaining `4x4` block.
+In the final, we will fill the rest of the data into the remaining `4x4` block.
 
 ![64_non_diag](./readme-pic/64_nondiag_1.jpg)
 
 ![64_non_diag](./readme-pic/64_nondiag_2.jpg)
 
-For the diagonal block.
+For the diagonal block, due to the diagonal extra miss and the one above conflict, we need to use a temporary space to store the down part of the `8x8` block. **Note that the order of data transfer must be processed the down part first and then the upper side**, where the reason is that if we do the upper side first and then down part, the upper part and the lower part of the copy will conflict in the cache when we copy the data from the temporary place to the actual block, and thus after the copy process of the next part is completed, the data of the upper part is in the cache has been covered.
+
+To get the minimal cache miss, the transpose operation should be done inside of the current block rather than during the data transferring or copying.
+
+![64_non_diag](./readme-pic/64_diag_1.jpg)
+
+![64_non_diag](./readme-pic/64_diag_2.jpg)
+
+![64_non_diag](./readme-pic/64_diag_3.jpg)
 
 ### Reference Link in Part B
 
