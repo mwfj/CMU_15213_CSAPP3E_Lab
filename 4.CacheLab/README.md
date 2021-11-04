@@ -933,6 +933,10 @@ To get the minimal cache miss, the transpose operation should be done inside of 
 
 ![64_non_diag](./readme-pic/64_diag_3.jpg)
 
+### Code
+
+
+
 ### Reference Link in Part B
 
 [CSAPP Cache Lab 缓存实验(in Chinese)](https://yangtau.me/computer-system/csapp-cache.html#_17)
