@@ -933,7 +933,7 @@ To get the minimal cache miss, the transpose operation should be done inside of 
 
 ![64_non_diag](./readme-pic/64_diag_3.jpg)
 
-### Code
+### The code would be like this: 
 
 
 
