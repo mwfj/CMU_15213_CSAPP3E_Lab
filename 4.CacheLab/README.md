@@ -924,6 +924,8 @@ In the final, we will fill the rest of the data into the remaining `4x4` block.
 
 ![64_non_diag](./readme-pic/64_nondiag_2.jpg)
 
+Actually, the theoretical optimal solution of the second matrix is `2 x 64² x 1/8 = 1024`.
+
 **For the diagonal block**, due to the diagonal extra miss and the one above conflict, we need to use a temporary space to store the down part of the `8x8` block. **Note that the order of data transfer must be processed the down part first and then the upper side**, where the reason is that if we do the upper side first and then down part, the upper part and the lower part of the copy will conflict in the cache when we copy the data from the temporary place to the actual block, and thus after the copy process of the next part is completed, the data of the upper part is in the cache has been covered.
 
 To get the minimal cache miss, the transpose operation should be done inside of the current block rather than during the data transferring or copying.
@@ -1143,7 +1145,7 @@ void trans_64_64(int M, int N, int A[N][M], int B[M][N]){
 }
 ```
 
-### Running result
+#### Running result
 
 ```bash
 ➜  ~/cmu-15-213-CSAPP3E-lab/4.Cache_lab/cachelab-handout ./test-trans -M 64 -N 64
@@ -1157,6 +1159,10 @@ Summary for official submission (func 0): correctness=1 misses=1027
 
 TEST_TRANS_RESULTS=1:1027
 ```
+
+### 61x67 Matrix Transposition
+
+For this irregular matrix, the best way I can do is to use the `16x16` block, although I think there should have a better way to optimize this matrix transposition. I will update this repo when I find a better one.
 
 
 
