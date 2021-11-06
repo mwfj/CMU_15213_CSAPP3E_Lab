@@ -1143,6 +1143,21 @@ void trans_64_64(int M, int N, int A[N][M], int B[M][N]){
 }
 ```
 
+### Running result
+
+```bash
+➜  ~/cmu-15-213-CSAPP3E-lab/4.Cache_lab/cachelab-handout ./test-trans -M 64 -N 64
+
+Function 0 (1 total)
+Step 1: Validating and generating memory traces
+Step 2: Evaluating performance (s=5, E=1, b=5)
+func 0 (Transpose submission): hits:10754, misses:1027, evictions:995
+
+Summary for official submission (func 0): correctness=1 misses=1027
+
+TEST_TRANS_RESULTS=1:1027
+```
+
 
 
 ### Reference Link in Part B
