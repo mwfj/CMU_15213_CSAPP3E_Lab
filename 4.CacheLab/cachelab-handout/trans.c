@@ -474,7 +474,10 @@ int is_transpose(int M, int N, int A[N][M], int B[M][N])
     }
     return 1;
 }
+
+// Debug information
 // Check the correction of the matrix transpose
+// by calling ./tracegen in shell
 void check_transpose_wrapper(int M, int N, int A[N][M], int B[M][N]){
     // Check the correctness of the answer
     if(is_transpose(M, N, A, B))
