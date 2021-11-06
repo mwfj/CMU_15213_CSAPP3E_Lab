@@ -82,15 +82,30 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
    
     // 32 x 32 matrix transposition
     if(M == 32 && N == 32){
-		printf("Do the 32x32 matrix transposition ... \n");
+
+		// Comment this line when run the ./test-trans
+		// Only use for debug
+		// printf("Do the 32x32 matrix transposition ... \n");
+
+		// Naive 32x32 matrix transposition
         // trans_32_32(M, N, A, B);
+
         trans_32_32_opt(M, N, A, B);
-        check_transpose_wrapper(M,N,A,B);
+
+		// Comment this line when run the ./test-trans
+		// Only use for debug
+        // check_transpose_wrapper(M,N,A,B);
         return ;
     }else if(M == 64 && N == 64){
-		printf("Do the 64x64 matrix transposition ...\n");
+		// Comment this line when run the ./test-trans
+		// Only use for debug
+		// printf("Do the 64x64 matrix transposition ...\n");
+
         trans_64_64(M,N,A,B);
-        check_transpose_wrapper(M,N,A,B);
+
+		// Comment this line when run the ./test-trans
+		// Only use for debug
+        // check_transpose_wrapper(M,N,A,B);
         return ;
     }else if(M == 61 && N == 67){
 		printf("Do the 61x67 matrix transposition ...\n");
@@ -99,7 +114,7 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
         printf("The input matrix size is not required for this lab\n");
         exit(EXIT_FAILURE);
     }
-
+	// trans_64_64(M,N,A,B);
 }
 
 /**
@@ -449,7 +464,7 @@ void registerFunctions()
     // registerTransFunction(trans_32_32, trans_32_32_desc);
 
     /* Solution for 64x64 matrix */
-    registerTransFunction(trans_64_64, trans_64_64_desc);
+    // registerTransFunction(trans_64_64, trans_64_64_desc);
 
     /* Register any additional transpose functions */
     // registerTransFunction(trans, trans_desc); 
