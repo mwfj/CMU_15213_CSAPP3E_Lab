@@ -26,10 +26,6 @@
 &emsp;&emsp;&emsp;<a href="#22">- The running result</a>  
 &emsp;<a href="#23">The Final Result</a>  
 
-# <a name="0">Lab 4 Cache Lab</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
-
-### <a name="1"></a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
-
 ## <a name="2">Little Background Review:</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 Basically, in the memory syetem, there have two types of chips from the memory system:  **Dynamic Random-Access Memory(DRAM)** and **Static Random-Access Memory(SRAM)**, where **main memory** is composed of DRAM and **cache memory** is composed of SRAM. The reason they use different types of chips is that SRAM is more stable by disturbance and faster but cannot make dense and expensive, whereas DRAM can be made more densive and cheaper but more sensitive by a noise like the light ray and need to refresh. Furthermore, various sources of leakage current cause a DRAM cell to lose its charge within a time period around 10 to 100 millisecond, and thus the memory system must periodically refresh every bit of memory by reading it out and then rewriting it. 
