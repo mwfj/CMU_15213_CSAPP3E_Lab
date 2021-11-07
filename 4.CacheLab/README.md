@@ -1183,13 +1183,13 @@ Summary for official submission (func 0): correctness=1 misses=1027
 TEST_TRANS_RESULTS=1:1027
 ```
 
-### <a name="19">Reference Link in Part B</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+#### <a name="19">Reference Link in Part B</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
-[CSAPP Cache Lab 缓存实验(in Chinese)](https://yangtau.me/computer-system/csapp-cache.html#_17)
+[1. CSAPP Cache Lab 缓存实验(in Chinese)](https://yangtau.me/computer-system/csapp-cache.html#_17)
 
-[Introduction to CSAPP（二十一）：这可能是你能找到的最详细的cachelab了(In Chinese)](https://zhuanlan.zhihu.com/p/138881600)
+[2. Introduction to CSAPP（二十一）：这可能是你能找到的最详细的cachelab了(In Chinese)](https://zhuanlan.zhihu.com/p/138881600)
 
-[CSAPP - Cache Lab的更(最)优秀的解法(In Chinese)](https://zhuanlan.zhihu.com/p/387662272)
+[3. CSAPP - Cache Lab的更(最)优秀的解法(In Chinese)](https://zhuanlan.zhihu.com/p/387662272)
 
 ### <a name="20">61x67 Matrix Transposition</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
