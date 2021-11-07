@@ -1,7 +1,7 @@
 Table of Content
 ===================
- <a name="index">**Index**</a>
- 
+### Table of Content
+
 * <a href="#0">Bomb Lab Report:</a>  
 	+ <a href="#1">Phase_1</a>  
 	+ <a href="#2">Phase_2 </a>  
@@ -368,9 +368,9 @@ eax            0x2	2
 ```
 
 Then, we need to check what the arguement should be. In `0x40102e` and `0x401033`, we can see that **the first arguement should be less or equal than 8**; if not, the bomb will be triggered. 
- 
+
  Next, when we see `0x401051`, we can see that **the second arguement should be 0**, otherwise the bomb will be triggered. (Note that, we can print the value in these address to see the `0x08(%rsp)` and `0xc(%rsp)` represent to the first and second arguement).
- 
+
  ```bash
  # <a name="5">Take input "2 0" as example</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
  (gdb) i r rsp
@@ -380,9 +380,9 @@ $1 = 2 # first arguement
 (gdb) p *(0x7fffffffde40+0xc)
 $2 = 0 # second arguement
  ```
- 
+
  Thus, the one thing left is to find what the first arguement should be. Just like what we did above, we find that the first arguement should be less or equal than 8. We also find that the first arguement is determined by a function call `func4`.  If it return 0,then we can avoid the bomb; otherwise the bomb will be triggered. **Therefore our goal change to make the return value of `func4` to be 0.** Before we see the code, we can see that there has three arguement pass into the `func4`, where the first is `edx = 0xe(14)`, the second is `esi = 0` and the third is `edi = the first input arguement(in our case is 2)`.
- 
+
  ```asm
  (gdb) disas
 Dump of assembler code for function func4:
@@ -409,18 +409,18 @@ Dump of assembler code for function func4:
    0x0000000000401007 <+57>:	add    $0x8,%rsp
    0x000000000040100b <+61>:	retq   
 End of assembler dump.
- ``` 
- 
+ ```
+
  As the func4 asm code shown, the `eax = (edx-esi+ecx)>>1  = 7` and `ecx = (rax+1*rsi) = 7+1*0 = 7`, when the three arguement is the `edx = 0xe(14), esi = 0, edi = the first input arguement(in our case is 2)`.
- 
+
  To make the return value `eax is zero`, we need to jump to `0x400ff2`, where we need to make `ecx <= edi` or `ecx - edi <=0`. Beside with that, we also need to make sure `ecx >= edi`. If all the condition is satisfied, eax will be become zero and we will avoid the bomb. ** Thus, edi should be equal to ecx.**
- 
+
  However, **if the condition is not satisfied(just like my input, which is 2), the edx will become `rcx-1` instead, and new ecx will become half value of new edx.**
- 
+
  I found that there only has four cases the edx might have : `7 3 1 0` and that is the options for first arguement.
- 
+
  Thus, the final input is:
- 
+
  + 7		0
  + 3		0
  + 1		0
@@ -546,7 +546,7 @@ Therefore, to avoid the bomb, we need to make sure that the final string `rdi` s
 | s    			| 		7(0x7) 	|	 ' 7 G W g w 	|
 
  ### **Choose any one of the character displayed in the table, whose last four bits ASCII codes is the same as the index of the target character in the dictionary array, and combine them together can avoid the bomb.**
- 
+
 
 ## <a name="7"> Phase_6</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
@@ -928,16 +928,54 @@ But finding it and solving it are quite different...
 ### <a name="17">Section 2 : Defused the bomb</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 ```asm
-(gdb) disas secret_phase Dump of assembler code for function secret_phase:   0x0000000000401242 <+0>:	push   %rbx   0x0000000000401243 <+1>:	callq  0x40149e <read_line>   0x0000000000401248 <+6>:	mov    $0xa,%edx   0x000000000040124d <+11>:	mov    $0x0,%esi   0x0000000000401252 <+16>:	mov    %rax,%rdi ; rax = "22" (string)   0x0000000000401255 <+19>:	callq  0x400bd0 <strtol@plt> ; String to Long   0x000000000040125a <+24>:	mov    %rax,%rbx ; rax = 22 (long)   0x000000000040125d <+27>:	lea    -0x1(%rax),%eax   0x0000000000401260 <+30>:	cmp    $0x3e8,%eax ; eax should be less than 1000   0x0000000000401265 <+35>:	jbe    0x40126c <secret_phase+42> ; To avoid the bomb   0x0000000000401267 <+37>:	callq  0x40143a <explode_bomb>   0x000000000040126c <+42>:	mov    %ebx,%esi ; pass our input into func7
-   ; where 0x6030f0 is a magic number that points to the root of binary search tree   0x000000000040126e <+44>:	mov    $0x6030f0,%edi ; another input into func7   0x0000000000401273 <+49>:	callq  0x401204 <fun7>   0x0000000000401278 <+54>:	cmp    $0x2,%eax ; the return number of func7 should be 2   0x000000000040127b <+57>:	je     0x401282 <secret_phase+64> ; To aviod the bomb   0x000000000040127d <+59>:	callq  0x40143a <explode_bomb>   0x0000000000401282 <+64>:	mov    $0x402438,%edi   0x0000000000401287 <+69>:	callq  0x400b10 <puts@plt>   0x000000000040128c <+74>:	callq  0x4015c4 <phase_defused>   0x0000000000401291 <+79>:	pop    %rbx   0x0000000000401292 <+80>:	retq   End of assembler dump.
+(gdb) disas secret_phase 
+Dump of assembler code for function secret_phase:
+   0x0000000000401242 <+0>:	push   %rbx
+   0x0000000000401243 <+1>:	callq  0x40149e <read_line>
+   0x0000000000401248 <+6>:	mov    $0xa,%edx
+   0x000000000040124d <+11>:	mov    $0x0,%esi
+   0x0000000000401252 <+16>:	mov    %rax,%rdi ; rax = "22" (string)
+   0x0000000000401255 <+19>:	callq  0x400bd0 <strtol@plt> ; String to Long
+   0x000000000040125a <+24>:	mov    %rax,%rbx ; rax = 22 (long)
+   0x000000000040125d <+27>:	lea    -0x1(%rax),%eax
+   0x0000000000401260 <+30>:	cmp    $0x3e8,%eax ; eax should be less than 1000
+   0x0000000000401265 <+35>:	jbe    0x40126c <secret_phase+42> ; To avoid the bomb
+   0x0000000000401267 <+37>:	callq  0x40143a <explode_bomb>
+   0x000000000040126c <+42>:	mov    %ebx,%esi ; pass our input into func7
+   ; where 0x6030f0 is a magic number that points to the root of binary search tree
+   0x000000000040126e <+44>:	mov    $0x6030f0,%edi ; another input into func7
+   0x0000000000401273 <+49>:	callq  0x401204 <fun7>
+   0x0000000000401278 <+54>:	cmp    $0x2,%eax ; the return number of func7 should be 2
+   0x000000000040127b <+57>:	je     0x401282 <secret_phase+64> ; To aviod the bomb
+   0x000000000040127d <+59>:	callq  0x40143a <explode_bomb>
+   0x0000000000401282 <+64>:	mov    $0x402438,%edi
+   0x0000000000401287 <+69>:	callq  0x400b10 <puts@plt>
+   0x000000000040128c <+74>:	callq  0x4015c4 <phase_defused>
+   0x0000000000401291 <+79>:	pop    %rbx
+   0x0000000000401292 <+80>:	retq   
+End of assembler dump.
 ```
 The first function attact our notice is `<strtol@plt>`, which it might be convert a string to long. 
 
 To prove my conjecture，I print the number passed into `<strtol@plt>` and the value it returns, where both are store at `%eax`. 
 
 ```bash
-(gdb) u *0x00000000004012520x0000000000401252 in secret_phase ()(gdb) ni0x0000000000401255 in secret_phase ()(gdb) i r eaxeax            0x603960	6306144
-# Before pass eax into <strtol@pl>, eax is a string(gdb) x/s $eax0x603960 <input_strings+480>:	"20"(gdb) ni0x000000000040125a in secret_phase ()(gdb) ni0x000000000040125d in secret_phase ()# After excute <strtol@pl>, it returns a number(gdb) i r eaxeax            0x14	20
+(gdb) u *0x0000000000401252
+0x0000000000401252 in secret_phase ()
+(gdb) ni
+0x0000000000401255 in secret_phase ()
+(gdb) i r eax
+eax            0x603960	6306144
+# Before pass eax into <strtol@pl>, eax is a string
+(gdb) x/s $eax
+0x603960 <input_strings+480>:	"20"
+(gdb) ni
+0x000000000040125a in secret_phase ()
+(gdb) ni
+0x000000000040125d in secret_phase ()
+# After excute <strtol@pl>, it returns a number
+(gdb) i r eax
+eax            0x14	20
 ```
 Then, I met the first branch that might be trigger the bomb, where it subtract eax with 1 and compared with 0x3e8(1000). If it lower or equal than it, avoid the bomb; trigger the bomb otherwise. **This tells us that the input should be less or equal than 1001.**
 
@@ -946,7 +984,8 @@ The next thing that the code do is to pass two parameters in to `fun7`, where on
 This magic number attract my attention. When I print it out, I find it record a structure just like phase_6, where the address that prints out has the name `n1`. But I still cannot make sure what kind of structure it should be. Thus, at that time, I just mark it and continue.
 
 ```bash
-(gdb) x 0x6030f00x6030f0 <n1>:	0x00000024
+(gdb) x 0x6030f0
+0x6030f0 <n1>:	0x00000024
 ```
 
 Finally, we find the another branch that can trigger the bomb. At this time, the return value from `func7` become crucial, where if this function return 2, then we can avoid the bomb; the bomb will be triggered otherwise.
@@ -972,11 +1011,33 @@ The pseudo-C code of **secret_phase function** is as follows:
 Next, I moved my attention to `func7`:
 
 ```asm
-(gdb) disas fun7Dump of assembler code for function fun7:=> 0x0000000000401204 <+0>:	sub    $0x8,%rsp   0x0000000000401208 <+4>:	test   %rdi,%rdi   0x000000000040120b <+7>:	je     0x401238 <fun7+52>   0x000000000040120d <+9>:	mov    (%rdi),%edx   0x000000000040120f <+11>:	cmp    %esi,%edx   0x0000000000401211 <+13>:	jle    0x401220 <fun7+28> ; if (esi == edx)
-   ; else part   0x0000000000401213 <+15>:	mov    0x8(%rdi),%rdi ; rdi -> left_sub-tree   0x0000000000401217 <+19>:	callq  0x401204 <fun7>   0x000000000040121c <+24>:	add    %eax,%eax ; eax *=2   0x000000000040121e <+26>:	jmp    0x40123d <fun7+57>
-   ;   0x0000000000401220 <+28>:	mov    $0x0,%eax ; eax = 0   0x0000000000401225 <+33>:	cmp    %esi,%edx   0x0000000000401227 <+35>:	je     0x40123d <fun7+57> ;  Find the target value //inner if
-   ; inner else   0x0000000000401229 <+37>:	mov    0x10(%rdi),%rdi ; rdi -> right_sub-tree   0x000000000040122d <+41>:	callq  0x401204 <fun7>   0x0000000000401232 <+46>:	lea    0x1(%rax,%rax,1),%eax ; eax = 2*rax +1
-   ;   0x0000000000401236 <+50>:	jmp    0x40123d <fun7+57>   0x0000000000401238 <+52>:	mov    $0xffffffff,%eax ; eax = -1   0x000000000040123d <+57>:	add    $0x8,%rsp   0x0000000000401241 <+61>:	retq   End of assembler dump.
+(gdb) disas fun7
+Dump of assembler code for function fun7:
+=> 0x0000000000401204 <+0>:	sub    $0x8,%rsp
+   0x0000000000401208 <+4>:	test   %rdi,%rdi
+   0x000000000040120b <+7>:	je     0x401238 <fun7+52>
+   0x000000000040120d <+9>:	mov    (%rdi),%edx
+   0x000000000040120f <+11>:	cmp    %esi,%edx
+   0x0000000000401211 <+13>:	jle    0x401220 <fun7+28> ; if (esi == edx)
+   ; else part
+   0x0000000000401213 <+15>:	mov    0x8(%rdi),%rdi ; rdi -> left_sub-tree
+   0x0000000000401217 <+19>:	callq  0x401204 <fun7>
+   0x000000000040121c <+24>:	add    %eax,%eax ; eax *=2
+   0x000000000040121e <+26>:	jmp    0x40123d <fun7+57>
+   ;
+   0x0000000000401220 <+28>:	mov    $0x0,%eax ; eax = 0
+   0x0000000000401225 <+33>:	cmp    %esi,%edx
+   0x0000000000401227 <+35>:	je     0x40123d <fun7+57> ;  Find the target value //inner if
+   ; inner else
+   0x0000000000401229 <+37>:	mov    0x10(%rdi),%rdi ; rdi -> right_sub-tree
+   0x000000000040122d <+41>:	callq  0x401204 <fun7>
+   0x0000000000401232 <+46>:	lea    0x1(%rax,%rax,1),%eax ; eax = 2*rax +1
+   ;
+   0x0000000000401236 <+50>:	jmp    0x40123d <fun7+57>
+   0x0000000000401238 <+52>:	mov    $0xffffffff,%eax ; eax = -1
+   0x000000000040123d <+57>:	add    $0x8,%rsp
+   0x0000000000401241 <+61>:	retq   
+End of assembler dump.
 ```
 
 In `fun7`, it first check the validation of rdi. If it is validate, then compared `rdi` with our input value `rsi`. If they are same, return 0; If our input `rsi` is higher, then it will recursively call fun7 and return `2 * fun7() + 1`; Otherwise, it will also recursively call fun7 and return `2 * fun7`. 
@@ -1021,7 +1082,37 @@ After analyze `fun7` and combine it with what I saw in the magic number `0x6030f
 Here is the structure of this BST:
 
 ```bash
-(gdb) x/120x 0x6030f00x6030f0 <n1>:	0x00000024	0x00000000	0x00603110	0x000000000x603100 <n1+16>:	0x00603130	0x00000000	0x00000000	0x000000000x603110 <n21>:	0x00000008	0x00000000	0x00603190	0x000000000x603120 <n21+16>:	0x00603150	0x00000000	0x00000000	0x000000000x603130 <n22>:	0x00000032	0x00000000	0x00603170	0x000000000x603140 <n22+16>:	0x006031b0	0x00000000	0x00000000	0x000000000x603150 <n32>:	0x00000016	0x00000000	0x00603270	0x000000000x603160 <n32+16>:	0x00603230	0x00000000	0x00000000	0x000000000x603170 <n33>:	0x0000002d	0x00000000	0x006031d0	0x000000000x603180 <n33+16>:	0x00603290	0x00000000	0x00000000	0x000000000x603190 <n31>:	0x00000006	0x00000000	0x006031f0	0x000000000x6031a0 <n31+16>:	0x00603250	0x00000000	0x00000000	0x000000000x6031b0 <n34>:	0x0000006b	0x00000000	0x00603210	0x000000000x6031c0 <n34+16>:	0x006032b0	0x00000000	0x00000000	0x000000000x6031d0 <n45>:	0x00000028	0x00000000	0x00000000	0x000000000x6031e0 <n45+16>:	0x00000000	0x00000000	0x00000000	0x000000000x6031f0 <n41>:	0x00000001	0x00000000	0x00000000	0x000000000x603200 <n41+16>:	0x00000000	0x00000000	0x00000000	0x000000000x603210 <n47>:	0x00000063	0x00000000	0x00000000	0x000000000x603220 <n47+16>:	0x00000000	0x00000000	0x00000000	0x000000000x603230 <n44>:	0x00000023	0x00000000	0x00000000	0x000000000x603240 <n44+16>:	0x00000000	0x00000000	0x00000000	0x000000000x603250 <n42>:	0x00000007	0x00000000	0x00000000	0x000000000x603260 <n42+16>:	0x00000000	0x00000000	0x00000000	0x000000000x603270 <n43>:	0x00000014	0x00000000	0x00000000	0x000000000x603280 <n43+16>:	0x00000000	0x00000000	0x00000000	0x000000000x603290 <n46>:	0x0000002f	0x00000000	0x00000000	0x000000000x6032a0 <n46+16>:	0x00000000	0x00000000	0x00000000	0x000000000x6032b0 <n48>:	0x000003e9	0x00000000	0x00000000	0x000000000x6032c0 <n48+16>:	0x00000000	0x00000000	0x00000000	0x00000000
+(gdb) x/120x 0x6030f0
+0x6030f0 <n1>:	0x00000024	0x00000000	0x00603110	0x00000000
+0x603100 <n1+16>:	0x00603130	0x00000000	0x00000000	0x00000000
+0x603110 <n21>:	0x00000008	0x00000000	0x00603190	0x00000000
+0x603120 <n21+16>:	0x00603150	0x00000000	0x00000000	0x00000000
+0x603130 <n22>:	0x00000032	0x00000000	0x00603170	0x00000000
+0x603140 <n22+16>:	0x006031b0	0x00000000	0x00000000	0x00000000
+0x603150 <n32>:	0x00000016	0x00000000	0x00603270	0x00000000
+0x603160 <n32+16>:	0x00603230	0x00000000	0x00000000	0x00000000
+0x603170 <n33>:	0x0000002d	0x00000000	0x006031d0	0x00000000
+0x603180 <n33+16>:	0x00603290	0x00000000	0x00000000	0x00000000
+0x603190 <n31>:	0x00000006	0x00000000	0x006031f0	0x00000000
+0x6031a0 <n31+16>:	0x00603250	0x00000000	0x00000000	0x00000000
+0x6031b0 <n34>:	0x0000006b	0x00000000	0x00603210	0x00000000
+0x6031c0 <n34+16>:	0x006032b0	0x00000000	0x00000000	0x00000000
+0x6031d0 <n45>:	0x00000028	0x00000000	0x00000000	0x00000000
+0x6031e0 <n45+16>:	0x00000000	0x00000000	0x00000000	0x00000000
+0x6031f0 <n41>:	0x00000001	0x00000000	0x00000000	0x00000000
+0x603200 <n41+16>:	0x00000000	0x00000000	0x00000000	0x00000000
+0x603210 <n47>:	0x00000063	0x00000000	0x00000000	0x00000000
+0x603220 <n47+16>:	0x00000000	0x00000000	0x00000000	0x00000000
+0x603230 <n44>:	0x00000023	0x00000000	0x00000000	0x00000000
+0x603240 <n44+16>:	0x00000000	0x00000000	0x00000000	0x00000000
+0x603250 <n42>:	0x00000007	0x00000000	0x00000000	0x00000000
+0x603260 <n42+16>:	0x00000000	0x00000000	0x00000000	0x00000000
+0x603270 <n43>:	0x00000014	0x00000000	0x00000000	0x00000000
+0x603280 <n43+16>:	0x00000000	0x00000000	0x00000000	0x00000000
+0x603290 <n46>:	0x0000002f	0x00000000	0x00000000	0x00000000
+0x6032a0 <n46+16>:	0x00000000	0x00000000	0x00000000	0x00000000
+0x6032b0 <n48>:	0x000003e9	0x00000000	0x00000000	0x00000000
+0x6032c0 <n48+16>:	0x00000000	0x00000000	0x00000000	0x00000000
 ```
 As we can see in this structure, there have **three values in each node**, where they are : 
 
