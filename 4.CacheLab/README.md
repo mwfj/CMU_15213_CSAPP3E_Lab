@@ -1,4 +1,4 @@
-<a name="index"><strong>Table Of Content: </strong></a>
+## <a name="index">Table Of Content: </a>
 
 <a href="#0">Lab 4 Cache Lab</a>  
 &emsp;&emsp;<a href="#1"></a>  
