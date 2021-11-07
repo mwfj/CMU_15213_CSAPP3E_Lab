@@ -1,5 +1,3 @@
-Table of Content
-===================
 ### Table of Content
 
 * <a href="#0">Bomb Lab Report:</a>  
