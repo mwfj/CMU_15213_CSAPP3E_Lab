@@ -1,4 +1,4 @@
-### To see the solution  of exploit string, go to the `target1/solutions` folder 
+### To see the specific code solution of exploit string, go to the `target1/solutions` folder 
 
 ###  Table Of Content
 
@@ -238,7 +238,7 @@ Here is the assemly code of `touch2`:
 ```
 
 First, we can see the the first address of `touch2` should be `0x4017ec`. Then, we also find that the variable we pass to `touch2` should be stored at `$rdi`.
- 
+
 To make `$rdi` store our cookie, we need to inject the exploit string, which contains our cookie value, to the input string. Specifically, we need to write our own assembly code, and make rdi store cookie value and then jump to `touch2()`. Then, make this code as the part of exploit string.
 
 The assemly code we made just like below:
