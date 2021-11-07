@@ -14,14 +14,14 @@
 &emsp;&emsp;<a href="#10">Problem Description</a>  
 &emsp;&emsp;<a href="#11">Using `Blocking` technique to improve the locality of inner loops</a>  
 &emsp;&emsp;<a href="#12">My Solution</a>  
-&emsp;&emsp;&emsp;&emsp;<a href="#13">32 X 32 Matrix Transposition</a>  
+&emsp;&emsp;&emsp;&emsp;<a href="#13">• 32 X 32 Matrix Transposition</a>  
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="#14">- Basic Solution</a>  
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="#15">- Optimize Solution</a>  
-&emsp;&emsp;&emsp;&emsp;<a href="#16">64x64 Matrix Transposition</a>  
+&emsp;&emsp;&emsp;&emsp;<a href="#16">• 64x64 Matrix Transposition</a>  
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="#17">- The code would be like this: </a>  
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="#18">- Running result</a>  
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="#19">- Reference Link in Part B</a>  
-&emsp;&emsp;&emsp;&emsp;<a href="#20">61x67 Matrix Transposition</a>  
+&emsp;&emsp;&emsp;&emsp;<a href="#20">• 61x67 Matrix Transposition</a>  
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="#21">- The code</a>  
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="#22">- The running result</a>  
 &emsp;<a href="#23">The Final Result</a>  
