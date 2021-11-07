@@ -17,6 +17,7 @@
 #define BLOCK_SIZE 8
 // Used for 64x64 matrix transposition
 #define SUB_BLOCK_SIZE 4
+
 /**
  * 
  * Structure for block in Cache line:
@@ -67,6 +68,10 @@ void trans_naive(int M, int N , int A[N][M], int B[M][N]);
 void trans_32_32(int M, int N, int A[N][M], int B[M][N]);
 void trans_32_32_opt(int M, int N, int A[N][M], int B[M][N]);
 void trans_64_64(int M, int N, int A[N][M], int B[M][N]);
+void trans_61_67(int M, int N, int A[N][M], int B[M][N]);
+
+
+// Debug function, comment it for running the final result
 void check_transpose_wrapper(int M, int N, int A[N][M], int B[M][N]);
 /* 
  * transpose_submit - This is the solution transpose function that you
@@ -108,13 +113,19 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
         // check_transpose_wrapper(M,N,A,B);
         return ;
     }else if(M == 61 && N == 67){
-		printf("Do the 61x67 matrix transposition ...\n");
-        printf("TODO ... \n");
+		// Comment this line when run the ./test-trans
+		// Only use for debug
+		// printf("Do the 61x67 matrix transposition ...\n");
+		trans_61_67(M,N,A,B);
+
+		// Comment this line when run the ./test-trans
+		// Only use for debug
+        // check_transpose_wrapper(M,N,A,B);
+		return ;
     }else{
         printf("The input matrix size is not required for this lab\n");
         exit(EXIT_FAILURE);
     }
-	// trans_64_64(M,N,A,B);
 }
 
 /**
@@ -127,8 +138,8 @@ void trans_naive(int M, int N , int A[N][M], int B[M][N]){
     for(i=0; i<N; i += BLOCK_SIZE)
         for(j=0; j<M; j+= BLOCK_SIZE)
             // Iterate inside of block
-            for(bi = i; bi < min(i + 8, N); bi++)
-                for(bj = j; bj < min(j+8, M); bj++){
+            for(bi = i; bi < min(i + BLOCK_SIZE, N); bi++)
+                for(bj = j; bj < min(j+ BLOCK_SIZE, M); bj++){
                     tmp = A[bi][bj];
                     B[bj][bi] = tmp;
                 }
@@ -147,25 +158,25 @@ void trans_32_32(int M, int N, int A[N][M], int B[M][N]){
             for(k=i; k<i+BLOCK_SIZE; k++){
                 // Save the elements from the current matrix row
                 // to register
-                int tmp0 = A[k][j];
-                int tmp1 = A[k][j+1];
-                int tmp2 = A[k][j+2];
-                int tmp3 = A[k][j+3];
-                int tmp4 = A[k][j+4];
-                int tmp5 = A[k][j+5];
-                int tmp6 = A[k][j+6];
-                int tmp7 = A[k][j+7];
+                int tmp0 = A[k][ j + 0 ];
+                int tmp1 = A[k][ j + 1 ];
+                int tmp2 = A[k][ j + 2 ];
+                int tmp3 = A[k][ j + 3 ];
+                int tmp4 = A[k][ j + 4 ];
+                int tmp5 = A[k][ j + 5 ];
+                int tmp6 = A[k][ j + 6 ];
+                int tmp7 = A[k][ j + 7 ];
 
                 // Get the element from A[k][*] from register
                 // and copy it to Matrix B
-                B[j][k] = tmp0;
-                B[j+1][k] = tmp1;
-                B[j+2][k] = tmp2;
-                B[j+3][k] = tmp3;
-                B[j+4][k] = tmp4;
-                B[j+5][k] = tmp5;
-                B[j+6][k] = tmp6;
-                B[j+7][k] = tmp7;
+                B[ j + 0 ][k] = tmp0;
+                B[ j + 1 ][k] = tmp1;
+                B[ j + 2 ][k] = tmp2;
+                B[ j + 3 ][k] = tmp3;
+                B[ j + 4 ][k] = tmp4;
+                B[ j + 5 ][k] = tmp5;
+                B[ j + 6 ][k] = tmp6;
+                B[ j + 7 ][k] = tmp7;
             }
 }
 
@@ -186,24 +197,24 @@ void trans_32_32_opt(int M, int N, int A[N][M], int B[M][N]){
             for(bi = i, bj = j; bi < i + BLOCK_SIZE; bi++, bj++){
                 // Save the elements from the current matrix row
                 // to register
-                tmp0 = A[bi][j];
-                tmp1 = A[bi][j+1];
-                tmp2 = A[bi][j+2];
-                tmp3 = A[bi][j+3];
-                tmp4 = A[bi][j+4];
-                tmp5 = A[bi][j+5];
-                tmp6 = A[bi][j+6];
-                tmp7 = A[bi][j+7];
+                tmp0 = A[bi][ j + 0 ];
+                tmp1 = A[bi][ j + 1 ];
+                tmp2 = A[bi][ j + 2 ];
+                tmp3 = A[bi][ j + 3 ];
+                tmp4 = A[bi][ j + 4 ];
+                tmp5 = A[bi][ j + 5 ];
+                tmp6 = A[bi][ j + 6 ];
+                tmp7 = A[bi][ j + 7 ];
                 // Copy the element to matrix by row
                 // which is the access order of matrix A
-                B[bj][i] = tmp0;
-                B[bj][i+1] = tmp1;
-                B[bj][i+2] = tmp2;
-                B[bj][i+3] = tmp3;
-                B[bj][i+4] = tmp4;
-                B[bj][i+5] = tmp5;
-                B[bj][i+6] = tmp6;
-                B[bj][i+7] = tmp7;
+                B[bj][ i + 0 ] = tmp0;
+                B[bj][ i + 1 ] = tmp1;
+                B[bj][ i + 2 ] = tmp2;
+                B[bj][ i + 3 ] = tmp3;
+                B[bj][ i + 4 ] = tmp4;
+                B[bj][ i + 5 ] = tmp5;
+                B[bj][ i + 6 ] = tmp6;
+                B[bj][ i + 7 ] = tmp7;
             }
 
             // Then do the transpose operation inside of matrix B
@@ -222,7 +233,6 @@ void trans_32_32_opt(int M, int N, int A[N][M], int B[M][N]){
 // with block-shifting and lazy-transposing, it reaches theoratical limit: 1024 = 16 * 64
 char trans_64_64_desc[] = "The 64x64 matrix transposition"; 
 void trans_64_64(int M, int N, int A[N][M], int B[M][N]){
-	// i = jj, j = ii, bi = i, bj = j
 	// i and j are the outside loop index
 	// whereas bi, bj are the inside loop index
     int i, j, bi, bj;
@@ -240,24 +250,24 @@ void trans_64_64(int M, int N, int A[N][M], int B[M][N]){
 		// with the block-shifting
 		for(bi = i; bi < i + SUB_BLOCK_SIZE; bi++){
 			// Copy from Matrix A
-			tmp0 = A[bi + SUB_BLOCK_SIZE][i+0];
-			tmp1 = A[bi + SUB_BLOCK_SIZE][i+1];
-			tmp2 = A[bi + SUB_BLOCK_SIZE][i+2];
-			tmp3 = A[bi + SUB_BLOCK_SIZE][i+3];
-			tmp4 = A[bi + SUB_BLOCK_SIZE][i+4];
-			tmp5 = A[bi + SUB_BLOCK_SIZE][i+5];
-			tmp6 = A[bi + SUB_BLOCK_SIZE][i+6];
-			tmp7 = A[bi + SUB_BLOCK_SIZE][i+7];
+			tmp0 = A[bi + SUB_BLOCK_SIZE][ i + 0 ];
+			tmp1 = A[bi + SUB_BLOCK_SIZE][ i + 1 ];
+			tmp2 = A[bi + SUB_BLOCK_SIZE][ i + 2 ];
+			tmp3 = A[bi + SUB_BLOCK_SIZE][ i + 3 ];
+			tmp4 = A[bi + SUB_BLOCK_SIZE][ i + 4 ];
+			tmp5 = A[bi + SUB_BLOCK_SIZE][ i + 5 ];
+			tmp6 = A[bi + SUB_BLOCK_SIZE][ i + 6 ];
+			tmp7 = A[bi + SUB_BLOCK_SIZE][ i + 7 ];
 
 			// Move to the matrix B from the local variables
-			B[bi][j+0] = tmp0;
-			B[bi][j+1] = tmp1;
-			B[bi][j+2] = tmp2;
-			B[bi][j+3] = tmp3;
-			B[bi][j+4] = tmp4;
-			B[bi][j+5] = tmp5;
-			B[bi][j+6] = tmp6;
-			B[bi][j+7] = tmp7;
+			B[bi][ j + 0 ] = tmp0;
+			B[bi][ j + 1 ] = tmp1;
+			B[bi][ j + 2 ] = tmp2;
+			B[bi][ j + 3 ] = tmp3;
+			B[bi][ j + 4 ] = tmp4;
+			B[bi][ j + 5 ] = tmp5;
+			B[bi][ j + 6 ] = tmp6;
+			B[bi][ j + 7 ] = tmp7;
 		}
 
 		
@@ -423,6 +433,54 @@ void trans_64_64(int M, int N, int A[N][M], int B[M][N]){
 	
 }
 
+
+/**
+ * 61x67 matrix transposition
+ */
+char trans_61_67_desc[] = "The 61x67 matrix transposition";
+void trans_61_67(int M, int N, int A[N][M], int B[M][N]){
+	// use 8x23 as our block size
+	#define B_COL_NUM 23
+	#define B_ROW_NUM 8
+
+	int i, j, bi, bj;
+	int tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
+	
+	for(i=0; i < N; i += B_ROW_NUM){
+		for(j=0; j < M; j+= B_COL_NUM){
+			// Make sure the index will not of bound
+			if(i + B_ROW_NUM <= N  && j + B_COL_NUM){
+				for(bj = j; bj < j + B_COL_NUM; bj++){
+					tmp0 = A[ i + 0 ][bj];
+					tmp1 = A[ i + 1 ][bj];
+					tmp2 = A[ i + 2 ][bj];
+					tmp3 = A[ i + 3 ][bj];
+					tmp4 = A[ i + 4 ][bj];
+					tmp5 = A[ i + 5 ][bj];
+					tmp6 = A[ i + 6 ][bj];
+					tmp7 = A[ i + 7 ][bj];
+
+					B[bj][ i + 0 ] = tmp0;
+					B[bj][ i + 1 ] = tmp1;
+					B[bj][ i + 2 ] = tmp2;
+					B[bj][ i + 3 ] = tmp3;
+					B[bj][ i + 4 ] = tmp4;
+					B[bj][ i + 5 ] = tmp5;
+					B[bj][ i + 6 ] = tmp6;
+					B[bj][ i + 7 ] = tmp7;
+				}
+			}else{
+				for(bi = i; bi < min( i + B_ROW_NUM, N); bi++)
+					for(bj = j; bj < min(j + B_COL_NUM, M); bj++){
+						B[bj][bi] = A[bi][bj];
+					}
+			}
+		}
+	}
+
+	#undef B_COL_NUM
+	#undef B_ROW_NUM
+}
 /* 
  * You can define additional transpose functions below. We've defined
  * a simple one below to help you get started. 
@@ -458,13 +516,17 @@ void registerFunctions()
     /* Register your solution function */
     registerTransFunction(transpose_submit, transpose_submit_desc); 
 
-    /* Register the naive block matrix transpose */
+    /* Register the naive 8x8 block matrix transpose */
     // registerTransFunction(trans_naive, trans_naive_desc);
+
     /* Solution for 32x32 matrix */
     // registerTransFunction(trans_32_32, trans_32_32_desc);
 
     /* Solution for 64x64 matrix */
     // registerTransFunction(trans_64_64, trans_64_64_desc);
+
+	/* Solution for 61x67 matrix */
+    // registerTransFunction(trans_61_67, trans_61_67_desc);
 
     /* Register any additional transpose functions */
     // registerTransFunction(trans, trans_desc); 

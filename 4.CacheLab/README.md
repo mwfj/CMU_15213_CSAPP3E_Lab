@@ -1,6 +1,6 @@
 # Lab 4 Cache Lab
 
-### Updating ...
+### 
 
 ## Little Background Review:
 
@@ -1160,12 +1160,6 @@ Summary for official submission (func 0): correctness=1 misses=1027
 TEST_TRANS_RESULTS=1:1027
 ```
 
-### 61x67 Matrix Transposition
-
-For this irregular matrix, the best way I can do is to use the `16x16` block, although I think there should have a better way to optimize this matrix transposition. I will update this repo when I find a better one.
-
-
-
 ### Reference Link in Part B
 
 [CSAPP Cache Lab 缓存实验(in Chinese)](https://yangtau.me/computer-system/csapp-cache.html#_17)
@@ -1173,3 +1167,113 @@ For this irregular matrix, the best way I can do is to use the `16x16` block, al
 [Introduction to CSAPP（二十一）：这可能是你能找到的最详细的cachelab了(In Chinese)](https://zhuanlan.zhihu.com/p/138881600)
 
 [CSAPP - Cache Lab的更(最)优秀的解法(In Chinese)](https://zhuanlan.zhihu.com/p/387662272)
+
+### 61x67 Matrix Transposition
+
+For this part of problem, we need to reduce the cache miss less than 2000 to get the full point.
+
+For this irregular matrix, the best way I can do is to use the `8x23` block, the method is same as what we did in the `32x32` matrix part, although I think there should have a better way to optimize this matrix transposition. 
+
+#### The code
+
+```c
+/**
+ * 61x67 matrix transposition
+ */
+char trans_61_67_desc[] = "The 61x67 matrix transposition";
+void trans_61_67(int M, int N, int A[N][M], int B[M][N]){
+	// use 8x23 as our block size
+	#define B_COL_NUM 23
+	#define B_ROW_NUM 8
+
+	int i, j, bi, bj;
+	int tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
+	
+	for(i=0; i < N; i += B_ROW_NUM){
+		for(j=0; j < M; j+= B_COL_NUM){
+			// Make sure the index will not of bound
+			if(i + B_ROW_NUM <= N  && j + B_COL_NUM){
+				for(bj = j; bj < j + B_COL_NUM; bj++){
+					tmp0 = A[ i + 0 ][bj];
+					tmp1 = A[ i + 1 ][bj];
+					tmp2 = A[ i + 2 ][bj];
+					tmp3 = A[ i + 3 ][bj];
+					tmp4 = A[ i + 4 ][bj];
+					tmp5 = A[ i + 5 ][bj];
+					tmp6 = A[ i + 6 ][bj];
+					tmp7 = A[ i + 7 ][bj];
+
+					B[bj][ i + 0 ] = tmp0;
+					B[bj][ i + 1 ] = tmp1;
+					B[bj][ i + 2 ] = tmp2;
+					B[bj][ i + 3 ] = tmp3;
+					B[bj][ i + 4 ] = tmp4;
+					B[bj][ i + 5 ] = tmp5;
+					B[bj][ i + 6 ] = tmp6;
+					B[bj][ i + 7 ] = tmp7;
+				}
+			}else{
+				for(bi = i; bi < min( i + B_ROW_NUM, N); bi++)
+					for(bj = j; bj < min(j + B_COL_NUM, M); bj++){
+						B[bj][bi] = A[bi][bj];
+					}
+			}
+		}
+	}
+
+	#undef B_COL_NUM
+	#undef B_ROW_NUM
+}
+```
+
+#### The running result
+
+```bash
+➜  ~/cmu-15-213-CSAPP3E-lab/4.Cache_lab/cachelab-handout ./test-trans -M 61 -N 67
+
+Function 0 (1 total)
+Step 1: Validating and generating memory traces
+Step 2: Evaluating performance (s=5, E=1, b=5)
+func 0 (Transpose submission): hits:7232, misses:1971, evictions:1939
+
+Summary for official submission (func 0): correctness=1 misses=1971
+
+TEST_TRANS_RESULTS=1:1971
+
+```
+
+## The Final Result
+
+```bash
+➜  ~/cmu-15-213-CSAPP3E-lab/4.Cache_lab/cachelab-handout ./driver.py             
+Part A: Testing cache simulator
+Running ./test-csim
+                        Your simulator     Reference simulator
+Points (s,E,b)    Hits  Misses  Evicts    Hits  Misses  Evicts
+     3 (1,1,1)       9       8       6       9       8       6  traces/yi2.trace
+     3 (4,2,4)       4       5       2       4       5       2  traces/yi.trace
+     3 (2,1,4)       2       3       1       2       3       1  traces/dave.trace
+     3 (2,1,3)     167      71      67     167      71      67  traces/trans.trace
+     3 (2,2,3)     201      37      29     201      37      29  traces/trans.trace
+     3 (2,4,3)     212      26      10     212      26      10  traces/trans.trace
+     3 (5,1,5)     231       7       0     231       7       0  traces/trans.trace
+     6 (5,1,5)  265189   21775   21743  265189   21775   21743  traces/long.trace
+    27
+
+
+Part B: Testing transpose function
+Running ./test-trans -M 32 -N 32
+Running ./test-trans -M 64 -N 64
+Running ./test-trans -M 61 -N 67
+
+Cache Lab summary:
+                        Points   Max pts      Misses
+Csim correctness          27.0        27
+Trans perf 32x32           8.0         8         259
+Trans perf 64x64           8.0         8        1027
+Trans perf 61x67          10.0        10        1971
+          Total points    53.0        53
+
+```
+
+Cache lab finished.
