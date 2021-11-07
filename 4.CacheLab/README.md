@@ -2,7 +2,7 @@
 
 ## <a name="index">Table Of Content: </a>
 
-&emsp;&emsp;<a href="#1"></a>  
+&emsp;<a href="#1"></a>  
 &emsp;<a href="#2">Little Background Review:</a>  
 &emsp;&emsp;<a href="#3">- Cache Memory Read Background</a>  
 &emsp;&emsp;<a href="#4">- Simple Example : Direct-Mapped Caches</a>  
@@ -13,17 +13,17 @@
 &emsp;<a href="#9">Part B: Optimizing Matrix Transpose</a>  
 &emsp;&emsp;<a href="#10">Problem Description</a>  
 &emsp;&emsp;<a href="#11">Using `Blocking` technique to improve the locality of inner loops</a>  
-&emsp;<a href="#12">My Solution</a>  
-&emsp;&emsp;<a href="#13">32 X 32 Matrix Transposition</a>  
-&emsp;&emsp;&emsp;<a href="#14">- Basic Solution</a>  
-&emsp;&emsp;&emsp;<a href="#15">- Optimize Solution</a>  
-&emsp;&emsp;<a href="#16">64x64 Matrix Transposition</a>  
-&emsp;&emsp;<a href="#17">- The code would be like this: </a>  
-&emsp;&emsp;&emsp;<a href="#18">- Running result</a>  
-&emsp;&emsp;<a href="#19">- Reference Link in Part B</a>  
-&emsp;&emsp;<a href="#20">61x67 Matrix Transposition</a>  
-&emsp;&emsp;&emsp;<a href="#21">- The code</a>  
-&emsp;&emsp;&emsp;<a href="#22">- The running result</a>  
+&emsp;&emsp;<a href="#12">My Solution</a>  
+&emsp;&emsp;&emsp;&emsp;<a href="#13">32 X 32 Matrix Transposition</a>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="#14">- Basic Solution</a>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="#15">- Optimize Solution</a>  
+&emsp;&emsp;&emsp;&emsp;<a href="#16">64x64 Matrix Transposition</a>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="#17">- The code would be like this: </a>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="#18">- Running result</a>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="#19">- Reference Link in Part B</a>  
+&emsp;&emsp;&emsp;&emsp;<a href="#20">61x67 Matrix Transposition</a>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="#21">- The code</a>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="#22">- The running result</a>  
 &emsp;<a href="#23">The Final Result</a>  
 
 ## <a name="2">Little Background Review:</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
