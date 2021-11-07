@@ -1,6 +1,6 @@
 # Lab 4 Cache Lab Report
 
-## <a name="index">Table Of Content: </a>
+### <a name="index">Table Of Content: </a>
 
 &emsp;<a href="#1"></a>  
 &emsp;<a href="#2">Little Background Review:</a>  
