@@ -21,3 +21,6 @@ In this project, I will fulfill a simple Unix shell, where we would complete the
 • `sigtstp handler`: Catches `SIGTSTP `(ctrl-z) signals. [15 lines]
 
 All of these function is in `tsh.c`.
+
+## Background
+
