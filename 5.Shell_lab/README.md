@@ -1,6 +1,6 @@
 # Shell Lab report
 
-updating now ... ...
+updating now ...
 
 ## Problem Description
 
