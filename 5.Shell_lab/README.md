@@ -89,7 +89,7 @@ At **system boot time**, the operating system allocates and initializes a **jump
 
 Once the hardware triggers the exception, the exception handler start to process the event. After that, it optionally returns to the interrupted program by executing a special **"return from interrupt"** instruction, which pops the appropriate state back into the process control and data register, restore the state to the user mode if the exception interrupted a user program, and then returns control to the interrupted program.
 
-<img align="center" src="./readme-pic/exception_table.png" alt="exception_work_flow" />
+<p align="center" ><img src="./readme-pic/exception_table.png" alt="exception_work_flow" /></p>
 
 <p align="center">The exception table, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/14-ecf-procs.pdf">cmu-213 slide</a></p>
 
