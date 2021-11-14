@@ -65,3 +65,19 @@ However, only these control flows are not enough, because it is hard to deal wit
 
 Applications request service from the operating systems(OS kernel) by using a form of ECF known as a **trap** or **system call**.
 
+#### Exception
+
+The exception implemented partly by the hardware and the operating system. Also, an exception is a transfer of control to OS kernel in response to some change in the processor's state, where the state is encoded in various significant bits and siginal inside the process. Note that the change in state is known as an event. The event might directly related to the execution of the current instrcution.
+
+When the processor detects that the event has occurred, it makes an indirect procedure call, through the jump table called the exception table, to operating system subrountine(exception handler) that is specifically designed to process this particular kind of event.
+
+When the exception occurred, one of three things happened, which depending on the type of event that caused exception:
+
+1. The handler returns control to the current instrcution `I_curr`, the instruction that was executing when the event not occurred.
+2. The handler returns contorl to `I_next`, the instruction that would have executed next had the exception not occurred.
+3. The handler aborts the interrupted program.
+
+![exception_state_transfer](./readme-pic/exception_state_change.png)
+
+<p align="center">These figures are from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/14-ecf-procs.pdf">cmu-213 slide</a></p>
+
