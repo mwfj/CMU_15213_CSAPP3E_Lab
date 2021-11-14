@@ -45,3 +45,23 @@ All of these function is in `tsh.c`.
 
 ## Background
 
+### Exceptional Control Flow
+
+From startup to shutdown, a CPU simply reads and executes(interprets) a sequence of instructions `i`, and one time, where it change the address `a_k` to `a_(k+1)`. Those instructions call the **control flow**. 
+
+Up to now, there have two mechanisms for **changing the control flow**:
+
++ Jumps and branches
++ Call and return
+
+React to changes in **program state**. Normally, the instruction `ik` and `ik+1` are adjacent with each other in the memory address and do the smooth flow changes unless an abrupt change occurred in the control flow.
+
+However, only these control flows are not enough, because it is hard to deal with the **system state changes**, which is not related to the execution of the program. Such as I/O operation or data comes in the network adapter. This makes us introduce **Exceptional Control Flow(ECF)**. Exceptional Control flow occurs at all levels of a computer system.
+
++ At the **hardware level**, event detected by the **hardware trigger** abrupt control transfers to the exceptional handler.
++ At the **operating system level**, the kernel transfer control from one user process to another via **context switch**.
++ At the **application level**, a prcess can send a signal to another process that abruptly transfer control  to a **signal handler** in the recipient.
++ An **individual program** can react to errors by **sidestepping the usual call/return stack discipline** and **making nonlocal jumps** to arbitrary locations in other functions.
+
+Applications request service from the operating systems(OS kernel) by using a form of ECF known as a **trap** or **system call**.
+
