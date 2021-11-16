@@ -102,4 +102,4 @@ Once the hardware triggers the exception, the exception handler start to process
 + **Return Address**: as with the **procedural call**, the processor pushes a return address on the stack before branching to the handler. Whereas, for the exception, the return address id either the current instruction or the next instruction.
 + The processor also pushes some additional processor state onto the stack that will be necessary to restart the interrupted program when the handler returns.
 + When the control is being transferred from a user program to the kernel, all of these items are pushed onto **the kernel's stack rather than user's stack.**
-+ Exception handler run in **kernel mode**.
++ Exception handler run in **kernel mode**. 
