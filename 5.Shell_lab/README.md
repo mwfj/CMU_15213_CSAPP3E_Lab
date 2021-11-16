@@ -65,7 +65,7 @@ However, only these control flows are not enough, because it is hard to deal wit
 
 Applications request service from the operating systems(OS kernel) by using a form of ECF known as a **trap** or **system call**.
 
-#### Exception
+### Exception
 
 The exception implemented partly by the hardware and the operating system. Also, an exception is a transfer of control to OS kernel in response to some change in the processor's state, where the state is encoded in various significant bits and siginal inside the process. Note that the change in state is known as an event. The event might directly related to the execution of the current instrcution.
 
@@ -81,7 +81,14 @@ When the exception occurred, one of three things happened, which depending on th
 
 <p align="center">The exception state transfer, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/14-ecf-procs.pdf">cmu-213 slide</a></p>
 
-#### Exception Handler
+Exception can be divided into four classes:
+
+1. interrupts
+2. traps
+3. faluts
+4. aborts
+
+### Exception Handler
 
 Each type of possible exception in a system is assigned a **unique nonnegative integer exception number**. Some of these numbers are assigned by the designers of the **process**, whereas other numbers are assigned by the **operating system** kernel(the memory-resident part of the operating system). 
 
@@ -103,3 +110,9 @@ Once the hardware triggers the exception, the exception handler start to process
 + The processor also pushes some additional processor state onto the stack that will be necessary to restart the interrupted program when the handler returns.
 + When the control is being transferred from a user program to the kernel, all of these items are pushed onto **the kernel's stack rather than user's stack.**
 + Exception handler run in **kernel mode**. 
+
+### Interrupt(Asynchronous Exceptions)
+
+Interrupts occur asynchronously as a result of signal from I/O devices that are external to the processor.
+
+Hardware Interrupt are asychronous in the sense that they are not caused by the execution of any particular instruction. Exception handlers for hardare interrupt are often called **interrupt handlers**.
