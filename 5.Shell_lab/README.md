@@ -96,3 +96,10 @@ Once the hardware triggers the exception, the exception handler start to process
 <p align="center">The exception table, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/14-ecf-procs.pdf">cmu-213 slide</a></p>
 
 <p align="center"> <img src="./readme-pic/exception_work_flow.png" alt="exception_work_flow" style="zoom:80%;"/> </p>
+
+#### Difference between **Exception** and **Procedure Call**:
+
++ **Return Address**: as with the **procedural call**, the processor pushes a return address on the stack before branching to the handler. Whereas, for the exception, the return address id either the current instruction or the next instruction.
++ The processor also pushes some additional processor state onto the stack that will be necessary to restart the interrupted program when the handler returns.
++ When the control is being transferred from a user program to the kernel, all of these items are pushed onto **the kernel's stack rather than user's stack.**
++ Exception handler run in **kernel mode**.
