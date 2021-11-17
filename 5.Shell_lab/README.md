@@ -111,8 +111,61 @@ Once the hardware triggers the exception, the exception handler start to process
 + When the control is being transferred from a user program to the kernel, all of these items are pushed onto **the kernel's stack rather than user's stack.**
 + Exception handler run in **kernel mode**. 
 
+**The exception can divided by:**
+
+1. Asynchronous Exceptions:
+   + Interrupts
+2. Synchronous Exceptions:
+   + Traps
+   + Faults
+   + Aborts
+
 ### Interrupt(Asynchronous Exceptions)
 
 Interrupts occur asynchronously as a result of signal from I/O devices that are external to the processor.
 
-Hardware Interrupt are asychronous in the sense that they are not caused by the execution of any particular instruction. Exception handlers for hardare interrupt are often called **interrupt handlers**.
+Process:
+
+1. Hardware Interrupt are asychronous in the sense that they are not caused by the execution of any particular instruction.Exception handlers for hardare interrupt are often called **interrupt handlers**.
+2. The processor notices that the **interrupt pin has go high**, reads the exception number from system bus.
+3. The processor calls the appropriate  interrupt handler.
+4. When handler returns, it returns the control to the next instruction in the control flow.
+
+<p align="center"> 
+  <img src="./readme-pic/interrupt_work_flow.JPG" alt="interrupt_work_flow" />
+</p>
+
+<p align="center">The interrupt work flow, this figure is from the book <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 8</p>
+
+### Synchronously Exceptions(Faulting Instruction)
+
+#### Traps and System Calls
+
+Traps are intentional exceptions that occur as a result of executing an instruction. Like interrupt handlers, trap handlers return contorl to the next instruction. **The most important use of traps is to provide a procedural-like interface between user program and the kernel**, known as **system call**.
+
+To allow controlled access to such kernel services, process provides a special `syscall` instruction that user programs can execute when they are request the related service. Executing the `syscall` instruction cause a trap to an exception handler taht decodes the argument and calls the appropriate kernel routine.
+
+From the programmer's perspective, a system call is identical to a regular function call, where the regular function runs in the **user mode**, which restricts the types of some higher privilege instructions they can execute, and they access the same stack as the calling function. Whereas the system call runs in the **kernel mode**, which allows it executes privileged instrctions and access a stack defined in the kernel.
+
+<p align="center"> 
+  <img src="./readme-pic/traps_work_flow.JPG" alt="traps_work_flow" />
+</p>
+
+<p align="center">The traps work flow, this figure is from the book <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 8</p>
+
+#### Faluts
+
+<p align="center"> 
+  <img src="./readme-pic/fault_work_flow.JPG" alt="fault_work_flow" />
+</p>
+
+<p align="center">The fault work flow, this figure is from the book <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 8</p>
+
+#### Aborts
+
+<p align="center"> 
+  <img src="./readme-pic/abort_work_flow.JPG" alt="abort_work_flow" />
+</p>
+
+<p align="center">The fault work flow, this figure is from the book <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 8</p>
+
