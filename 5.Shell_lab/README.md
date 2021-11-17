@@ -155,6 +155,8 @@ From the programmer's perspective, a system call is identical to a regular funct
 
 #### Faluts
 
+Faults result from **error conditions** that a handler might be able to correct. When fault occurred, the processor transfers control to the fault handler. If the fault handler is able to correct the error condition, and then it returns control to the faulting instruction. Otherwise, the handler returns to an `abort` routine in the kernel that terminates the application program that caused fault.
+
 <p align="center"> 
   <img src="./readme-pic/fault_work_flow.JPG" alt="fault_work_flow" />
 </p>
