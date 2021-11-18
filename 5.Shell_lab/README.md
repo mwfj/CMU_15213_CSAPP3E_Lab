@@ -165,6 +165,8 @@ Faults result from **error conditions** that a handler might be able to correct.
 
 #### Aborts
 
+Aborts result from unrecoverable fatal errors, typically hardware errors. **Aborts handlers never return control to the application program**.
+
 <p align="center"> 
   <img src="./readme-pic/abort_work_flow.JPG" alt="abort_work_flow" />
 </p>
