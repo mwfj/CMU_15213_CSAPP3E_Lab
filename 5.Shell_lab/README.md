@@ -147,6 +147,8 @@ To allow controlled access to such kernel services, process provides a special `
 
 From the programmer's perspective, a system call is identical to a regular function call, where the regular function runs in the **user mode**, which restricts the types of some higher privilege instructions they can execute, and they access the same stack as the calling function. Whereas the system call runs in the **kernel mode**, which allows it executes privileged instrctions and access a stack defined in the kernel.
 
+By convention, register `%rax` contains the syscall number, with up to six arguements: `%rdi`, `%rsi`,`%rdx`, `%r10`,`%r8` and `%r9`. On return from the system call, register `%rcx` and `%r11` are destroyed, and `%rax` contains the return value. Negative value is an error corresponding to negative `errno`.
+
 <p align="center"> 
   <img src="./readme-pic/traps_work_flow.JPG" alt="traps_work_flow" />
 </p>
