@@ -175,3 +175,26 @@ Aborts result from unrecoverable fatal errors, typically hardware errors. **Abor
 
 <p align="center">The fault work flow, this figure is from the book <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 8</p>
 
+### Process
+
+A process is an **instance of a program in execution**. Each program in the system runs in the **context** of some process. The context consist of the state that the program needs to run correctly, where the state includes:
+
++ the program's code 
++ data stored in memory
++ its stack
++ the contents of the general-purpose register
++ its program counter
++ environment variables
++ the set of open file descriptors.
+
+Each time a user runs a program by typing the name of an executable object file to the shell, and then shell creates a new process and then runs the executable object file in the context of this new process. Application programs can also create new processes and run either their own code or other applications in the context of the new process.
+
+Process provides each program with **two key abstractions**:
+
++ **Logical control flow:**
+
+  The logical control flow is a **sequence of program counter values** that corresponded exclusively to instructions contained in our program's executable object file or in shared linked into our program dynamically at run time, where program counter is a 16 bit register that holds the address of the next instruction.
+
++ Private address space:
+
+  Each program seems to have exclusive use of main memory. This space is private in the sense that a byte of memory associated with a particular address in the space cannot in general be read or write by any other process.
