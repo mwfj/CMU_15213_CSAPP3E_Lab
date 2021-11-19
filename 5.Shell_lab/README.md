@@ -197,4 +197,4 @@ Process provides each program with **two key abstractions**:
 
 + Private address space:
 
-  Each program seems to have exclusive use of main memory. This space is private in the sense that a byte of memory associated with a particular address in the space cannot in general be read or write by any other process.
+  Each program seems to have exclusive use of main memory. This space is private in the sense that a byte of memory associated with a particular address in the space cannot in general be read or write by any other process. The private address space is provided by kernel mechanism called virtual memory.
