@@ -45,6 +45,8 @@ All of these function is in `tsh.c`.
 
 ## Background
 
+In this section, I just briefly summary some main conception for the exception and the signal. If you would like see more detail, please see the reference book: [CS:APP3e](http://csapp.cs.cmu.edu/3e/home.html).
+
 ### Exceptional Control Flow
 
 From startup to shutdown, a CPU simply reads and executes(interprets) a sequence of instructions `i`, and one time, where it change the address `a_k` to `a_(k+1)`. Those instructions call the **control flow**. 
@@ -195,6 +197,15 @@ Process provides each program with **two key abstractions**:
 
   The logical control flow is a **sequence of program counter values** that corresponded exclusively to instructions contained in our program's executable object file or in shared linked into our program dynamically at run time, where program counter is a 16 bit register that holds the address of the next instruction.
 
-+ Private address space:
++ **Private address space:**
 
   Each program seems to have exclusive use of main memory. This space is private in the sense that a byte of memory associated with a particular address in the space cannot in general be read or write by any other process. The private address space is provided by kernel mechanism called virtual memory.
+
+#### User and Kernel Mode
+
+The processor typically provides the capability of restricting the instruction that an application can execute, where this capability set by a mode bit in some control register characterizes the privileges. Specifically, when the bit is set, the process is running in `kernel mode`, otherwise, the process running in `user mode`. A process running in the `user mode` is not allowed to execute privileged instructions nor is it allowed to directly reference code or date in the kernel area of the address space, whereas the process in the `kernel mode` can execute any instruction in the instruction set and access any memory location in the system. **The only way for the process to change from the user mode to the kernel mode is via an exception such as `a interrupt`,` a fault`, or `a trapping system call`.** 
+
+Linux provides a mechanism called `/proc system` that allows user mode processes to access the content of kernel data structure.
+
+### Context Switch
+
