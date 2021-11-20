@@ -209,3 +209,20 @@ Linux provides a mechanism called `/proc system` that allows user mode processe
 
 ### Context Switch
 
+The context is the state that the kernel needs to restart a preempted process. It consist of
+
++ general-purpose register
++ the floating-pointer register
++ the program counter
++ user's stack
++ status register
++ kernel's stack
++ page table
++ a process table
++ a file table
+
+<p align="center"> 
+  <img src="./readme-pic/context_switch.png" alt="context_switch" />
+</p>
+
+<p align="center">Context Switch, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/14-ecf-procs.pdf">cmu-213 slide</a></p>
