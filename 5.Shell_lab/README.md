@@ -272,3 +272,4 @@ A **shell** is an interactive application-level program that runs programs on be
 
 ### Signal : kernel software and application software
 
+A signal is a small message that notifies a process that an event of some type has occurred in the system, where the signal happened in a higher-level software form of exceptional control flow that allows the process and the kernel to interrupt other processes. Each signal type corresponds to some kind of system event. Low-level hardware exceptions are processed by the kernel's exception handlers and would not normally be visible to user process. **Signal provide a mechanism for exposing the occurrence of such exception to user process**.
