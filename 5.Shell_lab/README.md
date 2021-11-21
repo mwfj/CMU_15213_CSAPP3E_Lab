@@ -226,3 +226,39 @@ The context is the state that the kernel needs to restart a preempted process. I
 </p>
 
 <p align="center">Context Switch, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/14-ecf-procs.pdf">cmu-213 slide</a></p>
+
+A context switch can occur in the following situation:
+
++ The kernel is executing a system call on behalf of the user. If the system call blocks because it is waiting for some event to occur, then the kernel can put the current process to sleep and switch to another process.
++ As a result of an interrupt.
+
+### Process Control
+
+####  `exit()`
+
+Terminate the process with an *exit status* of status.
+
+#### `fork()`: 
+
+A parent process creates a new running child process, where the newly created child process gets an identical copy from the parent process's user-level virtual address space(code, data segment, heap, shared libraries, user stack and its open file descriptors). However, the pid between child and parent are different. In other words, child process duplicates the context of their parent but has a separate address space, where both of them have their own private address space and any subsequent changes of the variable that parent or child makes are private and not reflected in the memory of the other process.
+
+Also, the `fork()` function **called once but it returns twice**: once in the calling process(the parent); and once in the newly created child process. In parent, `fork()` returns the PID of the child, whereas `fork()` returns a value of 0 for the child, where both parent and child are run concurrently.
+
+Furthermore, **the child inherits all the parent's open files**, and thus it can get the same output as their parent does for the same file.
+
+When a process terminates for any reason, the kernel does not remove it from the system immediately. Instead, t**he process is kept around in a terminated state until it is reaped by its parent**, which called ***zombie***. When parent process terminates, the kernel arranges for the init process(PID = 1, launched at the system startup) to become the adopted parent of  any orphaned children.
+
+#### `wait()`
+
+A process waits for its children to terminate or stop by calling the `waitpid()` or `wait()`(simpler version) function. Parent reaps a child by calling the wait function In other words, it suspends current process un;l one of its children terminates and return value is the pid of the child process that terminated. 
+
+#### `execve()`
+
+Loading and running the executable object file *filename* with the argument list *argv* and the environment variable *envp*. `execve` returns to the calling program only if there is an error. In the most of case, `execve` **call once and never return**.
+
+Furthermore  `execve` overwrites code, data and stack for the current process but retains PID, open files and signal context.
+
+Normally, if want to create a newly process, we often use `fork()` to create separate address space and use `execve()` to replace the context in that space.
+
+### Signal
+
