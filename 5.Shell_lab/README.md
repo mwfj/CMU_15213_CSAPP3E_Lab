@@ -67,7 +67,7 @@ However, only these control flows are not enough, because it is hard to deal wit
 
 Applications request service from the operating systems(OS kernel) by using a form of ECF known as a **trap** or **system call**.
 
-### Exception
+### Exceptions : Hardware and operating system kernel software
 
 The exception implemented partly by the hardware and the operating system. Also, an exception is a transfer of control to OS kernel in response to some change in the processor's state, where the state is encoded in various significant bits and siginal inside the process. Note that the change in state is known as an event. The event might directly related to the execution of the current instrcution.
 
@@ -207,7 +207,7 @@ The processor typically provides the capability of restricting the instruction t
 
 Linux provides a mechanism called `/proc system` that allows user mode processes to access the content of kernel data structure.
 
-### Context Switch
+### Context Switch : Hardware timer and kernel software
 
 The context is the state that the kernel needs to restart a preempted process. It consist of
 
@@ -258,7 +258,17 @@ Loading and running the executable object file *filename* with the argument list
 
 Furthermore  `execve` overwrites code, data and stack for the current process but retains PID, open files and signal context.
 
+### Shell
+
 Normally, if want to create a newly process, we often use `fork()` to create separate address space and use `execve()` to replace the context in that space.
 
-### Signal
+A **shell** is an interactive application-level program that runs programs on behalf of the user. A shell performs a sequence of *read/evaluate* steps and then terminates. Specifically, the read step reads a command line from the user and the evaluate step parses the command line and runs programs on behalf of the user.
+
+<p align="center"> 
+  <img src="./readme-pic/linux_process_hierarchy.png" alt="linux_process_hierarchy" />
+</p>
+
+<p align="center">Linux Process Hierarchy, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/15-ecf-signals.pdf">cmu-213 slide</a></p>
+
+### Signal : kernel software and application software
 
