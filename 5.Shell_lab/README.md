@@ -273,3 +273,22 @@ A **shell** is an interactive application-level program that runs programs on be
 ### Signal : kernel software and application software
 
 A signal is a small message that notifies a process that an event of some type has occurred in the system, where the signal happened in a higher-level software form of exceptional control flow that allows the process and the kernel to interrupt other processes. Each signal type corresponds to some kind of system event. Low-level hardware exceptions are processed by the kernel's exception handlers and would not normally be visible to user process. **Signal provide a mechanism for exposing the occurrence of such exception to user process**.
+
+#### Sending Signal
+
+The kernel *sends(delivers)* a signal to a destination process by updating some state in the context of the destination process when:
+
++ the kernel has detected a system event.
++ A process has invoked the ***kill*** function.
+
+#### Receiving a Signal
+
+A destination process receives a signal when it is **forced by the kerne**l to react in some way to the delivery of the signal.
+
+The process can either: **terminate the process**, **ignore** or **catch** the signal by executing a user-level function called a **signal handler**.
+
+<p align="center"> 
+  <img src="./readme-pic/receive_the_signal.png" alt="receive_the_signal" />
+</p>
+
+<p align="center">Receving the signal, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/15-ecf-signals.pdf">cmu-213 slide</a></p>
