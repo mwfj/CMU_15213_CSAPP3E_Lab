@@ -281,6 +281,10 @@ The kernel *sends(delivers)* a signal to a destination process by updating some 
 + the kernel has detected a system event.
 + A process has invoked the ***kill*** function.
 
+##### Process Group
+
+Every process belongs to exactly one **process group**, which is identified by a positive integer **process group ID**.
+
 #### Receiving a Signal
 
 A destination process receives a signal when it is **forced by the kerne**l to react in some way to the delivery of the signal.
@@ -292,3 +296,11 @@ The process can either: **terminate the process**, **ignore** or **catch** the s
 </p>
 
 <p align="center">Receving the signal, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/15-ecf-signals.pdf">cmu-213 slide</a></p>
+
+#### Pending and Blocked Signal
+
+A signal that has been sent but not yet received is called a **pending signal**. At any point in time, there can be at most one pending signal of a particular type. **A pending signal is received at most once**. If a process has a pending signal of type k, then any subsequent signals of type k sent to that process are not queued; they are simply discard.
+
+A process can selectively block the receipt of certain signals. When a signal is blocked, it can be delivered, but the resulting pending signal will not be received until the process unblock the signal. 
+
+For each process, the kernel **maintains the set of pending signals** in the pending bit vector, and **the set of blocked signals** in the **blocked bit vector**. The kernel sets bit k in pending whenever a signal of type k is delivered and clears bit k in pending whenever a signal of type k is received.
