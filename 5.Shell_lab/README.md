@@ -283,7 +283,7 @@ The kernel *sends(delivers)* a signal to a destination process by updating some 
 
 ##### Process Group
 
-Every process belongs to exactly one **process group**, which is identified by a positive integer **process group ID**.
+Every process belongs to exactly one **process group**, which is identified by a positive integer **process group ID**. By default, a child process belongs to the same process group as its parent.
 
 #### Receiving a Signal
 
