@@ -330,7 +330,7 @@ The signal function are change the action associated with a signal  `signum` in 
   + The **invocation of the handler** is called ***catching the signal***.
   + The **execution of the handler** is referred to as ***handling the signal***.
 
-When a process catches a signal of type k, the handler installed for signal k is invoked with a single integer argument set to k. This argument allows the same handler function to catch different types of signals.
+When a process catches a signal of type k, the handler installed for signal k is invoked with a single integer argument set to k. This argument allows **the same handler function to catch different types of signals**.
 
 When the handler executes its *return* statement, control(usually) **passes back to the instruction in the control flow** where the process was interrupted by the receipt of the signal.
 
@@ -341,3 +341,23 @@ A signal that has been sent but not yet received is called a **pending signal**.
 A process can selectively block the receipt of certain signals. When a signal is blocked, it can be delivered, but the resulting pending signal will not be received until the process unblock the signal. 
 
 For each process, the kernel **maintains the set of pending signals** in the pending bit vector, and **the set of blocked signals** in the **blocked bit vector**. The kernel sets bit k in pending whenever a signal of type k is delivered and clears bit k in pending whenever a signal of type k is received.
+
+In Linux,  it provides **implicit** and **explicit** mechanisms for blocking signal: 
+
++ ***Implicit blocking mechanism***: By default, the kernel blocks any pending signals of the type currently being **processed by a handler**.
++ ***Explicit blocking mechanism***: Application can explicitly block/unblock selected signal using the `sigprocmask` function and its helpers.
+  + *SIG_BLOCK*: add the signal in set to blocked(blocked = blocked | set).
+  + *SIG_UNBLOCK*: Remove the signals in set from blocked (blocked = blocked & ~set).
+  + *SIG_SETMASK*: blocked = set.
+  + If `oldset `is non-NULL, the previous value of the blocked bit vector is stored in `oldset`.
+
+#### Guidelines for Wri&ng Safe Handlers
+
++ G0: Keep your handlers as simple as possible
++ G1: Call only async‐signal­‐safe functions in your handlers
++ G2: Save and restore `errno `on entry and exit
++ G3: Protect accesses to shared data structures by **temporarily blocking all signals**.
++ G4: Declare global variables as `volatile`
++ G5: Declare global ﬂags as `volatile sig_atomic_t`
+   + ﬂag: variable that is only read or wriien (e.g. ﬂag = 1, not ﬂag++)
+   + Flag declared this way does not need to be protected like other globals
