@@ -272,18 +272,31 @@ A **shell** is an interactive application-level program that runs programs on be
 
 ### Signal : kernel software and application software
 
-A signal is a small message that notifies a process that an event of some type has occurred in the system, where the signal happened in a higher-level software form of exceptional control flow that allows the process and the kernel to interrupt other processes. Each signal type corresponds to some kind of system event. Low-level hardware exceptions are processed by the kernel's exception handlers and would not normally be visible to user process. **Signal provide a mechanism for exposing the occurrence of such exception to user process**.
+A signal is a small message that notifies a process that an event of some type has occurred in the system, where the signal happened in a higher-level software form of exceptional control flow that allows the process and the kernel to interrupt other processes. Each signal type corresponds to some kind of system event. Low-level hardware exceptions are processed by the kernel's exception handlers and would not normally be visible to user process. **Signal provide a mechanism for exposing the occurrence of such exception to user process**. **Only information in a signal is its ID** and the fact that it arrived.
 
 #### Sending Signal
 
 The kernel *sends(delivers)* a signal to a destination process by updating some state in the context of the destination process when:
 
 + the kernel has detected a system event.
-+ A process has invoked the ***kill*** function.
+
++ A process has invoked the ***kill*** system call(`/bin/kill` in Unix) to explicitly request
+
+  the kernel to **send a signal** to the destination process, where **`kill `system call does not kill any process** unless you pass the related signal(`SIGKILL`) to kill it.
+
+ For example:
+
+we can use `linux > /bin/kill -9 15213` to send signal number 9(`SIGKILL`) to process/process group 15213.
 
 ##### Process Group
 
 Every process belongs to exactly one **process group**, which is identified by a positive integer **process group ID**. By default, a child process belongs to the same process group as its parent.
+
+<p align="center"> 
+  <img src="./readme-pic/process_group.png" alt="process_group" />
+</p>
+
+<p align="center">Process group, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/15-ecf-signals.pdf">cmu-213 slide</a></p>
 
 #### Receiving a Signal
 
@@ -296,6 +309,30 @@ The process can either: **terminate the process**, **ignore** or **catch** the s
 </p>
 
 <p align="center">Receving the signal, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/15-ecf-signals.pdf">cmu-213 slide</a></p>
+
+When the kernel switches a process p from kernel mode to user mode, it checks the set of unblocked pending signals(`pnb = pending & ~blocked`). If this set `pnb` is empty, then the kernel passes the control to the next instruction in the logical flow of p. Otherwise, the kernel will choose least nonzero bit `k `in `pnb` and force process p  to receive signal `k` and repeat this operation until `pnb` is zero.
+
+Each signal type has a predefined ***default action***:
+
++ The process terminates.
++ The process terminates and dump core.
++ The process stops until restarted by a `SIGCONT` signal.
++ The process ignore the signal.
+
+Note that **`signal` system call does not actually signal anything but modify the default action accociate with some signal.** The only exceptions are `SIGSTOP `and `SIGKILL`, whose default actions cannot be changed.
+
+The signal function are change the action associated with a signal  `signum` in one of three ways:
+
++ If the handler is `SIG_IGN`, then signals of type `signum` are ignored.
++ If the handler is `SIG_DFL`, then the action of signals of type `signum` reverts to the default action.
++ Otherwise, handler is the address of a **user-defined function**, called a `signal handler`, that will be called whenever the process receives a signal of type `signum`. 
+  + Changing the default action by **passing the address of a handler** to the `signal` function is known as ***installing the handler***. 
+  + The **invocation of the handler** is called ***catching the signal***.
+  + The **execution of the handler** is referred to as ***handling the signal***.
+
+When a process catches a signal of type k, the handler installed for signal k is invoked with a single integer argument set to k. This argument allows the same handler function to catch different types of signals.
+
+When the handler executes its *return* statement, control(usually) **passes back to the instruction in the control flow** where the process was interrupted by the receipt of the signal.
 
 #### Pending and Blocked Signal
 
