@@ -342,7 +342,7 @@ A process can selectively block the receipt of certain signals. When a signal is
 
 For each process, the kernel **maintains the set of pending signals** in the pending bit vector, and **the set of blocked signals** in the **blocked bit vector**. The kernel sets bit k in pending whenever a signal of type k is delivered and clears bit k in pending whenever a signal of type k is received.
 
-In Linux,  it provides **implicit** and **explicit** mechanisms for blocking signal: 
+In Linux, it provides **implicit** and **explicit** mechanisms for blocking signal: 
 
 + ***Implicit blocking mechanism***: By default, the kernel blocks any pending signals of the type currently being **processed by a handler**.
 + ***Explicit blocking mechanism***: Application can explicitly block/unblock selected signal using the `sigprocmask` function and its helpers.
