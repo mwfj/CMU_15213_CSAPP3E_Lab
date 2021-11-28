@@ -1,6 +1,6 @@
 # Shell Lab report
 
-updating now ...
+updating ...
 
 ## Problem Description
 
@@ -361,3 +361,5 @@ In Linux, it provides **implicit** and **explicit** mechanisms for blocking sign
 + G5: Declare global ﬂags as `volatile sig_atomic_t`
    + ﬂag: variable that is only read or wriien (e.g. ﬂag = 1, not ﬂag++)
    + Flag declared this way does not need to be protected like other globals
+
+`SIGCHLD`: This signal is used to change the child process's state. When parent create a child process, instead of waiting for child process terminated, parent will do the other work until child process send the `SIGCHLD` signal(the kernel send the `SIGCHLD` signal to parent when one of its child process terminates or stops). After parent received/caches the signal, it will recap this child process.
