@@ -375,6 +375,32 @@ void waitfg(pid_t pid)
  */
 void sigchld_handler(int sig)
 {
+    int olderrno = errno;
+
+    pid_t pid;
+    int status;
+    // Detect whether the child stop or terminate
+    while((pid = waitpid(-1,&status, WNOHANG | WUNTRACED))){
+        // The child process return normally
+        if(WIFEXITED(status)){
+            deletejob(jobs, pid);
+        }
+        // The child process blocked by signal
+        else if(WIFSIGNALED(status)){
+            int jid = pid2jid(pid);
+            printf("Job [%d] (%d) terminated by signal %d\n",jid,pid,WTERMSIG(status));
+            deletejob(jobs, pid);
+        }
+        // The child process terminated
+        else if(WIFSTOPPED(status)){
+            int jid = pid2jid(pid);
+            printf("Job [%d] (%d) terminated by signal %d\n",jid,pid,WSTOPSIG(status));
+            deletejob(jobs, pid);
+        }
+    }
+
+
+    errno = olderrno;
 
     return;
 }
