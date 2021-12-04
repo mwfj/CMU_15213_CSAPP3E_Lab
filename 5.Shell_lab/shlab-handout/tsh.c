@@ -3,16 +3,9 @@
  *
  * @author Wufangjie Ma
  */
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <ctype.h>
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <errno.h>
-#include <signal.h> // sigset type
+
+#include "csapp.h"
+
 
 /* Misc manifest constants */
 #define MAXLINE 1024   /* max line size */
@@ -83,28 +76,9 @@ int pid2jid(pid_t pid);
 void listjobs(struct job_t *jobs);
 
 void usage(void);
-void unix_error(char *msg);
-void app_error(char *msg);
+
 typedef void handler_t(int);
 handler_t *Signal(int signum, handler_t *handler);
-
-
-void Sigprocmask(int, const sigset_t *, sigset_t *);
-void Sigemptyset(sigset_t*);
-void Sigfillset(sigset_t *);
-void Sigaddset(sigset_t*, int);
-int Sigsuspend(const sigset_t*);
-
-/* Unix control function wrapper */
-pid_t Fork(void);
-void Execve(const char *, char *const[], char *const[]);
-void Kill(pid_t, int);
-void Setpgid(pid_t, pid_t);
-
-ssize_t sio_puts(char[]);
-void sio_error(char[]);
-void Sio_error(char[]);
-static size_t sio_strlen(char[]);
 
 /*
  * main - The shell's main routine
@@ -117,8 +91,8 @@ int main(int argc, char **argv)
 
     /* Redirect stderr to stdout (so that driver will get all output
      * on the pipe connected to stdout) */
-    dup2(1, 2);
-
+    // dup2(1, 2);
+    Dup2(1,2);
     /* Parse the command line */
     while ((c = getopt(argc, argv, "hvp")) != EOF)
     {
@@ -154,7 +128,6 @@ int main(int argc, char **argv)
     /* Execute the shell's read/eval loop */
     while (1)
     {
-
         /* Read command line */
         if (emit_prompt)
         {
@@ -224,25 +197,32 @@ void eval(char *cmdline)
             Setpgid(0, 0);
             // Replace the address space with the new program
             Execve(argv[0], argv, environ);
-        }
-        // Add the new job
-        // Note the need to block all signal when you add the job
-        Sigprocmask(SIG_BLOCK, &mask_all, NULL);
-        if(bg){
-            // Background Job
-            addjob(jobs, pid, BG, cmdline);
-            Sigprocmask(SIG_SETMASK, &prev_all, NULL);
-            int jid = pid2jid(pid);
-            printf("[%d] (%d) %s", jid, pid, cmdline);
         }else{
-            // Foregrond Job
-            // The shell must wait the child process until it finished.
-            addjob(jobs, pid, FG, cmdline);
-            Sigprocmask(SIG_SETMASK, &prev_all, NULL);
-            // Notice that the signal will not be blocked until the child process finished
-            // Wait until the child process finished
-            waitfg(pid);
+            // entere the parent process
+            // Add the new job
+            // Note the need to block all signal when you add the job
+            // Sigprocmask(SIG_BLOCK, &mask_all, NULL);
+            if(bg)
+                // Background Job
+                addjob(jobs, pid, BG, cmdline);
+            else{
+                flag = 0;
+                // Foregrond Job
+                // The shell must wait the child process until it finished.
+                addjob(jobs, pid, FG, cmdline);
+            }
+            Sigprocmask(SIG_UNBLOCK, &prev_all, NULL);
+
+            if(bg){
+                int jid = pid2jid(pid);
+                printf("[%d] (%d) %s", jid, pid, cmdline);
+            }else
+                // Notice that the signal will not be blocked until the child process finished
+                // Wait until the child process finished
+                waitfg(pid);
+            
         }
+
     }
     return;
 }
@@ -353,7 +333,7 @@ void do_bgfg(char **argv)
     // should be "bg/fg"
     // and thus we start get the command begin with argv[1]
     char* command = argv[1];
-
+    // Init pid
     pid_t cur_pid = -1;
 
     struct job_t* cur_job;
@@ -387,19 +367,20 @@ void do_bgfg(char **argv)
         }
     }else{
         // Handle the Error condition
-        printf("%s: the argument should be jid or pid\n",argv[1]);
+        printf("%s: the argument should be jid or pid\n",argv[0]);
         return ;
     }
     // Send the signal to revoke the current child process
-    kill(-cur_pid, SIGCHLD);
+    kill(-cur_pid, SIGCONT);
 
-    // Foreground job
+    // Background job
     if(!strcmp(argv[0], "bg")){
         printf("[%d] (%d) %s",cur_job ->jid, cur_job->pid, cur_job->cmdline);
         cur_job -> state =  BG;
     }else{
-        // Background job
+        // Foreground job
         printf("[%d] (%d) %s",cur_job ->jid, cur_job->pid, cur_job->cmdline);
+        flag = 0;
         cur_job -> state = FG;
         // Wait the until the job finish
         waitfg(cur_pid);
@@ -416,14 +397,17 @@ void waitfg(pid_t pid)
     if(!pid)
         return ;
     struct job_t* cur_job = getjobpid(jobs, pid);
-    sigset_t mask_all;
-
+    sigset_t mask;
+    Sigemptyset(&mask);
     // Make sure the current pid has the validate job
-    if(!cur_job){
+    if(cur_job != NULL){
         // If the current pid is the fg pid 
         // then wait it until it suspend or stop
-        while(pid == fgpid(jobs)){
-            Sigsuspend(&mask_all);
+        // while(pid == fgpid(jobs)){
+        //     Sigsuspend(&mask);
+        // }
+        while(!flag){
+            Sigsuspend(&mask);
         }
     }
     return ;
@@ -449,6 +433,10 @@ void sigchld_handler(int sig)
 
     // Detect whether the child stop or terminate
     while((pid = waitpid(-1,&status, WNOHANG | WUNTRACED)) > 0){
+        
+        if(pid == fgpid(jobs)){
+            flag = 1;
+        }
 
         sigset_t mask_all, prev_all;
         // Sigemptyset(&mask_all);
@@ -515,7 +503,7 @@ void sigtstp_handler(int sig)
     pid_t pid = fgpid(jobs);
     if(pid <=0)
         return ;
-    Kill(pid, SIGSTOP);
+    Kill(pid, SIGTSTP);
     errno = olderrno;
 }
 
@@ -707,39 +695,23 @@ void usage(void)
 }
 
 /*
- * unix_error - unix-style error routine
- */
-void unix_error(char *msg)
-{
-    fprintf(stdout, "%s: %s\n", msg, strerror(errno));
-    exit(1);
-}
-
-/*
- * app_error - application-style error routine
- */
-void app_error(char *msg)
-{
-    fprintf(stdout, "%s\n", msg);
-    exit(1);
-}
-
-/*
  * Signal - wrapper for the sigaction function
  */
-handler_t *Signal(int signum, handler_t *handler)
+/* $begin sigaction */
+
+handler_t *Signal(int signum, handler_t *handler) 
 {
     struct sigaction action, old_action;
 
-    action.sa_handler = handler;
-    sigemptyset(&action.sa_mask); /* block sigs of type being handled */
-    action.sa_flags = SA_RESTART; /* restart syscalls if possible */
+    action.sa_handler = handler;  
+    sigemptyset(&action.sa_mask); /* Block sigs of type being handled */
+    action.sa_flags = SA_RESTART; /* Restart syscalls if possible */
 
     if (sigaction(signum, &action, &old_action) < 0)
-        unix_error("Signal error");
+	unix_error("Signal error");
     return (old_action.sa_handler);
 }
-
+/* $end sigaction */
 /*
  * sigquit_handler - The driver program can gracefully terminate the
  *    child shell by sending it a SIGQUIT signal.
@@ -748,108 +720,4 @@ void sigquit_handler(int sig)
 {
     printf("Terminating after receipt of SIGQUIT signal\n");
     exit(1);
-}
-
-/**
- * signal library wrapper
- * 
- */
-
-void Sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
-{
-    if (sigprocmask(how, set, oldset) < 0)
-	unix_error("Sigprocmask error");
-    return;
-}
-
-void Sigemptyset(sigset_t *set)
-{
-    if (sigemptyset(set) < 0)
-	unix_error("Sigemptyset error");
-    return;
-}
-
-void Sigfillset(sigset_t *set)
-{ 
-    if (sigfillset(set) < 0)
-	unix_error("Sigfillset error");
-    return;
-}
-
-void Sigaddset(sigset_t *set, int signum)
-{
-    if (sigaddset(set, signum) < 0)
-	unix_error("Sigaddset error");
-    return;
-}
-
-int Sigsuspend(const sigset_t *set)
-{
-    int rc = sigsuspend(set); /* always returns -1 */
-    if (errno != EINTR)
-        unix_error("Sigsuspend error");
-    return rc;
-}
-
-/**
- * wrapper of the Unix control function
- * 
- */
-/* $begin forkwrapper */
-pid_t Fork(void) 
-{
-    pid_t pid;
-
-    if ((pid = fork()) < 0)
-	unix_error("Fork error");
-    return pid;
-}
-/* $end forkwrapper */
-
-void Execve(const char *filename, char *const argv[], char *const envp[]) 
-{
-    if (execve(filename, argv, envp) < 0)
-	unix_error("Execve error");
-}
-
-void Kill(pid_t pid, int signum) 
-{
-    int rc;
-
-    if ((rc = kill(pid, signum)) < 0)
-	unix_error("Kill error");
-}
-
-void Setpgid(pid_t pid, pid_t pgid) {
-    int rc;
-
-    if ((rc = setpgid(pid, pgid)) < 0)
-	unix_error("Setpgid error");
-    return;
-}
-
-ssize_t sio_puts(char s[]) /* Put string */
-{
-    return write(STDOUT_FILENO, s, sio_strlen(s)); //line:csapp:siostrlen
-}
-
-void sio_error(char s[]) /* Put error message and exit */
-{
-    sio_puts(s);
-    _exit(EXIT_FAILURE);                                      //line:csapp:sioexit
-}
-
-void Sio_error(char s[])
-{
-    sio_error(s);
-}
-
-/* sio_strlen - Return length of string (from K&R) */
-static size_t sio_strlen(char s[])
-{
-    int i = 0;
-
-    while (s[i] != '\0')
-        ++i;
-    return i;
 }
