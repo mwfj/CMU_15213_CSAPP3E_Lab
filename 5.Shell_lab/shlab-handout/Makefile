@@ -4,14 +4,7 @@ TEAM = NOBODY
 VERSION = 1
 HANDINDIR = /afs/cs/academic/class/15213-f02/L5/handin
 DRIVER = ./sdriver.pl
-# TSH = ./tsh
-# TSHREF = ./tshref
-# TSHARGS = "-p"
-# CC = gcc
-# CFLAGS = -Wall -O2
-# FILES = $(TSH) ./myspin ./mysplit ./mystop ./myint
 
-# all: $(FILES)
 
 TSH = ./tsh
 TSHREF = ./tshref
@@ -20,6 +13,7 @@ CC = gcc
 CFLAGS = -Wall -O2
 # LIBS = -lpthread  -lrt
 INCS = -I./
+# FILES = $(TSH) ./myspin ./mysplit ./mystop ./myint
 FILES = $(TSH) ./myspin ./mysplit ./mystop ./myint ./mycat
 
 all: $(FILES)
