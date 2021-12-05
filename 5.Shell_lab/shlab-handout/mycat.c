@@ -43,6 +43,7 @@ int main(int argc, char const *argv[])
     fprintf(stdout,"====================================================================================\n");
     fprintf(stdout,"\n");
     // Don't forget close the file descriptor
-    close(fd);
+    if(fd != STDIN_FILENO)
+        close(fd);
     exit(EXIT_SUCCESS);
 }
