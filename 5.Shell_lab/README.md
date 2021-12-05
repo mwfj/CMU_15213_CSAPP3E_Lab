@@ -24,7 +24,7 @@ All of these function is in `tsh.c`.
 
 ### The tsh Speciﬁcation
 
-+ The prompt should be the string “tsh> ”.
++ The prompt should be the string `“tsh> ”`.
 
 + The command line typed by the user should consist of a name and zero or more arguments, all separated by one or more spaces. If `name `is a **built-in command**, then `tsh `should handle it immediately and wait for the next command line. Otherwise, `tsh `should **assume that name is the path of an executable ﬁle**, which it loads and runs in the context of an initial child process (In this context, the term job refers to this initial child process).
 
