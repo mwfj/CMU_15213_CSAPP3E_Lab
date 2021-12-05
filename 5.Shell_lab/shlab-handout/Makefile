@@ -20,7 +20,7 @@ CC = gcc
 CFLAGS = -Wall -O2
 # LIBS = -lpthread  -lrt
 INCS = -I./
-FILES = $(TSH) ./myspin ./mysplit ./mystop ./myint
+FILES = $(TSH) ./myspin ./mysplit ./mystop ./myint ./mycat
 
 all: $(FILES)
 
