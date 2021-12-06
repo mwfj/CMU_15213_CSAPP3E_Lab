@@ -363,3 +363,9 @@ In Linux, it provides **implicit** and **explicit** mechanisms for blocking sign
    + Flag declared this way does not need to be protected like other globals
 
 `SIGCHLD`: This signal is used to change the child process's state. When parent create a child process, instead of waiting for child process terminated, parent will do the other work until child process send the `SIGCHLD` signal(the kernel send the `SIGCHLD` signal to parent when one of its child process terminates or stops). After parent received/caches the signal, it will recap this child process.
+
+## Solution
+
+In this lab, all we need to do is to implement a simple shell `tsh.c`, where this file has already provided a code structure and some utility function.
+
+**I highly recommend you to carefully read the shell examples in the second half of [this slide](https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/15-ecf-signals.pdf), which has some code examples in it.** 
