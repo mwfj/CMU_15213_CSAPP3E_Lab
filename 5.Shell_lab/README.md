@@ -368,4 +368,61 @@ In Linux, it provides **implicit** and **explicit** mechanisms for blocking sign
 
 In this lab, all we need to do is to implement a simple shell `tsh.c`, where this file has already provided a code structure and some utility function.
 
-**I highly recommend you to carefully read the shell examples in the second half of [this slide](https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/15-ecf-signals.pdf), which has some code examples in it.** 
+**I highly recommend you to carefully read the shell examples in the second half of [this slide](https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/15-ecf-signals.pdf), which has some code examples in it.** **Also, please carefully read every comment above the to-do function.** **What's more, going through `tsh.c` is necessary and highly recommend.**
+
+In the shell, normally, the command divided by two types: 
+
+1. built-in command.
+2. non-built-in command.
+
+In this lab, we have five built-in command:
+
+1. `jobs `: list all the current running jobs
+2. `fg`: revoke the sleep process and run it in the foreground
+3. `bg`: revoke the sleep process and run it in the background
+4. `quit/exit`: quit the shell
+5. `&`: running the current job in the background.
+
+Basically, we use `strcmp()` to do the comparison between our first input value(`argv[0]`) and the built-in command.
+
++ For `quit/exit` command, we simply call `exit(EXIT_SUCCESS)` to exit the current process.
++ For `fg` or `bg`, we call `do_bgfg(argv)` and return 1 to indicate the current command is the built-in command. We will discuss `do_bgfg` in detail later.
++ For `jobs`, we call `listjobs(jobs)` and return 1 to indicate this is the built-in command, where `listjobs(jobs)` has already implemented.
+
+```c
+/*
+ * builtin_cmd - If the user has typed a built-in command then execute
+ *    it immediately.
+ */
+int builtin_cmd(char **argv)
+{
+    // Quit the command 
+    if(!strcmp(argv[0],"quit") || !strcmp("exit", argv[0])){
+        if(verbose){
+            printf("quit the shell.\n");
+        }
+        exit(EXIT_SUCCESS);
+    }else if(!strcmp("&",argv[0])){
+        if(verbose){
+            printf("Run a process in the background.\n");
+        }
+        return 1;
+    }else if(!strcmp("fg",argv[0]) || !strcmp("bg", argv[0])){
+        if(verbose){
+            printf("Run a process in the foreground.\n");
+        }
+        do_bgfg(argv); 
+        return 1;
+    }else if(!strcmp("jobs",argv[0])){
+        if(verbose){
+            printf("List all the current jobs:\n");
+        }
+        listjobs(jobs);
+        return 1;
+    }else{
+        return 0; /* not a builtin command */
+    }
+}
+```
+
+In this lab, we also need to use 4 type of signal: **1. SIGCHLD**; **2. SIGTSTP/SIGSTP**; **3. SIGINT**; **4. SIGQUIT**
