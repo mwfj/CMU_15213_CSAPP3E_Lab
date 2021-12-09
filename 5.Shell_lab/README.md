@@ -425,4 +425,8 @@ int builtin_cmd(char **argv)
 }
 ```
 
-In this lab, we also need to use 4 type of signal: **1. SIGCHLD**; **2. SIGTSTP/SIGSTP**; **3. SIGINT**; **4. SIGQUIT**
+In this lab, we also need to use 4 type of signal: **1. SIGCHLD**; **2. SIGTSTP/SIGSTP**; **3. SIGINT**; **4. SIGQUIT**, where the lab has already implemented the **SIGQUIT** and thus we need to implement all of the other three signal handlers.
+
+Note that `errno` is whenever a system call  error occurs, and system call can have a variety of errors. Errno is how you figure out which one actually happened. In other words, errno is sent by a lot of different system calls, so if you're not going to use errno immediately after the call failed, you'd better to save the current errno in another variable.
+
+For SIGINT
