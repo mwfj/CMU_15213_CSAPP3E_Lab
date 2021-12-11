@@ -354,7 +354,7 @@ In Linux, it provides **implicit** and **explicit** mechanisms for blocking sign
 #### Guidelines for Wri&ng Safe Handlers
 
 + G0: Keep your handlers as simple as possible
-+ G1: Call only async‐signal­‐safe functions in your handlers
++ G1: Call only `async‐signal­‐safe functions` in your handlers
 + G2: Save and restore `errno `on entry and exit
 + G3: Protect accesses to shared data structures by **temporarily blocking all signals**.
 + G4: Declare global variables as `volatile`
@@ -362,13 +362,26 @@ In Linux, it provides **implicit** and **explicit** mechanisms for blocking sign
    + ﬂag: variable that is only read or wriien (e.g. ﬂag = 1, not ﬂag++)
    + Flag declared this way does not need to be protected like other globals
 
-`SIGCHLD`: This signal is used to change the child process's state. When parent create a child process, instead of waiting for child process terminated, parent will do the other work until child process send the `SIGCHLD` signal(the kernel send the `SIGCHLD` signal to parent when one of its child process terminates or stops). After parent received/caches the signal, it will recap this child process.
+**Look aside**: the `async‐signal­‐safe functions` is one that can safely called from within signal handler. Specifically, **non-reentrant functions** are generally unsafe to call from a signal handler. [The below content is from this link](https://www.gnu.org/software/libc/manual/html_node/Nonreentrancy.html)
+
++ If a function uses a **static variable** or a **global variable**, or a **dynamically-allocated object** that it finds for itself, then it is non-reentrant and any two calls to the function can interfere.
++ If a function uses and **modifies an object that you supply**, then it is potentially non-reentrant; two calls can interfere if they use the same object.
++ On most systems, `malloc` and `free` are not reentrant, because they use a static data structure which records what memory blocks are free. As a result, no library functions that allocate or free memory are reentrant. This includes functions that allocate space to store a result.
+  + The best way to avoid the need to allocate memory in a handler is to **allocate in advance space for signal handlers** to use.
+  + The best way to avoid freeing memory in a handler is to f**lag or record the objects to be freed**, and **have the program check from time to time whether anything is waiting to be freed**. But this must be done with care, because **placing an object on a chain is not atomic**, and if it is interrupted by another signal handler that does the same thing, you could “lose” one of the objects.
++ Any function that **modifies `errno` is non-reentrant**, but you can correct for this: in the handler, **save the original value of `errno` and restore it before returning normally**. This prevents errors that occur within the signal handler from being confused with errors from system calls at the point the program is interrupted to run the handler.
+  +  if you want to call in a handler a function that modifies a particular object in memory, you can make this safe by saving and restoring that object.
+  + **Note that `errno` is whenever a system call error occurs, and system call can have a variety of errors. `Errno `is how you figure out which one actually happened. In other words, `errno `is sent by a lot of different system calls, so if you're not going to use errno immediately after the call failed, you'd better to save the current errno in another variable.**
++ **Merely reading from a memory object is safe** provided that you can deal with any of the values that might appear in the object at a time when the signal can be delivered. Keep in mind that assignment to some data types requires more than one instruction, which means that the handler could run “in the middle of” an assignment to the variable if its type is not atomic.
++ **Merely writing into a memory object is safe as long as a sudden change in the value**, at any time when the handler might run, will not disturb anything.
 
 ## Solution
 
 In this lab, all we need to do is to implement a simple shell `tsh.c`, where this file has already provided a code structure and some utility function.
 
 **I highly recommend you to carefully read the shell examples in the second half of [this slide](https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/15-ecf-signals.pdf), which has some code examples in it.** **Also, please carefully read every comment above the to-do function.** **What's more, going through `tsh.c` is necessary and highly recommend.**
+
+### Check the built-in function
 
 In the shell, normally, the command divided by two types: 
 
@@ -427,6 +440,119 @@ int builtin_cmd(char **argv)
 
 In this lab, we also need to use 4 type of signal: **1. SIGCHLD**; **2. SIGTSTP/SIGSTP**; **3. SIGINT**; **4. SIGQUIT**, where the lab has already implemented the **SIGQUIT** and thus we need to implement all of the other three signal handlers.
 
-Note that `errno` is whenever a system call  error occurs, and system call can have a variety of errors. Errno is how you figure out which one actually happened. In other words, errno is sent by a lot of different system calls, so if you're not going to use errno immediately after the call failed, you'd better to save the current errno in another variable.
+### SIGINT handler:
 
-For SIGINT
+The purpose of **SIGINT** is to tell computer interrupt the current process, where this behave is what system really do when typing the `ctrl+c` command.
+
+```c
+/*
+ * sigint_handler - The kernel sends a SIGINT to the shell whenver the
+ *    user types ctrl-c at the keyboard.  Catch it and send it along
+ *    to the foreground job.
+ */
+void sigint_handler(int sig)
+{
+    int olderrno = errno;
+    pid_t pid = fgpid(jobs);
+    if(pid <= 0)
+        return ;
+  	// send signal to process
+    Kill(pid, SIGINT);
+    errno = olderrno;
+}
+```
+
+Note that for **slow systems call**(such as `read`,`wait` and `accept`) that potentially block the process for a long period of time, the programmer must include code that **manually restart** interrupted system calls.
+
+### SIGTSTP handler: 
+
+This signal is to stop typed at terminal, where it will hang up the current process but still exist in the job list of shell. When we type `fg` or `bg` command, the hanging up process will be awaked to the foreground/background.
+
+```c
+/*
+ * sigtstp_handler - The kernel sends a SIGTSTP to the shell whenever
+ *     the user types ctrl-z at the keyboard. Catch it and suspend the
+ *     foreground job by sending it a SIGTSTP.
+ */
+void sigtstp_handler(int sig)
+{
+    int olderrno = errno;
+    pid_t pid = fgpid(jobs);
+    if(pid <=0)
+        return ;
+    Kill(pid, SIGTSTP);
+    errno = olderrno;
+}
+```
+
+### SIGCHLD handler
+
+`SIGCHLD`: This signal is used to change the child process's state. When parent create a child process, instead of waiting for child process terminated, parent will do the other work until child process send the `SIGCHLD` signal(the kernel send the `SIGCHLD` signal to their parent when one of its child process terminates or stops). After parent received/caches the signal, it will recap this child process.
+
+```c
+/*
+ * sigchld_handler - The kernel sends a SIGCHLD to the shell whenever
+ *     a child job terminates (becomes a zombie), or stops because it
+ *     received a SIGSTOP or SIGTSTP signal. The handler reaps all
+ *     available zombie children, but doesn't wait for any other
+ *     currently running children to terminate.
+ */
+void sigchld_handler(int sig)
+{
+    int olderrno = errno;
+
+    pid_t pid;
+    int status;
+
+    // Detect whether the child stop or terminate
+    // WNOHANG: return immediately if no child has exited.
+    // WUNTRACED: also return if a child has stopped (but not traced via ptrace(2)).
+    // Status for traced children which have stopped is provided even if this option is not specified.
+    while((pid = waitpid(-1,&status, WNOHANG | WUNTRACED)) > 0){
+        
+        if(pid == fgpid(jobs)){
+            flag = 1;
+        }
+
+        sigset_t mask_all, prev_all;
+        // Sigemptyset(&mask_all);
+        Sigfillset(&mask_all);
+        
+        struct job_t* cur_job = getjobpid(jobs, pid);
+
+        if(cur_job == NULL){
+            Sio_error("ERROR: no such job with the specified PID.\n");
+        }else{
+            // The child process return normally
+            if(WIFEXITED(status)){
+                Sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
+                deletejob(jobs, pid);
+                Sigprocmask(SIG_SETMASK, &prev_all, NULL);
+            }
+            // The child process blocked by signal
+            else if(WIFSIGNALED(status)){
+                int jid = pid2jid(pid);
+                printf("Job [%d] (%d) terminated by signal %d\n",jid,pid,WTERMSIG(status));
+                Sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
+                deletejob(jobs, pid);
+                Sigprocmask(SIG_SETMASK, &prev_all, NULL);
+            }
+            // The child process terminated
+            else if(WIFSTOPPED(status)){
+                Sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
+                cur_job -> state = ST;
+                Sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
+                int jid = pid2jid(pid);
+                printf("Job [%d] (%d) terminated by signal %d\n",jid,pid,WSTOPSIG(status));
+            }
+        }
+    }
+
+    errno = olderrno;
+
+    return;
+}
+```
+
+### Waitpid
+
