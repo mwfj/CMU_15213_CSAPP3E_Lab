@@ -36,6 +36,7 @@ int verbose = 0;         /* if true, print additional output */
 int nextjid = 1;         /* next job ID to allocate */
 char sbuf[MAXLINE];      /* for composing sprintf messages */
 // Used for signal handler and blocking signal
+// variable that is only read or wriien (e.g. ﬂag = 1, not ﬂag++)
 volatile sig_atomic_t flag;
 
 struct job_t
