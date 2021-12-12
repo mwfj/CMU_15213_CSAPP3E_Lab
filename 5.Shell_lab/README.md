@@ -381,6 +381,8 @@ In this lab, all we need to do is to implement a simple shell `tsh.c`, where thi
 
 **I highly recommend you to carefully read the shell examples in the second half of [this slide](https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/15-ecf-signals.pdf), which has some code examples in it.** **Also, please carefully read every comment above the to-do function.** **What's more, going through `tsh.c` is necessary and highly recommend.**
 
+For those uility functions or system calls, I wrapped them into the wrapper function and put them into  `csapp.c`/`csapp.h`.
+
 ### Check the built-in function
 
 In the shell, normally, the command divided by two types: 
@@ -489,6 +491,8 @@ void sigtstp_handler(int sig)
 
 `SIGCHLD`: This signal is used to change the child process's state. When parent create a child process, instead of waiting for child process terminated, parent will do the other work until child process send the `SIGCHLD` signal(the kernel send the `SIGCHLD` signal to their parent when one of its child process terminates or stops). After parent received/caches the signal, it will recap this child process.
 
+Note that: `waitpid` system call suspends execution of the calling process until a child specified by pid argument has changed state.  **By default, waitpid() waits only for terminated children**, but this behavior is modifiable via the options argument
+
 ```c
 /*
  * sigchld_handler - The kernel sends a SIGCHLD to the shell whenever
@@ -554,5 +558,193 @@ void sigchld_handler(int sig)
 }
 ```
 
-### Waitpid
+### Waitfg
 
+In here, I provide two ways to implement it, where one is use `volatile sig_atomic_t flag`, the other(the comment lines) is not. The purpose of this function is to block the current process until it is no longer the foreground process(usually it is to wait the child function finished by receiving SIGCHLD signal). The core signal action in here is to use `sigsuspend`, no matter which implementation above we choose, this action is not changed.
+
+```c
+
+/*
+ * waitfg - Block until process pid is no longer the foreground process
+ */
+void waitfg(pid_t pid)
+{
+    if(!pid)
+        return ;
+    struct job_t* cur_job = getjobpid(jobs, pid);
+    sigset_t mask;
+    Sigemptyset(&mask);
+    // Make sure the current pid has the validate job
+    if(cur_job != NULL){
+        // If the current pid is the fg pid 
+        // then wait it until it suspend or stop
+        // while(pid == fgpid(jobs)){
+        //     Sigsuspend(&mask);
+        // }
+        while(!flag){
+            Sigsuspend(&mask);
+        }
+    }
+    return ;
+}
+```
+
+### do_fgbg
+
+This function is to implement the way of executing foreground/background job. The logic is relatively simple, where we get the current job id(jid) first, and then use this jib to find the pid of the current process; or get the pid directly. After that, we need to send the `SIGCONT` to revoke the suspended process(the purpose of bg/fg command is to awake the suspend process). Finally, we will check the current job need to be run at foreground or background by checking the first argurment of the input command(`argv[0]`), if it is the background,  just change the flag of the correspond job to `BG`, change to `FG` and call `waitfg` otherwise.
+
+```c
+/*
+ * do_bgfg - Execute the builtin bg and fg commands
+ */
+void do_bgfg(char **argv)
+{
+    // In this function, we assumed that the argv[0]
+    // should be "bg/fg"
+    // and thus we start get the command begin with argv[1]
+    char* command = argv[1];
+    // Init pid
+    pid_t cur_pid = -1;
+
+    struct job_t* cur_job;
+    if(command == NULL){
+        printf("%s command requires PID or %%jobid argument\n", argv[0]);
+        return ;
+    }
+    
+    // The case of the command is jid
+    if(command[0] == '%'){
+        // Change the job id from string to integer
+        // start, which skip to '%'
+        int cur_jid = atoi(&command[1]);
+        // Get the job
+        cur_job = getjobjid(jobs, cur_jid);
+        // Make sure the job is exist
+        if(cur_job == NULL){
+            printf("%s no such job\n", command);
+            return ;
+        }
+        cur_pid = cur_job -> pid;
+
+    }else if(isdigit(command[0])){
+        // The case of the command is pid
+        int cur_pid = atoi(command);
+        cur_job = getjobpid(jobs, cur_pid);
+        // Make sure the job is exist
+        if(cur_job == NULL){
+            printf("%s no such job\n", command);
+            return ;
+        }
+    }else{
+        // Handle the Error condition
+        printf("%s: the argument should be jid or pid\n",argv[0]);
+        return ;
+    }
+    // Send the signal to revoke the current child process
+    kill(-cur_pid, SIGCONT);
+
+    // Background job
+    if(!strcmp(argv[0], "bg")){
+        printf("[%d] (%d) %s",cur_job ->jid, cur_job->pid, cur_job->cmdline);
+        cur_job -> state =  BG;
+    }else{
+        // Foreground job
+        printf("[%d] (%d) %s",cur_job ->jid, cur_job->pid, cur_job->cmdline);
+        flag = 0;
+        cur_job -> state = FG;
+        // Wait the until the job finish
+        waitfg(cur_pid);
+    }
+    return;
+}
+```
+
+### Eval:
+
+This is the core function of shell, where when shell execute a new command, it will create a child process and take over rest of  task. Also the main point of this function is how to deal with multiply signal, where the signal is not queued and we cannot count the signal. Instead, we will use the signal mask to block signal before its relative action running and unblock it after the job finished by using  `sigprocmask` to make sure every signal relatead action is atomic.
+
+```cpp
+/*
+ * eval - Evaluate the command line that the user has just typed in
+ *
+ * If the user has requested a built-in command (quit, jobs, bg or fg)
+ * then execute it immediately. Otherwise, fork a child process and
+ * run the job in the context of the child. If the job is running in
+ * the foreground, wait for it to terminate and then return.  Note:
+ * each child process must have a unique process group ID so that our
+ * background children don't receive SIGINT (SIGTSTP) from the kernel
+ * when we type ctrl-c (ctrl-z) at the keyboard.
+ */
+void eval(char *cmdline)
+{
+    // To get the separatable command line
+    char *argv[MAXARGS];
+    int bg = parseline(cmdline, argv);
+    if(argv[0] == NULL)
+        return ;
+
+    pid_t pid;
+
+    // Running the custom command
+    // Prevent signal race
+    sigset_t  mask_all, mask, prev_all;
+    // Add every signal number to set
+    Sigfillset(&mask_all);
+    // Init mask
+    Sigemptyset(&mask);
+    // Set the mask
+    Sigaddset(&mask, SIGCHLD);
+    Sigemptyset(&prev_all);
+
+    if(!builtin_cmd(argv)){
+        // Block the Signal to make sure all the signal received
+        Sigprocmask(SIG_BLOCK, &mask, NULL);
+        // Create a child process to do the job
+        if( (pid = Fork() ) == 0){
+            // The child process inherit the signal from the parent
+            // unblock this signal
+            Sigprocmask(SIG_SETMASK,&prev_all, NULL);
+            // Set the process group of the current process
+            // To make sure each process in the independent group
+            // and have a unique groupID
+            Setpgid(0, 0);
+            // Replace the address space with the new program
+            Execve(argv[0], argv, environ);
+        }else{
+            // entere the parent process
+            // Add the new job
+            // Note the need to block all signal when you add the job
+            // Sigprocmask(SIG_BLOCK, &mask_all, NULL);
+            if(bg)
+                // Background Job
+                addjob(jobs, pid, BG, cmdline);
+            else{
+                flag = 0;
+                // Foregrond Job
+                // The shell must wait the child process until it finished.
+                addjob(jobs, pid, FG, cmdline);
+            }
+            Sigprocmask(SIG_UNBLOCK, &prev_all, NULL);
+
+            if(bg){
+                int jid = pid2jid(pid);
+                printf("[%d] (%d) %s", jid, pid, cmdline);
+            }else
+                // Notice that the signal will not be blocked until the child process finished
+                // Wait until the child process finished
+                waitfg(pid);
+        }
+
+    }
+    return;
+}
+
+```
+
+## Test Our Shell
+
+The way to test our shell is to use `make testxx` command, where tests include `test01 ~ test16`, where each test correspond a `trace file(tracexx.txt)`. You should make sure each test can finish by itselves without any exception. Moreover, you can also compare with your test output with `tshrf.out`, where this file include the correct answer for each file.
+
+
+
+Shell Lab Finished.
