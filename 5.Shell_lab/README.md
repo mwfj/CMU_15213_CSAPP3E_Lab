@@ -1,6 +1,7 @@
 ## Table of Content
 
-<a name="index">**Index:**</a>
+<a name="index">**Index**</a>
+
 <a href="#0">Shell Lab report</a>  
 &emsp;<a href="#1">Problem Description</a>  
 &emsp;&emsp;<a href="#2">The tsh Speciﬁcation</a>  
