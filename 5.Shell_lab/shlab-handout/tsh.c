@@ -433,6 +433,9 @@ void sigchld_handler(int sig)
     int status;
 
     // Detect whether the child stop or terminate
+    // WNOHANG: return immediately if no child has exited.
+    // WUNTRACED: also return if a child has stopped (but not traced via ptrace(2)).
+    // Status for traced children which have stopped is provided even if this option is not specified.
     while((pid = waitpid(-1,&status, WNOHANG | WUNTRACED)) > 0){
         
         if(pid == fgpid(jobs)){
