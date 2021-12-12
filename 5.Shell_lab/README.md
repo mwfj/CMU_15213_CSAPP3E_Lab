@@ -1,8 +1,47 @@
-# Shell Lab report
+## Table of Content
 
-updating ...
+<a name="index">**Index:**</a>
+<a href="#0">Shell Lab report</a>  
+&emsp;<a href="#1">Problem Description</a>  
+&emsp;&emsp;<a href="#2">The tsh Speciﬁcation</a>  
+&emsp;<a href="#3">Background</a>  
+&emsp;&emsp;<a href="#4">Exceptional Control Flow</a>  
+&emsp;&emsp;<a href="#5">Exceptions : Hardware and operating system kernel software</a>  
+&emsp;&emsp;<a href="#6">Exception Handler</a>  
+&emsp;&emsp;&emsp;<a href="#7">Difference between **Exception** and **Procedure Call**:</a>  
+&emsp;&emsp;<a href="#8">Interrupt(Asynchronous Exceptions)</a>  
+&emsp;&emsp;<a href="#9">Synchronously Exceptions(Faulting Instruction)</a>  
+&emsp;&emsp;&emsp;<a href="#10">Traps and System Calls</a>  
+&emsp;&emsp;&emsp;<a href="#11">Faluts</a>  
+&emsp;&emsp;&emsp;<a href="#12">Aborts</a>  
+&emsp;&emsp;<a href="#13">Process</a>  
+&emsp;&emsp;&emsp;<a href="#14">User and Kernel Mode</a>  
+&emsp;&emsp;<a href="#15">Context Switch : Hardware timer and kernel software</a>  
+&emsp;&emsp;<a href="#16">Process Control</a>  
+&emsp;&emsp;&emsp;<a href="#17"> `exit()`</a>  
+&emsp;&emsp;&emsp;<a href="#18">`fork()`: </a>  
+&emsp;&emsp;&emsp;<a href="#19">`wait()`</a>  
+&emsp;&emsp;&emsp;<a href="#20">`execve()`</a>  
+&emsp;&emsp;<a href="#21">Shell</a>  
+&emsp;&emsp;<a href="#22">Signal : kernel software and application software</a>  
+&emsp;&emsp;&emsp;<a href="#23">Sending Signal</a>  
+&emsp;&emsp;&emsp;&emsp;<a href="#24">Process Group</a>  
+&emsp;&emsp;&emsp;<a href="#25">Receiving a Signal</a>  
+&emsp;&emsp;&emsp;<a href="#26">Pending and Blocked Signal</a>  
+&emsp;&emsp;&emsp;<a href="#27">Guidelines for Wri&ng Safe Handlers</a>  
+&emsp;<a href="#28">Solution</a>  
+&emsp;&emsp;<a href="#29">Check the built-in function</a>  
+&emsp;&emsp;<a href="#30">SIGINT handler:</a>  
+&emsp;&emsp;<a href="#31">SIGTSTP handler: </a>  
+&emsp;&emsp;<a href="#32">SIGCHLD handler</a>  
+&emsp;&emsp;<a href="#33">Waitfg</a>  
+&emsp;&emsp;<a href="#34">do_fgbg</a>  
+&emsp;&emsp;<a href="#35">Eval:</a>  
+&emsp;<a href="#36">Test Our Shell</a>  
 
-## Problem Description
+# <a name="0">Shell Lab report</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+
+<a name="1">Problem Description</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 In this project, I will fulfill a simple Unix shell, where we would complete the empty function body list below:
 
@@ -22,7 +61,7 @@ In this project, I will fulfill a simple Unix shell, where we would complete the
 
 All of these function is in `tsh.c`.
 
-### The tsh Speciﬁcation
+### <a name="2">The tsh Speciﬁcation</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 + The prompt should be the string `“tsh> ”`.
 
@@ -37,17 +76,19 @@ All of these function is in `tsh.c`.
 + Each job can be identiﬁed by either a process ID (PID) or a job ID (JID), which is a positive integer assigned by tsh. JIDs should be denoted on the command line by the preﬁx ’%’. For example, “%5” denotes JID 5, and “5” denotes PID 5.
 
 + `tsh `should support the following built-in commands:
+
   + The `quit `command terminates the shell.
   + The `jobs `command lists all background jobs.
   + The bg `<job>` command restarts `<job>` by sending it a `SIGCONT `signal, and then runs it in the background. The `<job> `argument can be either a **PID** or a **JID**.
   + The fg `<job>` command restarts `<job>` by sending it a `SIGCONT `signal, and then runs it in the foreground. The `<job> `argument can be either a **PID** or a **JID**.
+
 + `tsh `should reap all of its zombie children. If any job terminates because it receives a signal that it didn’t catch, then tsh should recognize this event and print a message with the job’s PID and a description of the offending signal.
 
-## Background
+## <a name="3">Background</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 In this section, I just briefly summary some main conception for the exception and the signal. If you would like see more detail, please see the reference book: [CS:APP3e](http://csapp.cs.cmu.edu/3e/home.html).
 
-### Exceptional Control Flow
+### <a name="4">Exceptional Control Flow</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 From startup to shutdown, a CPU simply reads and executes(interprets) a sequence of instructions `i`, and one time, where it change the address `a_k` to `a_(k+1)`. Those instructions call the **control flow**. 
 
@@ -67,7 +108,7 @@ However, only these control flows are not enough, because it is hard to deal wit
 
 Applications request service from the operating systems(OS kernel) by using a form of ECF known as a **trap** or **system call**.
 
-### Exceptions : Hardware and operating system kernel software
+### <a name="5">Exceptions : Hardware and operating system kernel software</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 The exception implemented partly by the hardware and the operating system. Also, an exception is a transfer of control to OS kernel in response to some change in the processor's state, where the state is encoded in various significant bits and siginal inside the process. Note that the change in state is known as an event. The event might directly related to the execution of the current instrcution.
 
@@ -79,7 +120,7 @@ When the exception occurred, one of three things happened, which depending on th
 2. The handler returns contorl to `I_next`, the instruction that would have executed next had the exception not occurred.
 3. The handler aborts the interrupted program.
 
-![exception_state_transfer](./readme-pic/exception_state_change.png)
+![exception_state_transfer](/Users/mwfj/Desktop/readme-pic/exception_state_change.png)
 
 <p align="center">The exception state transfer, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/14-ecf-procs.pdf">cmu-213 slide</a></p>
 
@@ -90,7 +131,7 @@ Exception can be divided into four classes:
 3. faluts
 4. aborts
 
-### Exception Handler
+### <a name="6">Exception Handler</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 Each type of possible exception in a system is assigned a **unique nonnegative integer exception number**. Some of these numbers are assigned by the designers of the **process**, whereas other numbers are assigned by the **operating system** kernel(the memory-resident part of the operating system). 
 
@@ -102,11 +143,12 @@ Once the hardware triggers the exception, the exception handler start to process
   <img src="./readme-pic/exception_table.png" alt="exception_work_flow" />
 </p>
 
+
 <p align="center">The exception table, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/14-ecf-procs.pdf">cmu-213 slide</a></p>
 
 <p align="center"> <img src="./readme-pic/exception_work_flow.png" alt="exception_work_flow" style="zoom:80%;"/> </p>
 
-#### Difference between **Exception** and **Procedure Call**:
+#### <a name="7">Difference between **Exception** and **Procedure Call**:</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 + **Return Address**: as with the **procedural call**, the processor pushes a return address on the stack before branching to the handler. Whereas, for the exception, the return address id either the current instruction or the next instruction.
 + The processor also pushes some additional processor state onto the stack that will be necessary to restart the interrupted program when the handler returns.
@@ -122,7 +164,7 @@ Once the hardware triggers the exception, the exception handler start to process
    + Faults
    + Aborts
 
-### Interrupt(Asynchronous Exceptions)
+### <a name="8">Interrupt(Asynchronous Exceptions)</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 Interrupts occur asynchronously as a result of signal from I/O devices that are external to the processor.
 
@@ -137,11 +179,12 @@ Process:
   <img src="./readme-pic/interrupt_work_flow.JPG" alt="interrupt_work_flow" />
 </p>
 
+
 <p align="center">The interrupt work flow, this figure is from the book <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 8</p>
 
-### Synchronously Exceptions(Faulting Instruction)
+### <a name="9">Synchronously Exceptions(Faulting Instruction)</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
-#### Traps and System Calls
+#### <a name="10">Traps and System Calls</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 Traps are intentional exceptions that occur as a result of executing an instruction. Like interrupt handlers, trap handlers return contorl to the next instruction. **The most important use of traps is to provide a procedural-like interface between user program and the kernel**, known as **system call**.
 
@@ -155,9 +198,10 @@ By convention, register `%rax` contains the syscall number, with up to six argue
   <img src="./readme-pic/traps_work_flow.JPG" alt="traps_work_flow" />
 </p>
 
+
 <p align="center">The traps work flow, this figure is from the book <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 8</p>
 
-#### Faluts
+#### <a name="11">Faluts</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 Faults result from **error conditions** that a handler might be able to correct. When fault occurred, the processor transfers control to the fault handler. If the fault handler is able to correct the error condition, and then it returns control to the faulting instruction. Otherwise, the handler returns to an `abort` routine in the kernel that terminates the application program that caused fault.
 
@@ -165,9 +209,10 @@ Faults result from **error conditions** that a handler might be able to correct.
   <img src="./readme-pic/fault_work_flow.JPG" alt="fault_work_flow" />
 </p>
 
+
 <p align="center">The fault work flow, this figure is from the book <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 8</p>
 
-#### Aborts
+#### <a name="12">Aborts</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 Aborts result from unrecoverable fatal errors, typically hardware errors. **Aborts handlers never return control to the application program**.
 
@@ -175,9 +220,10 @@ Aborts result from unrecoverable fatal errors, typically hardware errors. **Abor
   <img src="./readme-pic/abort_work_flow.JPG" alt="abort_work_flow" />
 </p>
 
+
 <p align="center">The fault work flow, this figure is from the book <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 8</p>
 
-### Process
+### <a name="13">Process</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 A process is an **instance of a program in execution**. Each program in the system runs in the **context** of some process. The context consist of the state that the program needs to run correctly, where the state includes:
 
@@ -201,13 +247,13 @@ Process provides each program with **two key abstractions**:
 
   Each program seems to have exclusive use of main memory. This space is private in the sense that a byte of memory associated with a particular address in the space cannot in general be read or write by any other process. The private address space is provided by kernel mechanism called virtual memory.
 
-#### User and Kernel Mode
+#### <a name="14">User and Kernel Mode</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 The processor typically provides the capability of restricting the instruction that an application can execute, where this capability set by a mode bit in some control register characterizes the privileges. Specifically, when the bit is set, the process is running in `kernel mode`, otherwise, the process running in `user mode`. A process running in the `user mode` is not allowed to execute privileged instructions nor is it allowed to directly reference code or date in the kernel area of the address space, whereas the process in the `kernel mode` can execute any instruction in the instruction set and access any memory location in the system. **The only way for the process to change from the user mode to the kernel mode is via an exception such as `a interrupt`,` a fault`, or `a trapping system call`.** 
 
 Linux provides a mechanism called `/proc system` that allows user mode processes to access the content of kernel data structure.
 
-### Context Switch : Hardware timer and kernel software
+### <a name="15">Context Switch : Hardware timer and kernel software</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 The context is the state that the kernel needs to restart a preempted process. It consist of
 
@@ -225,6 +271,7 @@ The context is the state that the kernel needs to restart a preempted process. I
   <img src="./readme-pic/context_switch.png" alt="context_switch" />
 </p>
 
+
 <p align="center">Context Switch, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/14-ecf-procs.pdf">cmu-213 slide</a></p>
 
 A context switch can occur in the following situation:
@@ -232,13 +279,13 @@ A context switch can occur in the following situation:
 + The kernel is executing a system call on behalf of the user. If the system call blocks because it is waiting for some event to occur, then the kernel can put the current process to sleep and switch to another process.
 + As a result of an interrupt.
 
-### Process Control
+### <a name="16">Process Control</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
-####  `exit()`
+#### <a name="17"> `exit()`</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 Terminate the process with an *exit status* of status.
 
-#### `fork()`: 
+#### <a name="18">`fork()`: </a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 A parent process creates a new running child process, where the newly created child process gets an identical copy from the parent process's user-level virtual address space(code, data segment, heap, shared libraries, user stack and its open file descriptors). However, the pid between child and parent are different. In other words, child process duplicates the context of their parent but has a separate address space, where both of them have their own private address space and any subsequent changes of the variable that parent or child makes are private and not reflected in the memory of the other process.
 
@@ -248,17 +295,17 @@ Furthermore, **the child inherits all the parent's open files**, and thus it can
 
 When a process terminates for any reason, the kernel does not remove it from the system immediately. Instead, t**he process is kept around in a terminated state until it is reaped by its parent**, which called ***zombie***. When parent process terminates, the kernel arranges for the init process(PID = 1, launched at the system startup) to become the adopted parent of  any orphaned children.
 
-#### `wait()`
+#### <a name="19">`wait()`</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 A process waits for its children to terminate or stop by calling the `waitpid()` or `wait()`(simpler version) function. Parent reaps a child by calling the wait function In other words, it suspends current process un;l one of its children terminates and return value is the pid of the child process that terminated. 
 
-#### `execve()`
+#### <a name="20">`execve()`</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 Loading and running the executable object file *filename* with the argument list *argv* and the environment variable *envp*. `execve` returns to the calling program only if there is an error. In the most of case, `execve` **call once and never return**.
 
 Furthermore  `execve` overwrites code, data and stack for the current process but retains PID, open files and signal context.
 
-### Shell
+### <a name="21">Shell</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 Normally, if want to create a newly process, we often use `fork()` to create separate address space and use `execve()` to replace the context in that space.
 
@@ -268,13 +315,14 @@ A **shell** is an interactive application-level program that runs programs on be
   <img src="./readme-pic/linux_process_hierarchy.png" alt="linux_process_hierarchy" />
 </p>
 
+
 <p align="center">Linux Process Hierarchy, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/15-ecf-signals.pdf">cmu-213 slide</a></p>
 
-### Signal : kernel software and application software
+### <a name="22">Signal : kernel software and application software</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 A signal is a small message that notifies a process that an event of some type has occurred in the system, where the signal happened in a higher-level software form of exceptional control flow that allows the process and the kernel to interrupt other processes. Each signal type corresponds to some kind of system event. Low-level hardware exceptions are processed by the kernel's exception handlers and would not normally be visible to user process. **Signal provide a mechanism for exposing the occurrence of such exception to user process**. **Only information in a signal is its ID** and the fact that it arrived.
 
-#### Sending Signal
+#### <a name="23">Sending Signal</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 The kernel *sends(delivers)* a signal to a destination process by updating some state in the context of the destination process when:
 
@@ -288,7 +336,7 @@ The kernel *sends(delivers)* a signal to a destination process by updating some 
 
 we can use `linux > /bin/kill -9 15213` to send signal number 9(`SIGKILL`) to process/process group 15213.
 
-##### Process Group
+##### <a name="24">Process Group</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 Every process belongs to exactly one **process group**, which is identified by a positive integer **process group ID**. By default, a child process belongs to the same process group as its parent.
 
@@ -296,9 +344,10 @@ Every process belongs to exactly one **process group**, which is identified by a
   <img src="./readme-pic/process_group.png" alt="process_group" />
 </p>
 
+
 <p align="center">Process group, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/15-ecf-signals.pdf">cmu-213 slide</a></p>
 
-#### Receiving a Signal
+#### <a name="25">Receiving a Signal</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 A destination process receives a signal when it is **forced by the kerne**l to react in some way to the delivery of the signal.
 
@@ -307,6 +356,7 @@ The process can either: **terminate the process**, **ignore** or **catch** the s
 <p align="center"> 
   <img src="./readme-pic/receive_the_signal.png" alt="receive_the_signal" />
 </p>
+
 
 <p align="center">Receving the signal, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/15-ecf-signals.pdf">cmu-213 slide</a></p>
 
@@ -334,7 +384,7 @@ When a process catches a signal of type k, the handler installed for signal k is
 
 When the handler executes its *return* statement, control(usually) **passes back to the instruction in the control flow** where the process was interrupted by the receipt of the signal.
 
-#### Pending and Blocked Signal
+#### <a name="26">Pending and Blocked Signal</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 A signal that has been sent but not yet received is called a **pending signal**. At any point in time, there can be at most one pending signal of a particular type. **A pending signal is received at most once**. If a process has a pending signal of type k, then any subsequent signals of type k sent to that process are not queued; they are simply discard.
 
@@ -351,7 +401,7 @@ In Linux, it provides **implicit** and **explicit** mechanisms for blocking sign
   + *SIG_SETMASK*: blocked = set.
   + If `oldset `is non-NULL, the previous value of the blocked bit vector is stored in `oldset`.
 
-#### Guidelines for Wri&ng Safe Handlers
+#### <a name="27">Guidelines for Wri&ng Safe Handlers</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 + G0: Keep your handlers as simple as possible
 + G1: Call only `async‐signal­‐safe functions` in your handlers
@@ -359,8 +409,8 @@ In Linux, it provides **implicit** and **explicit** mechanisms for blocking sign
 + G3: Protect accesses to shared data structures by **temporarily blocking all signals**.
 + G4: Declare global variables as `volatile`
 + G5: Declare global ﬂags as `volatile sig_atomic_t`
-   + ﬂag: variable that is only read or wriien (e.g. ﬂag = 1, not ﬂag++)
-   + Flag declared this way does not need to be protected like other globals
+  + ﬂag: variable that is only read or wriien (e.g. ﬂag = 1, not ﬂag++)
+  + Flag declared this way does not need to be protected like other globals
 
 **Look aside**: the `async‐signal­‐safe functions` is one that can safely called from within signal handler. Specifically, **non-reentrant functions** are generally unsafe to call from a signal handler. [The below content is from this link](https://www.gnu.org/software/libc/manual/html_node/Nonreentrancy.html)
 
@@ -371,11 +421,11 @@ In Linux, it provides **implicit** and **explicit** mechanisms for blocking sign
   + The best way to avoid freeing memory in a handler is to f**lag or record the objects to be freed**, and **have the program check from time to time whether anything is waiting to be freed**. But this must be done with care, because **placing an object on a chain is not atomic**, and if it is interrupted by another signal handler that does the same thing, you could “lose” one of the objects.
 + Any function that **modifies `errno` is non-reentrant**, but you can correct for this: in the handler, **save the original value of `errno` and restore it before returning normally**. This prevents errors that occur within the signal handler from being confused with errors from system calls at the point the program is interrupted to run the handler.
   +  if you want to call in a handler a function that modifies a particular object in memory, you can make this safe by saving and restoring that object.
-  + **Note that `errno` is whenever a system call error occurs, and system call can have a variety of errors. `Errno `is how you figure out which one actually happened. In other words, `errno `is sent by a lot of different system calls, so if you're not going to use errno immediately after the call failed, you'd better to save the current errno in another variable.**
+  +  **Note that `errno` is whenever a system call error occurs, and system call can have a variety of errors. `Errno `is how you figure out which one actually happened. In other words, `errno `is sent by a lot of different system calls, so if you're not going to use errno immediately after the call failed, you'd better to save the current errno in another variable.**
 + **Merely reading from a memory object is safe** provided that you can deal with any of the values that might appear in the object at a time when the signal can be delivered. Keep in mind that assignment to some data types requires more than one instruction, which means that the handler could run “in the middle of” an assignment to the variable if its type is not atomic.
 + **Merely writing into a memory object is safe as long as a sudden change in the value**, at any time when the handler might run, will not disturb anything.
 
-## Solution
+## <a name="28">Solution</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 In this lab, all we need to do is to implement a simple shell `tsh.c`, where this file has already provided a code structure and some utility function.
 
@@ -383,7 +433,7 @@ In this lab, all we need to do is to implement a simple shell `tsh.c`, where thi
 
 For those uility functions or system calls, I wrapped them into the wrapper function and put them into  `csapp.c`/`csapp.h`.
 
-### Check the built-in function
+### <a name="29">Check the built-in function</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 In the shell, normally, the command divided by two types: 
 
@@ -442,7 +492,7 @@ int builtin_cmd(char **argv)
 
 In this lab, we also need to use 4 type of signal: **1. SIGCHLD**; **2. SIGTSTP/SIGSTP**; **3. SIGINT**; **4. SIGQUIT**, where the lab has already implemented the **SIGQUIT** and thus we need to implement all of the other three signal handlers.
 
-### SIGINT handler:
+### <a name="30">SIGINT handler:</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 The purpose of **SIGINT** is to tell computer interrupt the current process, where this behave is what system really do when typing the `ctrl+c` command.
 
@@ -466,7 +516,7 @@ void sigint_handler(int sig)
 
 Note that for **slow systems call**(such as `read`,`wait` and `accept`) that potentially block the process for a long period of time, the programmer must include code that **manually restart** interrupted system calls.
 
-### SIGTSTP handler: 
+### <a name="31">SIGTSTP handler: </a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 This signal is to stop typed at terminal, where it will hang up the current process but still exist in the job list of shell. When we type `fg` or `bg` command, the hanging up process will be awaked to the foreground/background.
 
@@ -487,7 +537,7 @@ void sigtstp_handler(int sig)
 }
 ```
 
-### SIGCHLD handler
+### <a name="32">SIGCHLD handler</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 `SIGCHLD`: This signal is used to change the child process's state. When parent create a child process, instead of waiting for child process terminated, parent will do the other work until child process send the `SIGCHLD` signal(the kernel send the `SIGCHLD` signal to their parent when one of its child process terminates or stops). After parent received/caches the signal, it will recap this child process.
 
@@ -558,12 +608,11 @@ void sigchld_handler(int sig)
 }
 ```
 
-### Waitfg
+### <a name="33">Waitfg</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 In here, I provide two ways to implement it, where one is use `volatile sig_atomic_t flag`, the other(the comment lines) is not. The purpose of this function is to block the current process until it is no longer the foreground process(usually it is to wait the child function finished by receiving SIGCHLD signal). The core signal action in here is to use `sigsuspend`, no matter which implementation above we choose, this action is not changed.
 
 ```c
-
 /*
  * waitfg - Block until process pid is no longer the foreground process
  */
@@ -589,7 +638,7 @@ void waitfg(pid_t pid)
 }
 ```
 
-### do_fgbg
+### <a name="34">do_fgbg</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 This function is to implement the way of executing foreground/background job. The logic is relatively simple, where we get the current job id(jid) first, and then use this jib to find the pid of the current process; or get the pid directly. After that, we need to send the `SIGCONT` to revoke the suspended process(the purpose of bg/fg command is to awake the suspend process). Finally, we will check the current job need to be run at foreground or background by checking the first argurment of the input command(`argv[0]`), if it is the background,  just change the flag of the correspond job to `BG`, change to `FG` and call `waitfg` otherwise.
 
@@ -659,7 +708,7 @@ void do_bgfg(char **argv)
 }
 ```
 
-### Eval:
+### <a name="35">Eval:</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 This is the core function of shell, where when shell execute a new command, it will create a child process and take over rest of  task. Also the main point of this function is how to deal with multiply signal, where the signal is not queued and we cannot count the signal. Instead, we will use the signal mask to block signal before its relative action running and unblock it after the job finished by using  `sigprocmask` to make sure every signal relatead action is atomic.
 
@@ -741,7 +790,7 @@ void eval(char *cmdline)
 
 ```
 
-## Test Our Shell
+## <a name="36">Test Our Shell</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 The way to test our shell is to use `make testxx` command, where tests include `test01 ~ test16`, where each test correspond a `trace file(tracexx.txt)`. You should make sure each test can finish by itselves without any exception. Moreover, you can also compare with your test output with `tshrf.out`, where this file include the correct answer for each file.
 
