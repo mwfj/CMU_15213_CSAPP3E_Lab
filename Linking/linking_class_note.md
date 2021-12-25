@@ -44,4 +44,6 @@ linux > gcc -Og -o prog main.c sum.c
    linux > ./prog
    ```
 
-![the_driver_translate_process](./readme-pic/the_driver_translates_process.png)
+![the_driver_translate_process](./pic/the_driver_translates_process.png)
+
+<p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
