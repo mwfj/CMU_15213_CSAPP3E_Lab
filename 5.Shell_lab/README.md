@@ -121,7 +121,7 @@ When the exception occurred, one of three things happened, which depending on th
 2. The handler returns contorl to `I_next`, the instruction that would have executed next had the exception not occurred.
 3. The handler aborts the interrupted program.
 
-![exception_state_transfer](/Users/mwfj/Desktop/readme-pic/exception_state_change.png)
+![exception_state_transfer](./readme-pic/exception_state_change.png)
 
 <p align="center">The exception state transfer, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/14-ecf-procs.pdf">cmu-213 slide</a></p>
 
