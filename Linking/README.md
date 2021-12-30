@@ -115,6 +115,12 @@ The basic concepts are similar, regardless of the particular format.
 
 <p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
 
++ `.bss`: Uninitialized global and static C variables, along with any global or static variables that are initialized to zero. **This section occupies no actual space in the object file;** it is merely a placeholder. Object file formats distinguish between initialized and uninitialized variable for space efficiency: uninitialized variable do not have to occupy any actual disk space in the object file. **At run time, these variable are allocated in memory with an initial value of zero.**
+
 ![elf_format_2](./pic/elf_format_2.png)
 
 <p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
+
++ `.symtab`: A symbol table with information about functions and global variables that are defined and referenced in that program. Some programmers mistakenly believe that a program must be compiled with `-g` option to get symbol table information. In fact, **every relocatable object file has a symbol table in `.symtab`**(unless the programmer has specifcally removed it with `STRIP` command). However, unlike the symbol table inside a compiler, **the `.symtab` symbol table does not  contain entries for local variable.**
++ `.rel.text`: **A list of locations** in the `.text` section that will need to be modified when the linker combines this object file with others. In general, any instruction that calls an `external function` or `references a global variable` will need to be modified. On the other hand, **instructions that call local function do not need to be modified.** Note that relocation infomation is not needed in executable object files, and is usually omitted unless the user explicitly instructs the linker to include it.
++ `.rel.data`:Relocations information for any global variables that are referenced or defined by the module. In general, any initialized global variable whose initial value is the address of a global variable or externally defined function will need to be modified.
