@@ -127,3 +127,12 @@ The basic concepts are similar, regardless of the particular format.
 + `.debug`: A debugging symbol table with entries for **local variables** and **typedefs defined** in the program, **global variable defined and referenced** in the program, and the original C source file. It is only present if the compiler driver is invoked with the `-g` flag.
 + `.line` : A **mapping** between **line numbers in the original C source program** and **machine code instructions** in the `.text` section. It is only present if the compiler driver is invoked with the `-g` flag.
 + `.strlab`: A **string table for the symbol tables** in the `.symtab` and `.debug` section and for the section names in the section headers. A string table is a sequence of null-terminated character strings.
+
+## Linker Symbols
+
+### 1. Global symbols
+
+### 2. External symbols
+
+### 3. Local symbols
+
