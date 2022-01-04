@@ -130,9 +130,76 @@ The basic concepts are similar, regardless of the particular format.
 
 ## Linker Symbols
 
+Symbol table are **built by assembler**, using symbols exported by the compiler in the assembly-language `.s` file. All ELF symbol table is contained in the `.symtab` section, where it contains an array of entries.
+
+```c
+typedef struct{
+  int		name;				// String table offset
+  char	type:4,			// Function or Data(4 bits)
+  			binding: 4;	// Local or global(4 bits)
+  char 	reserved; 	// Unused
+  short section;		// Section header index
+  long	value;			// Section offset or absolute address
+  long 	size;				// Object size in bytes
+} Elf64_Symbol;
+```
+
+<p align="center">Elf symbol table entry</p>
+
+Note that **these psudosection exist only in relocated object file** and do not exist in the executable object file.
+
++ The `name `of a byte offset into the string table that points to the null-terminated string name of the symbol. 
++ The `value `is the symbol's address.
+
++ For **relocatable modules**, the `value `is an **offset from the beginning of the section** where the object is defined.
+
++ For **executable object files**, the `value `is an **absolute run-time address**.
+
++ The `size `is the size(in byte) of the object.
+
++ The `type `is usually either ***data*** or ***function***. The symbol table can also contain entires for the **individual sections** and for **the path name** of the original source file, so there are **distinct types for these object** as well.
+
++ The `binding field` indicates whether symbol is local or global.
+
++ Each symbol is assigned to some sectoin of the object file, denoted by the `section` field, which is an index into the section header table.
+
+  There have 3 special pseudosections that don't have entries in the section header table:
+
+  + `ABS `is for symbols that  should not be relocated.
+  + `UNDEF `is for undefined symbol -- that is, symbols that are referenced in this object module but defined elsewhere.
+  + `COMMON `is for uninitialized data objects that are not yet allocated.  For the `COMMON` symbol,  the `value `field gives the alignment requirement, and `size `gives the minimum size.
+
+The distinction between `COMMON `and `.bss` is:
+
++ `COMMON `: Uninitialized global variables
++ `.bss` : Uninitialzed static variables, and global or static variables that are initialized to zero.
+
 ### 1. Global symbols
+
+Global symbols **defined** by module `m `and that **can be referenced by other modules**. Global linker symbols correspond to ***nostatic*** C functions and global variables.
 
 ### 2. External symbols
 
+Global symbols **referenced** by module `m`, but **defined by some other modules**, where it also corresponds to nostatic and that global variables that are defined in other modules.
+
 ### 3. Local symbols
 
+Local symbols that are defined and referenced exclusively by module `m`. There correspond to ***static C function*** and global variables that are defined with **the static attribute**. These symbols are visible anywhere within the module `m`, but **cannot be referenced by other modules**.
+
+**Note that:**
+
++ **Local linker symbols are not local program variables**, where the symbol table in `.symtab` **does not contain any symbols that correspond to local nostatic program variable**. The **local C variable are managed by compiler *on the stack***, and thus linker has no idea about local C variable.
+
++ Similarly, local procedure variables that are defined with C static attribute are not managed on the stack. Instead, **the compiler allocates space in `.data` or `.bss` for each definetion and creates a local linker symbol** in the symbol table with a unique name.
+
+## How Linker Resolve Duplicate Symbol Names
+
+When the compiler encounters a symbol(either a variable or function name) that is not defined in the current module, it assumes that it is defined in some other module, generates a linker symbol table entry and leave it for the linker to handle.
+
+For multiple object modules, global symbols can be defined as the same name. Under such circumstances, the linker must either flag an error or somehow chooes one of the definetion and discard the rest.
+
+![symbol_resolution](./pic/symbol_resolution.png)
+
+<p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
+
+If the linker in unable to find a definition for the referenced symbol in any of its input modules, it prints an (often crypic) error message and terminates.
