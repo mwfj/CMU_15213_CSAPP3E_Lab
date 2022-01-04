@@ -136,7 +136,7 @@ Symbol table are **built by assembler**, using symbols exported by the compiler 
 typedef struct{
   int	name;	    // String table offset
   char	type:4,	    // Function or Data(4 bits)
-  		binding: 4;	// Local or global(4 bits)
+  	binding: 4;	// Local or global(4 bits)
   char 	reserved; 	// Unused
   short section;	// Section header index
   long	value;		// Section offset or absolute address
