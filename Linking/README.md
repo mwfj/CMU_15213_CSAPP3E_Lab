@@ -134,13 +134,13 @@ Symbol table are **built by assembler**, using symbols exported by the compiler 
 
 ```c
 typedef struct{
-  int		name;				// String table offset
-  char	type:4,			// Function or Data(4 bits)
-  			binding: 4;	// Local or global(4 bits)
+  int	name;	    // String table offset
+  char	type:4,	    // Function or Data(4 bits)
+  		binding: 4;	// Local or global(4 bits)
   char 	reserved; 	// Unused
-  short section;		// Section header index
-  long	value;			// Section offset or absolute address
-  long 	size;				// Object size in bytes
+  short section;	// Section header index
+  long	value;		// Section offset or absolute address
+  long 	size;		// Object size in bytes
 } Elf64_Symbol;
 ```
 
@@ -165,7 +165,7 @@ Note that **these psudosection exist only in relocated object file** and do not 
 
   There have 3 special pseudosections that don't have entries in the section header table:
 
-  + `ABS `is for symbols that  should not be relocated.
+  + `ABS `is for symbols that should not be relocated.
   + `UNDEF `is for undefined symbol -- that is, symbols that are referenced in this object module but defined elsewhere.
   + `COMMON `is for uninitialized data objects that are not yet allocated.  For the `COMMON` symbol,  the `value `field gives the alignment requirement, and `size `gives the minimum size.
 
