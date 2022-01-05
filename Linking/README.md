@@ -174,6 +174,8 @@ The distinction between `COMMON `and `.bss` is:
 + `COMMON `: Uninitialized global variables
 + `.bss` : Uninitialzed static variables, and global or static variables that are initialized to zero.
 
+When the compiler is translating some module and symbols with the same name, say, x, it does not know if other modules also define x, and if so, it cannot predict which of the multiple instances of x the linker might choose. So **the compiler defers the decision to the linker by assigning x to** `COMMON`. On the other hand, if x is initialized to zero, then it is a strong symbol, so the compiler can confidently assign it to `.bss`. Similarly, **static symbols are unique by construction**, so the compiler can confidently assign them to either `.data` or `.bss`.
+
 ### 1. Global symbols
 
 Global symbols **defined** by module `m `and that **can be referenced by other modules**. Global linker symbols correspond to ***nostatic*** C functions and global variables.
@@ -203,3 +205,18 @@ For multiple object modules, global symbols can be defined as the same name. Und
 <p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
 
 If the linker in unable to find a definition for the referenced symbol in any of its input modules, it prints an (often crypic) error message and terminates.
+
+At compile time, the compiler exports each global symbol to the assembler at either `strong `or `weak`, and the assembler encodes this information implicitly in the symbol table of the relocatable object file. **Functions and initialized global variables get strong symbols.** Uninitilized global variables get weak symbols.
+
+Linux linker use the following rules for dealing with duplicate symbol names:
+
+1. Multiple strong symbols with the same names are not allowed.
+   + Each item can be deﬁned only once
+2. Given a strong symbol and multiple weak symbols, choose the strong symbol
+   + References to the weak symbol resolve to the strong symbol
+
+3. Given multiple weak symbols with the same name, pick an arbitrary one.
+
+![linker_puzzles](./pic/linker_puzzles.png)
+
+<p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
