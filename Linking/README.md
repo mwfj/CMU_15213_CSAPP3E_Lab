@@ -221,7 +221,7 @@ Linux linker use the following rules for dealing with duplicate symbol names:
 
 <p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
 
-## Static Library
+## Linking with Static Library
 
 In practice, all compilation systems provides a mechanism for packaging related object modules into a single file called a static library, which can then be supplied as input to the linker. When it builds the ouput executable, the linker copies only the object modules in the library that are referenced by the application program.
 
@@ -252,3 +252,10 @@ If `U` is nonempty when the linker finishes scanning the input files on the comm
 **Note that the ordering of libraries and object files on the command line is significant.** If library that defines a symbol appears on the command line before the object file that references that symbol, then the reference will not resolved and linking will fail.
 
 The general rule for libraries is to place them at the end of the command line of any order when the member of the different libraries are independent. On the other hand, **the libraries are not independent, then they must be ordered** so that for each symbol `s` that is referenced externally by a member of an archive, at least one definetion of `s` follows a reference to `s` on the command line.
+
+![linking_static_lib](./pic/linking_static_lib.png)
+
+<p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
+
+## Relocation
+
