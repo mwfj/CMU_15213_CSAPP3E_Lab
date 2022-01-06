@@ -220,3 +220,35 @@ Linux linker use the following rules for dealing with duplicate symbol names:
 ![linker_puzzles](./pic/linker_puzzles.png)
 
 <p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
+
+## Static Library
+
+In practice, all compilation systems provides a mechanism for packaging related object modules into a single file called a static library, which can then be supplied as input to the linker. When it builds the ouput executable, the linker copies only the object modules in the library that are referenced by the application program.
+
+Related functions can be compiled into separate object modules and then packaged in a single static library by specifying a single filename on the command line. At the link time, the linker will only copy the object modules that are referenced by the program, which reduces the size of the executable on disk and in memory. On the other hand, the application programmer only needs to include the names of a few library files.
+
+Specifically, on Linux system, static libraries are stored on disk in a particular file format known as an ***archive***. **An archive is a collection of concatenated relocateable object files**, with a header that describes the size of location of each member object file. Archive filenames are denoted with the `.a` suffix.
+
+To enhance the linker, it tries to resolve unresolved external references by looking for the symbols in one or more archives. During the symbol resolution phase, the linker scans the relocatable object files and archives left to right in the same sequential order that they appear on the compiler driver's command line(The driver automatically translates any `.c` files on the command line into `.o` files).
+
+![static_lib](./pic/static_lib.png)
+
+<p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
+
+During the scan, the linker maintains:
+
++ A `set E` of the relocatable object file that will be merged to form the executable.
+
++ A `set U` of unresolved symbols(symbols referred to but not yet defined).
++ A `set D` if symbols that have been defined in previous input files.
++ Initially, E, U and D are empty.
+
+For each input file `f` on the command line, the linker determines if `f` is an object file or an archive. If `f` is an object file, the linker adds `f` to `E`, updates `U` and `D` to reflect the symbol definitions and references in `f`, and proceeds to the next input file;
+
+**If `f` is an archive, the linker attempts to match the unresolved symbols in `U`  againts the symbols defined by the members of the archive.** If some archive member `m `defines a symbol that resolves a reference in `U`, then `m` is added to `E`, and the linker updates `U` and `D` to reflect the symbol definitions and references in `m`. **This process iterates over the member object files in the archive until a fixed point is reached where `U` and `D` no longer change.** At this point, any member object file not contained in `E` are simply discarded and the linker proceeds to the next input file.
+
+If `U` is nonempty when the linker finishes scanning the input files on the command line, it prints on error and termintates. Otherwise, it merges and relocates the object files in `E`  to build the output executable file.
+
+**Note that the ordering of libraries and object files on the command line is significant.** If library that defines a symbol appears on the command line before the object file that references that symbol, then the reference will not resolved and linking will fail.
+
+The general rule for libraries is to place them at the end of the command line of any order when the member of the different libraries are independent. On the other hand, **the libraries are not independent, then they must be ordered** so that for each symbol `s` that is referenced externally by a member of an archive, at least one definetion of `s` follows a reference to `s` on the command line.
