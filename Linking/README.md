@@ -259,3 +259,48 @@ The general rule for libraries is to place them at the end of the command line o
 
 ## Relocation
 
+Once the linker has completed the symbol  resolutions steps, it has associated each symbol reference in the code with exactly one symbol definition. At this point, the linker knows the exact sizes of the code and data sections in its input object modules.
+
+In the relocation step, the linker merges the input modules and assigns run-time addresses to each symbol.
+
+**Relocation consists of two steps:**
+
+1. **Relocating sections and symbol definitions**:Merge multiply symbol from the same type into one and generate one unique address at run-time
+
+   In this step, the linker **merges all sections of the same type** into a new aggregate section of the same type. For example, `.data` sections from the input modules are all merged into one section that will the `.data` section for the output executable object file. The linker then **assigns run-time memory addresses to the new aggregate sections**, to each section defined by the input modules, and to each symbol defined by the input modules. **When this step is complete, each instruction and global variable in the program has a unique run-tim memory address.**
+
+2. **Relocating symbol references within sections**: point to the correct run-time address
+
+   In this step, the linker **modifies every symbol reference** in the bodies of the code and data sections so that **they point to the correct run-time address.** To perform this, the linker reiles on data structures in the relocatable object modules known as relocation entries.
+
+![relocation](./pic/relocation.png)
+
+<p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
+
+### Relocation Entries
+
+When an assember generates an object module, it does not know where the code and data will ultimately be stored in memory. Nor does it know the locations of any externally defined function or global variables that are referenced by the module. So **whenever the assembler encounters a reference to an object whose ultimate location is unknow, it genereate a *relocation entries*** that tells the linker how to modify the reference when it merges the object file into an executable. **Relocation entries for code are places in `.rel.text`. Relocation entries for data are placed in `.rel.data`**.
+
+**The format of ELF relocation entry:**
+
+```c
+typedef struct{
+  long offset;	// Offset of the reference to relocate
+  long	type:4,	    	// Relocation type
+  	binding: 4;	// Symbol table index
+  long addend;	// Constant part of the relocation expression
+} Elf64_Rela;
+```
+
++ The `offset `is the setion offset of the reference that will need to be modified.
++ The `symbol` identifies the symbol that the **modified reference should point to**.
++ The `type `tells the linker **how to modify the new reference**.
++ The `addend `is a signed constant that is used by some types of **relocations to bias the value of the modified reference**.
++ `R_X86_64_PC32`: Relocate a reference that uses a **32-bit PC-relative address**.(Recall that when CPU executes an instruction using PC-relative addressing, it forms the effective address by adding the 32-bit value)
++ `R_X86_64_32`: Relocate a reference that uses a **32-bit absolute address**. With absolute addressing, the CPU directly uses the 32-bit value encoded in the instruction as the effective address, without further modification.
+
+Note that `R_X86_64_PC32` and `R_X86_64_32` supports the X86-64 small code module, which assumes that the total size of the code and data in the executable object ile is smaller than 2GB. **The small code model is the default for GCC.**
+
+![relocation_entries](./pic/relocation_entries.png)
+
+<p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a><br>This is the option to include a bias in the offset. Since we're using the relative address of program counter, the values that going to placed here at these four bytes offset f from the current %rip value or program counter</p>
