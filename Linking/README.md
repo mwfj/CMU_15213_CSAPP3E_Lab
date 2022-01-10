@@ -285,10 +285,10 @@ When an assember generates an object module, it does not know where the code and
 
 ```c
 typedef struct{
-  long offset;	// Offset of the reference to relocate
+  long offset;		// Offset of the reference to relocate
   long	type:4,	    	// Relocation type
   	binding: 4;	// Symbol table index
-  long addend;	// Constant part of the relocation expression
+  long addend;		// Constant part of the relocation expression
 } Elf64_Rela;
 ```
 
