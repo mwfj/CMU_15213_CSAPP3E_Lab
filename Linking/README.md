@@ -304,3 +304,28 @@ Note that `R_X86_64_PC32` and `R_X86_64_32` supports the X86-64 small code modul
 ![relocation_entries](./pic/relocation_entries.png)
 
 <p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a><br>This is the option to include a bias in the offset. Since we're using the relative address of program counter, the values that going to placed here at these four bytes offset f from the current %rip value or program counter</p>
+
+![relocated_text_section](./pic/relocated_text_section.jpeg)
+
+<p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
+
+## The format of Executable Object Files(EOF) file
+
+![eof_format](./pic/eof_format.jpeg)
+
+<p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
+
++ The `ELF header `describes the overall format of the file. It also includes the program's ***entry point***, which is the address of the first instruction to execute when the program runs.
++ The `.text`, `.rodata` and `.data` section are relocated to eventual run-time memory address
++ The `.init `section defines a small function, called `_init`, that will be called by program's initialization code.
+
+**Note that since the executable is *fully linked*(relocated), it need no `.rel` section.**
+
+To run the executable object file in the shell, it invoke some memory resident operating system code known as the **loader**. The loader copies the code and data in the executable object file from disk into memory and then runs the program by jumping to its first instruction, or ***entry point***.
+
+When the loader runs, it creates a memory image just like the right part of figure above. Guided by the **program header table**, it copies chunks of the executable object file into the code and data segments.
+
+Next, the loader jumps to the program's entry point, which is always the address of the `_start` function. This function is defined in the system object file `crt1.o` and is the same for all C programs. The `_start` function calls the ***system startup function***, `__libc_start_main`, which defined in `libc.so`. It initializes the execution environment, calls the user-level main function, handles its return value, and if necessary returns control to the kernel.
+
+## Dynamic Linking with Shared Libraries
+
