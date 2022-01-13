@@ -329,3 +329,13 @@ Next, the loader jumps to the program's entry point, which is always the address
 
 ## Dynamic Linking with Shared Libraries
 
+A shared library is an object that, **at either run time or load time**, can be loaded at arbitrary memory address and **linked with a program in memory**. This process is known as ***dynamic linking*** and is performed by a program called a ***dynamic linker***. Shared library are also referred as shared objects, and on Linux system they are indicated by the `.so` suffix. Microsoft operating system make heavy use of shared libraries, which they refer to as `DLLs`(dynamic link libraries).
+
+Linking of references to shared library object is deffered until the program is actually loaded into the memory. But it can also happened at runtime, and that program can arbitrarily decided to load a function(after program has begun) that is decleard in a shared library, where, in Linux, this is done by calls to the `dlopen()` interface.
+
+Shared libraries are **"shared"** in two different ways:
+
+1. In any given file system, there is **exactly one `.so` file for a paricular library**. The code and data in this `.so` file are **shared by all executable object files** that reference the library.
+2. A single copy of the `.text` section of a shared library in memory can be **shared by different running processes**.
+
+![dynamic_linking_at_load_time](./pic/dynamic_linking_at_load_time.png)
