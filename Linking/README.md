@@ -331,7 +331,7 @@ Next, the loader jumps to the program's entry point, which is always the address
 
 A shared library is an object that, **at either run time or load time**, can be loaded at arbitrary memory address and **linked with a program in memory**. This process is known as ***dynamic linking*** and is performed by a program called a ***dynamic linker***. Shared library are also referred as shared objects, and on Linux system they are indicated by the `.so` suffix. Microsoft operating system make heavy use of shared libraries, which they refer to as `DLLs`(dynamic link libraries).
 
-Linking of references to shared library object is deffered until the program is actually loaded into the memory. But it can also happened at runtime, and that program can arbitrarily decided to load a function(after program has begun) that is decleard in a shared library, where, in Linux, this is done by calls to the `dlopen()` interface.
+Linking of references to shared library object is deffered until the program is actually loaded into the memory. But it can also happened at runtime, where the application requests the dynamic linker to load and link shared library without having to link in the applications against at the compile time. In that case, program can arbitrarily decided to load a function(after program has begun) that is decleard in a shared library, where, in Linux, this is done by calls to the `dlopen()` interface.
 
 Shared libraries are **"shared"** in two different ways:
 
@@ -339,3 +339,15 @@ Shared libraries are **"shared"** in two different ways:
 2. A single copy of the `.text` section of a shared library in memory can be **shared by different running processes**.
 
 ![dynamic_linking_at_load_time](./pic/dynamic_linking_at_load_time.png)
+
+Like the picture above, the basic idea is to do some of **the linking statically** when the executable file is created, and then **complete the linking process dynamically when the program is loaded**. It is important to realize that none of the code or data sections from lib vector.so are actually copied into the executable program at this point. Instead, the linker copies some relocation and symbol table information that will allow references to code and data in lib vector.so to be resolved at load time.
+
+When the loader loads and runs the executable probram, **it loads the partially linked executable programing, using program's entry point**. Next, it notices that program contains a `.interp` section, which contains the path name of the dynamic linker, which is itself a shared object. Instead of passing control to the application, the loader loads and run dynamic linker.
+
+The dynamic linker then finishes the linking tash by performing following relocations:
+
++ Relocating the text and data of `libc.so` into some memory segment.
++ Relocating the text and data of `.libvector.so` into another memory segment.
++ Relocating any references in program to symbol table by `libc.so` and `libvector.so`.
+
+Finally, the dynamic linker passes control to the application.
