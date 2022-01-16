@@ -351,3 +351,61 @@ The dynamic linker then finishes the linking tash by performing following reloca
 + Relocating any references in program to symbol table by `libc.so` and `libvector.so`.
 
 Finally, the dynamic linker passes control to the application.
+
+## Position-Independent Code(PIC)
+
+Modern systems compile the code segments of shared modules so that they can be **loaded anywhere in memory without having to be modified by the linker**. With this approach, a single copy of a shared module's code segment can be **shared unlimited number of processes**.(Of course, each process will still get its own copy of the read/write data segment). Code that can be loaed without needing any relocations is known as ***position-independent code***(PIC).
+
+On x86-64 systems, **references to symbols in the same executable object module require no special treatment to be PIC**. These references can be compiled using **PC-relative addressing** and **relocated by the static linker** when it builds the object file.
+
+For the global variable, no matter where we load an object module(including shared object module) in memory, the data segment is always the same distance from the code segment. Thus, **the distance between any instruction in the code segment and any variable in the data segment is a run-time constant**, independent of the absolute memory locations of the code and data segments. Comiler that want to **generate PIC references to global variable** exploit this fact by creating a table called the ***global offset table(GOT)*** at the begining of the data segment.
+
+![got_table](./pic/got_table.jpg)
+
+<p align="center">GOT table, this figure is from the book <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 7</p>
+
+The GOT contains an 8-bytes entry for each global data of the data object(procedural or global variable) that is referenced by the object module. The compiler also generates a relocation record for each entry in the GOT. At load time, the dynamic linker relocates each GOT entry so that it contains the absolute address of the object. Each object module that references global objects has its own GOT.
+
+### PIC Function Call
+
+Suppose that a program calls a function that is defined by a shared library. The normal approach would be to generate a relocation record for the reference, which **the dynamic linker could then resolve when the program was loaded**. GNU compilation systems solve this program using a ***lazy binding***, where it defers the binding of each procedure address until the ***first time*** the procedure is called. 
+
+The motivation for **lazy binding** is that a typical application program will **call only a small part** of the hundreds or thousands of functions exported by a shared library such as `libc.so`. By deferring the resolution of a function's address until it is actually called, the dynamic linker can avoid hundreds or even thousands of unnecessary relocations at load time. There is a nontrival run-time overhead the first time the function is called, but each call thereafter cost only a single instruction and a memory reference for the indirection.
+
+The lazy binding implemented with a compact yet somewhat complext interaction between two data structures: 
+
++ ***the procedure linkage table(PLT)***: The PLT is an array of `16-byte` code entries. 
+
+  + `PLT[0]` **is a special entry that jumps into the dynamic linker**. Each shared library function called by the executable has its own PLT entry. Each of these entries is responsible for invoking a special function. 
+  + `PLT[1]` invokes **the system startup function**(`__libc_start_main`), which 
+    1. initializes the execution environment;
+    2. calls the main function;
+    3. handle its return value.
+
+  + Entries starting at `PLT[2]` invoke functions called by the user code.
+
++ The GOT: GOT is an array of `8-byte` address entries. When used in conjunction with the **PLT**, 
+  + `GOT[0]` and `GOT[1]` contain information that the dynamic linker uses when it resolves function address.
+  + `GOT[2]` is the entry point for the dynamic linker in the `ld-linux.so`.
+  + Each of the **remaining entries corresponds** to a called function whose **address need to be resolved at run time**, where each has a matching PLT entry. **Initially, each GOT entry points to the second instruction in the corresponding PLT entry.**
+
+![plt_got_external_function](./pic/plt_got_external_function.jpg)
+
+<p align="center">Using the PLT and GOT call external functions, this figure is from the book <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 7</p>
+
+Figure 7.19(a) shows hot the GOT and PLT work together to lazily resolve the run-tim address of function `addvec` the first fime it is called:
+
+1. Instead of directly calling `addvec`, the program calls into `PTL[2]`, which is the `PLT `entry for `addvec`.
+
+2. The **first PLT instruction** does an indirect jump through `GOT[4]`. Since each GOT entry initially points to the second instruction in its corresponding PLT entry, the indirect jump simply transfer control back to the next instruction `PLT[2]`.
+
+3. After pushing an ID  for `addvec`(0x1) on to the stack, `PLT[2]` jumps to `PLT[0]`.
+
+4. `PLT[0]` pushes an argument for the dynamic linker indirectly through `GOT[1]` and then jumps into the dynamic linker indirectly through `GOT[2]`. 
+
+   The dynamic linker uses the two stack entries to determine the runtime location of `addvec`, overwrite `GOT[4]` with this address, and pass the control to `addvec`.
+
+Figure 7.19(b) shows the control flow for any subsequent invocations of `addvec`:
+
+1. Control passes to `PLT[2]` as before.
+2. However, this time the indirect jump through `GOT[4]` transfers control directly to `addvec`.
