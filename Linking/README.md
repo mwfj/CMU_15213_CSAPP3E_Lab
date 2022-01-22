@@ -115,6 +115,8 @@ The basic concepts are similar, regardless of the particular format.
 
 <p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
 
++ `.text` The machine code of the compiled program, where the address part of the function environment mapping(`function name -> address`) stored at the `.text` section.
++ `.data` normally maintain the ***Initialized* global and static C variables**. Local C variabls are maitained at run time on the stack and do not appear either  the `.data` and `.bss` sections.
 + `.bss`: Uninitialized global and static C variables, along with any global or static variables that are initialized to zero. **This section occupies no actual space in the object file;** it is merely a placeholder. Object file formats distinguish between initialized and uninitialized variable for space efficiency: uninitialized variable do not have to occupy any actual disk space in the object file. **At run time, these variable are allocated in memory with an initial value of zero.**
 
 ![elf_format_2](./pic/elf_format_2.png)
@@ -126,7 +128,7 @@ The basic concepts are similar, regardless of the particular format.
 + `.rel.data`:Relocations information for any global variables that are referenced or defined by the module. In general, any initialized global variable whose initial value is the address of a global variable or externally defined function will need to be modified.
 + `.debug`: A debugging symbol table with entries for **local variables** and **typedefs defined** in the program, **global variable defined and referenced** in the program, and the original C source file. It is only present if the compiler driver is invoked with the `-g` flag.
 + `.line` : A **mapping** between **line numbers in the original C source program** and **machine code instructions** in the `.text` section. It is only present if the compiler driver is invoked with the `-g` flag.
-+ `.strlab`: A **string table for the symbol tables** in the `.symtab` and `.debug` section and for the section names in the section headers. A string table is a sequence of null-terminated character strings.
++ `.strlab`: A **string table for the symbol tables** in the `.symtab` and `.debug` section and for the section names in the section headersm, where the variable name and function name stored at this section(end by `00` in hex  or `\0` in string). A string table is a sequence of null-terminated character strings.
 
 ## Linker Symbols
 
@@ -149,6 +151,7 @@ typedef struct{
 Note that **these psudosection exist only in relocated object file** and do not exist in the executable object file.
 
 + The `name `of a byte offset into the string table that points to the null-terminated string name of the symbol. 
+
 + The `value `is the symbol's address.
 
 + For **relocatable modules**, the `value `is an **offset from the beginning of the section** where the object is defined.
@@ -166,8 +169,15 @@ Note that **these psudosection exist only in relocated object file** and do not 
   There have 3 special pseudosections that don't have entries in the section header table:
 
   + `ABS `is for symbols that should not be relocated.
+  
   + `UNDEF `is for undefined symbol -- that is, symbols that are referenced in this object module but defined elsewhere.
-  + `COMMON `is for uninitialized data objects that are not yet allocated.  For the `COMMON` symbol,  the `value `field gives the alignment requirement, and `size `gives the minimum size.
+  
+  + `COMMON `is for **uninitialized data objects that are not yet allocated**.  
+  
+    For the `COMMON` symbol,
+  
+    + the `value `field gives the alignment requirement, 
+    + and `size `gives the minimum size.
 
 The distinction between `COMMON `and `.bss` is:
 
@@ -191,8 +201,81 @@ Local symbols that are defined and referenced exclusively by module `m`. There c
 **Note that:**
 
 + **Local linker symbols are not local program variables**, where the symbol table in `.symtab` **does not contain any symbols that correspond to local nostatic program variable**. The **local C variable are managed by compiler *on the stack***, and thus linker has no idea about local C variable.
-
 + Similarly, local procedure variables that are defined with C static attribute are not managed on the stack. Instead, **the compiler allocates space in `.data` or `.bss` for each definetion and creates a local linker symbol** in the symbol table with a unique name.
+
+For example, if see the symbol table entry in 64-bit Linux, we will get:
+
+```c
+/**
+Elf64_Word is a uint32_t (4 byte or 32 bits)
+Elf64_Addr is a uint64_t (8 byte or 64 bits)
+Elf64_Section is a uint16_t (2 byte or 16 bits)
+Elf64_Xword is a uint64_t (8 byte or 64 bits)
+**/
+typedef struct
+{
+  Elf64_Word	st_name;		/* Symbol name (string tbl index) */
+  unsigned char	st_info;		/* Symbol type and binding */
+  unsigned char st_other;		/* Symbol visibility */
+  Elf64_Section	st_shndx;		/* Section index */
+  Elf64_Addr	st_value;		/* Symbol value */
+  Elf64_Xword	st_size;		/* Symbol size */
+} Elf64_Sym;
+```
+
+<p align="center">Elf symbol table entry in Linux</p>
+
+Just like what we describe above:
+
++ `st_name` is a string index, where all the symbol name combined together in `.strtab `. We can use index given by `st_name` to find the symbol name(end at `00` or `\0`)
+
++ `st_info` is `binding` or `type` in `Elf64_Symbol` above.
+
++ `st_shndx` : The section offset of the whole section table, where it indicate that the location of this symbol (which section it located)
+
++ `st_value` :  
+
+  + The offset of the section in terms of the whole Elf table.
+  + For the `COMMON section`, 
+
++ `st_size`: The size this symbol takes, where it also indicate the type information
+
+  ​					(**byte**(1 byte), **word**(2 byte), **double word**(4 bytes), **quad word**(8 bytes) ).
+
++ `st_info`: 
+
+  ```txt
+      Bind				 Type
+  	   /\           /\
+  /‾‾‾‾  ‾‾‾\   /‾‾‾  ‾‾‾‾\
+  __ __ __ __ | __ __ __ __ (each "__" represent 1 binary bit)
+  ```
+
+**To find the symbol and parse it:**
+
+1. `hexdump -C <executable_file_name>` to display the input offset in hexadecimal.
+2. `readelf -S <executable_file_name> ` to display metadata of each section of Elf format(section header).
+3. `readelf -s <executable_file_name`  to display the information of each symbol(symbol table).
+4. Get the `Num` of the target symbol table and **first address(Offset alignment)** of the `.strtab` section from the section header table.
+5. Get each entry size `Type Entsize` from `.strtab` section.
+6. Calculate the first address of the `Elf64_Sym` by `first address of .strtab + (symbol_number * Type Entsize)`.
+7. Parse the information of `Elf64_Sym` by each variable size.
+
+**Thus, the address of the target symbol should be:**
+
+```assembly
+Elf64_Addr _section_begin_position = Elf64_shdr[Elf64_Sym.st_shndx].sh_offset;
+Elf64_Addr _section_offset = st_value;
+
+Begin_of_the_target_Symbol:
+	_section_begin_position + _section_offset
+	
+End_of_the_target_Symbol:
+	Begin_of_the_target_Symbol + Elf64_Sym.st_size - 1
+	
+The_target_symbol_address_range:
+	[Begin_of_the_target_Symbol, End_of_the_target_Symbol]
+```
 
 ## How Linker Resolve Duplicate Symbol Names
 
