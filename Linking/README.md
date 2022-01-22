@@ -132,7 +132,26 @@ The basic concepts are similar, regardless of the particular format.
 
 ## Linker Symbols
 
-Symbol table are **built by assembler**, using symbols exported by the compiler in the assembly-language `.s` file. All ELF symbol table is contained in the `.symtab` section, where it contains an array of entries.
+Symbol table are **built by assembler**, using symbols exported by the compiler in the assembly-language `.s` file. 
+
+### 1. Global symbols
+
+Global symbols **defined** by module `m `and that **can be referenced by other modules**. Global linker symbols correspond to ***nostatic*** C functions and global variables.
+
+### 2. External symbols
+
+Global symbols **referenced** by module `m`, but **defined by some other modules**, where it also corresponds to nostatic and that global variables that are defined in other modules.
+
+### 3. Local symbols
+
+Local symbols that are defined and referenced exclusively by module `m`. There correspond to ***static C function*** and global variables that are defined with **the static attribute**. These symbols are visible anywhere within the module `m`, but **cannot be referenced by other modules**.
+
+**Note that:**
+
++ **Local linker symbols are not local program variables**, where the symbol table in `.symtab` **does not contain any symbols that correspond to local nostatic program variable**. The **local C variable are managed by compiler *on the stack***, and thus linker has no idea about local C variable.
++ Similarly, local procedure variables that are defined with C static attribute are not managed on the stack. Instead, **the compiler allocates space in `.data` or `.bss` for each definetion and creates a local linker symbol** in the symbol table with a unique name.
+
+All ELF symbol table is contained in the `.symtab` section, where it contains an array of entries:
 
 ```c
 typedef struct{
@@ -198,23 +217,6 @@ The distinction between `COMMON `and `.bss` is subtle. For the modern versions o
 When the compiler is translating some module and symbols with the same name, say, x, it does not know if other modules also define x, and if so, it cannot predict which of the multiple instances of x the linker might choose. So **the compiler defers the decision to the linker by assigning x to** `COMMON`. On the other hand, if x is initialized to zero, then it is a strong symbol, so the compiler can confidently assign it to `.bss`. Similarly, **static symbols are unique by construction**, so the compiler can confidently assign them to either `.data` or `.bss`.
 
 **Note that `COMMON `only exist in Elf format, not in Eof format. The reason is that there is no such ambiguous at the runtime.**
-
-### 1. Global symbols
-
-Global symbols **defined** by module `m `and that **can be referenced by other modules**. Global linker symbols correspond to ***nostatic*** C functions and global variables.
-
-### 2. External symbols
-
-Global symbols **referenced** by module `m`, but **defined by some other modules**, where it also corresponds to nostatic and that global variables that are defined in other modules.
-
-### 3. Local symbols
-
-Local symbols that are defined and referenced exclusively by module `m`. There correspond to ***static C function*** and global variables that are defined with **the static attribute**. These symbols are visible anywhere within the module `m`, but **cannot be referenced by other modules**.
-
-**Note that:**
-
-+ **Local linker symbols are not local program variables**, where the symbol table in `.symtab` **does not contain any symbols that correspond to local nostatic program variable**. The **local C variable are managed by compiler *on the stack***, and thus linker has no idea about local C variable.
-+ Similarly, local procedure variables that are defined with C static attribute are not managed on the stack. Instead, **the compiler allocates space in `.data` or `.bss` for each definetion and creates a local linker symbol** in the symbol table with a unique name.
 
 For example, if see the symbol table entry in 64-bit Linux, we will get:
 
