@@ -162,29 +162,42 @@ Note that **these psudosection exist only in relocated object file** and do not 
 
 + The `type `is usually either ***data*** or ***function***. The symbol table can also contain entires for the **individual sections** and for **the path name** of the original source file, so there are **distinct types for these object** as well.
 
-+ The `binding field` indicates whether symbol is local or global.
++ The `binding field` indicates whether symbol is **local**(static) or **global**(external).
+
+  + The other bind type we should notice is the **weak bind**:
+
+    In C, the weak bind can be defined by add the prefix `__attribute__((weak))`, where **the purpose of weak binding** is to prevent the target function/variable from never being defined by the current/other object during the link/runtime phase, causing the program to refer to an uninitialized function/variable, which can further lead to expected errors or even crashes. The weak-bind function will be overwritten when it defined by the other object.
 
 + Each symbol is assigned to some sectoin of the object file, denoted by the `section` field, which is an index into the section header table.
 
   There have 3 special pseudosections that don't have entries in the section header table:
 
   + `ABS `is for symbols that should not be relocated.
-  
+
   + `UNDEF `is for undefined symbol -- that is, symbols that are referenced in this object module but defined elsewhere.
-  
+
+    For example:
+
+    + `extern void f(); // (bind, type, section) -> (Global, notype, undef) ` 
+    + `extern int var; // (bind, type, section) -> (Global, notype, undef)`
+
   + `COMMON `is for **uninitialized data objects that are not yet allocated**.  
-  
+
     For the `COMMON` symbol,
-  
+
     + the `value `field gives the alignment requirement, 
     + and `size `gives the minimum size.
 
-The distinction between `COMMON `and `.bss` is:
+    For the case of `int a;`, this symbol may defined in the local object file or the external object file. What's more, the compiler cannot decide whether `a` initialized with **0** or **the other integer value**, where the former will get `a `into` .bss` and the latter will  into `.data` in GCC. Therefore, compiler will put `a` into `COMMON` section to indicate it cannot decided.
+
+The distinction between `COMMON `and `.bss` is subtle. For the modern versions of `GCC`:
 
 + `COMMON `: Uninitialized global variables
 + `.bss` : Uninitialzed static variables, and global or static variables that are initialized to zero.
 
 When the compiler is translating some module and symbols with the same name, say, x, it does not know if other modules also define x, and if so, it cannot predict which of the multiple instances of x the linker might choose. So **the compiler defers the decision to the linker by assigning x to** `COMMON`. On the other hand, if x is initialized to zero, then it is a strong symbol, so the compiler can confidently assign it to `.bss`. Similarly, **static symbols are unique by construction**, so the compiler can confidently assign them to either `.data` or `.bss`.
+
+**Note that `COMMON `only exist in Elf format, not in Eof format. The reason is that there is no such ambiguous at the runtime.**
 
 ### 1. Global symbols
 
@@ -231,7 +244,9 @@ Just like what we describe above:
 
 + `st_info` is `binding` or `type` in `Elf64_Symbol` above.
 
-+ `st_shndx` : The section offset of the whole section table, where it indicate that the location of this symbol (which section it located)
++ `st_shndx` : The section offset of the whole section table, where it indicate that the location of this symbol (which section it located).
+
+  + When the `st_shndx` is `UNDEF`, it will be relocated to `SHN_UNDEF`. 
 
 + `st_value` :  
 
@@ -244,12 +259,60 @@ Just like what we describe above:
 
 + `st_info`: 
 
+  + The `type `is usually either ***data*** or ***function***. (Symbol Table Type, a.k.a `STT`):
+
+    ```c
+    /* Legal values for ST_TYPE subfield of st_info (symbol type).  */
+    
+    #define STT_NOTYPE	0		/* 0000 Symbol type is unspecified */
+    #define STT_OBJECT	1		/* 0001 Symbol is a data object(variable) */
+    #define STT_FUNC	2		/* 0010 Symbol is a code object(function) */
+    #define STT_SECTION	3		/* 0011 Symbol associated with a section */
+    #define STT_FILE	4		/* 0100 Symbol's name is file name */
+    #define STT_COMMON	5		/* 0101 Symbol is a common data object */
+    #define STT_TLS		6		/* 0110 Symbol is thread-local data object*/
+    #define	STT_NUM		7		/* 0111 Number of defined types.  */
+    #define STT_LOOS	10		/* 1010 Start of OS-specific */
+    #define STT_GNU_IFUNC	10		/* 1010 Symbol is indirect code object */
+    #define STT_HIOS	12		/* 1100 End of OS-specific */
+    #define STT_LOPROC	13		/* 1101 Start of processor-specific */
+    #define STT_HIPROC	15		/* 1111 End of processor-specific */
+    ```
+
+    
+
+  + The `binding field` indicates whether symbol is **local** or **global**.(Symbol Table Bind, a.k.a `STB`):
+
+    ```c
+    /* Legal values for ST_BIND subfield of st_info (symbol binding).  */
+    
+    #define STB_LOCAL	0		/* 0000 Local symbol */
+    #define STB_GLOBAL	1		/* 0001 Global symbol */
+    #define STB_WEAK	2		/* 0010 Weak symbol */
+    #define	STB_NUM		3		/* 0011 Number of defined types.  */
+    #define STB_LOOS	10		/* 1010 Start of OS-specific */
+    #define STB_GNU_UNIQUE	10		/* 1010 Unique symbol.  */
+    #define STB_HIOS	12		/* 1100 End of OS-specific */
+    #define STB_LOPROC	13		/* 1101 Start of processor-specific */
+    #define STB_HIPROC	15		/* 1111 End of processor-specific */
+    ```
+
+    
+
   ```txt
       Bind         Type
        /\           /\
   /‾‾‾‾  ‾‾‾\   /‾‾‾  ‾‾‾‾\
   __ __ __ __ | __ __ __ __ (each "__" represent 1 binary bit)
+  
+  For example: 
+    If Bind == 0001, that means the current symbol is global
+    If Type == 0001, that means the current symbol is variable
+    If Type == 0010, that means the current symbol is function
+  see more detail to macro define in elf.h
   ```
+
+  
 
 **To find the symbol and parse it:**
 
