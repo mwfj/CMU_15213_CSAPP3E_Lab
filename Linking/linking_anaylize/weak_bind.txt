@@ -1,0 +1,17 @@
+bash > cat weak_bind.c
+__attribute__((weak)) int add(int a, int b){
+	return a + b;
+}
+bash > gcc -c weak_bind.c -o weak_bind
+bash > readelf -s weak_bind >> weak_bind.txt 
+Symbol table '.symtab' contains 9 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND 
+     1: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS weak_bind.c
+     2: 0000000000000000     0 SECTION LOCAL  DEFAULT    1 
+     3: 0000000000000000     0 SECTION LOCAL  DEFAULT    2 
+     4: 0000000000000000     0 SECTION LOCAL  DEFAULT    3 
+     5: 0000000000000000     0 SECTION LOCAL  DEFAULT    5 
+     6: 0000000000000000     0 SECTION LOCAL  DEFAULT    6 
+     7: 0000000000000000     0 SECTION LOCAL  DEFAULT    4 
+     8: 0000000000000000    20 FUNC    WEAK   DEFAULT    1 add		# The symbol here is a weak bind

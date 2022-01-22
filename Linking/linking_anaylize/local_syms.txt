@@ -1,0 +1,41 @@
+bash > sudo gcc -c sym1_static.c -o sym1_static 
+
+Symbol table '.symtab' contains 8 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND 
+     1: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS sym1_static.c
+     2: 0000000000000000     0 SECTION LOCAL  DEFAULT    1 
+     3: 0000000000000000     0 SECTION LOCAL  DEFAULT    2 
+     4: 0000000000000000     0 SECTION LOCAL  DEFAULT    3 
+     5: 0000000000000000     4 OBJECT  LOCAL  DEFAULT    2 a # Local Bind
+     6: 0000000000000000     0 SECTION LOCAL  DEFAULT    5 
+     7: 0000000000000000     0 SECTION LOCAL  DEFAULT    4 
+
+bash > sudo gcc -c sym2.c -o sym2
+
+Symbol table '.symtab' contains 8 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND 
+     1: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS sym2.c
+     2: 0000000000000000     0 SECTION LOCAL  DEFAULT    1 
+     3: 0000000000000000     0 SECTION LOCAL  DEFAULT    2 
+     4: 0000000000000000     0 SECTION LOCAL  DEFAULT    3 
+     5: 0000000000000000     0 SECTION LOCAL  DEFAULT    5 
+     6: 0000000000000000     0 SECTION LOCAL  DEFAULT    4 
+     7: 0000000000000000     4 OBJECT  GLOBAL DEFAULT    2 a # Global Bind
+
+bash > ld -r sym1_static sym2 -o syms_linked 
+bash > readelf -s syms_linked
+
+Symbol table '.symtab' contains 10 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND 
+     1: 0000000000000000     0 SECTION LOCAL  DEFAULT    1 
+     2: 0000000000000000     0 SECTION LOCAL  DEFAULT    2 
+     3: 0000000000000000     0 SECTION LOCAL  DEFAULT    3 
+     4: 0000000000000000     0 SECTION LOCAL  DEFAULT    4 
+     5: 0000000000000000     0 SECTION LOCAL  DEFAULT    5 
+     6: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS sym1_static.c
+     7: 0000000000000000     4 OBJECT  LOCAL  DEFAULT    2 a # Local Bind
+     8: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS sym2.c
+     9: 0000000000000004     4 OBJECT  GLOBAL DEFAULT    2 a # Global Bind
