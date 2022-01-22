@@ -245,7 +245,7 @@ Just like what we describe above:
 + `st_info`: 
 
   ```txt
-  Bind				 Type
+      Bind         Type
        /\           /\
   /‾‾‾‾  ‾‾‾\   /‾‾‾  ‾‾‾‾\
   __ __ __ __ | __ __ __ __ (each "__" represent 1 binary bit)
