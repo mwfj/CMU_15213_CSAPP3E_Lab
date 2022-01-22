@@ -1,5 +1,8 @@
 // Object(bind, type, section index)
 
+// For the object COMMON section, the compiler cannot decide whether `var0` is initialized or not
+// Cause `var0 are defined in the another place
+// Thus, var0 may direct to .data or .bss, where it depends on the value that assigns to
 int var0; // (Global, object, COMMON)
 int var1 = 0; // (Global, object, .bss)
 int var2 = 1; // (Global, object, .data)

@@ -71,40 +71,43 @@ Key to Flags:
 
 bash > cat -n sym_vars.c
 
-     1	// Object(bind, type, section index)
+	 1	// Object(bind, type, section index)
      2	
-     3	int var0; // (Global, object, COMMON)
-     4	int var1 = 0; // (Global, object, .bss)
-     5	int var2 = 1; // (Global, object, .data)
-     6	
-     7	extern int var3; // (Global, object, UNDEF)
-     8	// warning here equal to remove external
-     9	extern int var4 = 0; // (Global, object, .bss)
-    10	// warning here equal to remove external 
-    11	extern int var5 = 1; // (Global, object, .data)
-    12	
-    13	// compiler will assign it to 0 just like var7
-    14	static int var6;   // (Local, object, .bss)
-    15	static int var7 = 0; // (Local, object, .bss)
-    16	static int var8 = 1; // (Local, object, .data)
-    17	
-    18	__attribute((weak)) int var9; // (Weak, object, .bss)
-    19	__attribute((weak)) int vara = 0; // (Weak, object, .bss)
-    20	__attribute((weak)) int varb = 1; // (Weak, object, .text)
-    21	
-    22	
-    23	// // (Global, func, .data)
-    24	void foo(){
-    25	  var0 = 2;  
-    26	  var1 = 2;  
-    27	  var2 = 2;  
-    28	  var3 = 2;  
-    29	  var4 = 2;  
-    30	  var5 = 2;  
-    31	  var6 = 2;  
-    32	  var7 = 2;  
-    33	  var8 = 2;  
-    34	  var9 = 2;  
-    35	  vara = 2;  
-    36	  varb = 2;  
-    37	}
+     3	// For the object COMMON section, the compiler cannot decide whether `var0` is initialized or not
+     4	// Cause `var0 are defined in the another place
+     5	// Thus, var0 may direct to .data or .bss, where it depends on the value that assigns to
+     6	int var0; // (Global, object, COMMON)
+     7	int var1 = 0; // (Global, object, .bss)
+     8	int var2 = 1; // (Global, object, .data)
+     9	
+    10	extern int var3; // (Global, object, UNDEF)
+    11	// warning here equal to remove external
+    12	extern int var4 = 0; // (Global, object, .bss)
+    13	// warning here equal to remove external 
+    14	extern int var5 = 1; // (Global, object, .data)
+    15	
+    16	// compiler will assign it to 0 just like var7
+    17	static int var6;   // (Local, object, .bss)
+    18	static int var7 = 0; // (Local, object, .bss)
+    19	static int var8 = 1; // (Local, object, .data)
+    20	
+    21	__attribute((weak)) int var9; // (Weak, object, .bss)
+    22	__attribute((weak)) int vara = 0; // (Weak, object, .bss)
+    23	__attribute((weak)) int varb = 1; // (Weak, object, .text)
+    24	
+    25	
+    26	// // (Global, func, .data)
+    27	void foo(){
+    28	  var0 = 2;  
+    29	  var1 = 2;  
+    30	  var2 = 2;  
+    31	  var3 = 2;  
+    32	  var4 = 2;  
+    33	  var5 = 2;  
+    34	  var6 = 2;  
+    35	  var7 = 2;  
+    36	  var8 = 2;  
+    37	  var9 = 2;  
+    38	  vara = 2;  
+    39	  varb = 2;  
+    40	}
