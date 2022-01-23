@@ -358,12 +358,13 @@ At compile time, the compiler exports each global symbol to the assembler at eit
 
 Linux linker use the following rules for dealing with duplicate symbol names:
 
-1. Multiple strong symbols with the same names are not allowed.
-   + Each item can be deﬁned only once
-2. Given a strong symbol and multiple weak symbols, choose the strong symbol
-   + References to the weak symbol resolve to the strong symbol
-
-3. Given multiple weak symbols with the same name, pick an arbitrary one.
+>1. Multiple strong symbols with the same names are not allowed.
+>   + Each item can be deﬁned only once
+>
+>2. Given a strong symbol and multiple weak symbols, choose the strong symbol
+>   + References to the weak symbol resolve to the strong symbol
+>
+>3. Given multiple weak symbols with the same name, pick an arbitrary one.
 
 ![linker_puzzles](./pic/linker_puzzles.png)
 
