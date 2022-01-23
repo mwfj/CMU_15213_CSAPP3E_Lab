@@ -468,7 +468,7 @@ Note that `R_X86_64_PC32` and `R_X86_64_32` supports the X86-64 small code modul
 + The `.text`, `.rodata` and `.data` section are relocated to eventual run-time memory address
 + The `.init `section defines a small function, called `_init`, that will be called by program's initialization code.
 
-**Note that since the executable is *fully linked*(relocated), it need no `.rel` section.**
+**Note that since the executable is *fully linked*(relocated), it need no `.rel` section. The `.symtab` section will not be loaded into memory, but still on disk. **
 
 To run the executable object file in the shell, it invoke some memory resident operating system code known as the **loader**. The loader copies the code and data in the executable object file from disk into memory and then runs the program by jumping to its first instruction, or ***entry point***.
 
