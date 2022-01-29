@@ -503,6 +503,29 @@ typedef struct{
 
 Note that `R_X86_64_PC32` and `R_X86_64_32` supports the X86-64 small code module, which assumes that the total size of the code and data in the executable object ile is smaller than 2GB. **The small code model is the default for GCC.**
 
+In Linux(`/usr/include/elf.h`) the format of ELF entry shoud be like :
+
+```c
+// Elf64_Addr, Elf64_Xword, Elf_Sxword is equal to uint_64
+
+typedef struct{
+  Elf64_Addr     r_offset; /* Address */
+  Elf64_Xword    r_info;   /* Relocation type and symbol index */
+  Elf64_Sxword   r_addend; /* Addend */
+} Elf64_Rela;
+
+/**
+r_info would be like :
+
+Symbol Index     Type
+     /\           /\
+/‾‾‾‾  ‾‾‾\   /‾‾‾  ‾‾‾‾\
+__ __ __ __ | __ __ __ __ (each "__" represent 1 binary bit)
+**/
+```
+
+
+
 ![relocation_entries](./pic/relocation_entries.png)
 
 <p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a><br>This is the option to include a bias in the offset. Since we're using the relative address of program counter, the values that going to placed here at these four bytes offset f from the current %rip value or program counter</p>
