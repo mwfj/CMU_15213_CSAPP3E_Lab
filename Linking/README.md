@@ -357,7 +357,7 @@ Just like what we describe above:
   see more detail to macro define in elf.h
   ```
 
-Thus, the 64-bit binary format should be like:
+Thus, the 64-bit binary format should be like :
 
 ```txt
  st_name    st_info  st_other  st_shndx       st_value                  st_size
