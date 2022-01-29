@@ -124,11 +124,54 @@ The basic concepts are similar, regardless of the particular format.
 <p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
 
 + `.symtab`: A symbol table with information about functions and global variables that are defined and referenced in that program. Some programmers mistakenly believe that a program must be compiled with `-g` option to get symbol table information. In fact, **every relocatable object file has a symbol table in `.symtab`**(unless the programmer has specifcally removed it with `STRIP` command). However, unlike the symbol table inside a compiler, **the `.symtab` symbol table does not  contain entries for local variable.**
-+ `.rel.text`: **A list of locations** in the `.text` section that will need to be modified when the linker combines this object file with others. In general, any instruction that calls an `external function` or `references a global variable` will need to be modified. On the other hand, **instructions that call local function do not need to be modified.** Note that relocation infomation is not needed in executable object files, and is usually omitted unless the user explicitly instructs the linker to include it.
-+ `.rel.data`:Relocations information for any global variables that are referenced or defined by the module. In general, any initialized global variable whose initial value is the address of a global variable or externally defined function will need to be modified.
+
++ `.rel.text`: **A list of locations** in the `.text` section that will need to be modified when the linker combines this object file with others. In general, any instruction that calls an `external function` or `references a global variable` will need to be modified. On the other hand, **instructions that call local function do not need to be modified.**
+
+  In summary `.rel.text` mainly saved : 
+
+  1. Referencing relocation
+  2. Referenced symbol number
+  3. Reference type
+
+   Note that **relocation infomation is not needed in executable object files**, and is usually omitted unless the user explicitly instructs the linker to include it.
+
+  ```c
+  typedef struct
+  {
+  	// Equals to the offset of the current section
+    Elf64_Addr	r_offset;		/* The location of the relocation reference */
+    Elf64_Xword	r_info;			/* Relocation type and symbol index */
+    Elf64_Sxword	r_addend;		/* Addend : The offset of reolocation */
+  } Elf64_Rela;
+  ```
+
+  ```txt
+  r_info : 
+  Symbol Index  Relocation Type
+       /\             /\
+   /‾‾‾  ‾‾‾‾\   /‾‾‾‾  ‾‾‾\
+   __ __ __ __ | __ __ __ __ 
+   High bit          low bit
+   
+  For example:
+                                   r_info
+                                     /\
+                                /‾‾‾‾  ‾‾‾‾\
+         r_offset             Type    Symbol index       r_append
+            /\                 /\         /\                /\
+  /‾‾‾‾‾‾‾‾‾  ‾‾‾‾‾‾‾‾‾‾\  /‾‾‾  ‾‾‾\  /‾‾‾  ‾‾‾\  /‾‾‾‾‾‾‾‾‾  ‾‾‾‾‾‾‾‾‾‾\
+  0a 00 00 00 00 00 00 00 04 00 00 00 01 00 00 00 fc ff ff ff ff ff ff ff
+  ```
+
+  
+
++ `.rel.data`: Relocations information for any global variables that are referenced or defined by the module. In general, any initialized global variable whose initial value is the address of a global variable or externally defined function will need to be modified.
+
 + `.debug`: A debugging symbol table with entries for **local variables** and **typedefs defined** in the program, **global variable defined and referenced** in the program, and the original C source file. It is only present if the compiler driver is invoked with the `-g` flag.
+
 + `.line` : A **mapping** between **line numbers in the original C source program** and **machine code instructions** in the `.text` section. It is only present if the compiler driver is invoked with the `-g` flag.
-+ `.strlab`: A **string table for the symbol tables** in the `.symtab` and `.debug` section and for the section names in the section headersm, where the variable name and function name stored at this section(end by `00` in hex  or `\0` in string). A string table is a sequence of null-terminated character strings.
+
++ `.strt ab`: A **string table for the symbol tables** in the `.symtab` and `.debug` section and for the section names in the section headersm, where the variable name and function name stored at this section(end by `00` in hex  or `\0` in string). A string table is a sequence of null-terminated character strings.
 
 ## Linker Symbols
 
@@ -314,7 +357,17 @@ Just like what we describe above:
   see more detail to macro define in elf.h
   ```
 
-  
+Thus, the 64-bit binary format should be like:
+
+```txt
+ st_name    st_info  st_other  st_shndx       st_value                  st_size
+    /\        /|\      /|\       /|\             /\                        /\
+/‾‾‾  ‾‾‾\     |        |         |     /‾‾‾‾‾‾‾‾   ‾‾‾‾‾‾‾‾\     /‾‾‾‾‾‾‾‾‾  ‾‾‾‾‾‾‾‾\
+19 00 00 00   12       00       10 00  07 00 00 00 00 00 00 00   00 00 00 00 00 00 00 00
+‾‾‾‾‾‾‾‾‾‾‾    ‾        ‾        ‾‾‾‾   ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾     ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+```
+
+
 
 **To find the symbol and parse it:**
 
@@ -334,7 +387,7 @@ Elf64_Addr _section_offset = st_value;
 
 Begin_of_the_target_Symbol:
 	_section_begin_position + _section_offset
-	
+
 End_of_the_target_Symbol:
 	Begin_of_the_target_Symbol + Elf64_Sym.st_size - 1
 	
