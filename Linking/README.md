@@ -360,7 +360,7 @@ Just like what we describe above:
 Thus, the 64-bit binary format should be like:
 
 ```txt
- st_name    st_info  st_other  st_shndx       st_value                  st_size
+ st_name    st_info  st_other  st_shndx        st_value                  st_size
     /\        /|\      /|\       /|\              /\                        /\
 /‾‾‾  ‾‾‾\     |        |         |     /‾‾‾‾‾‾‾‾‾   ‾‾‾‾‾‾‾‾\    /‾‾‾‾‾‾‾‾‾‾  ‾‾‾‾‾‾‾‾‾\
 19 00 00 00   12       00       10 00  07 00 00 00 00 00 00 00    00 00 00 00 00 00 00 00
