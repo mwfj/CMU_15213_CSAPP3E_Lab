@@ -481,7 +481,14 @@ In the relocation step, the linker merges the input modules and assigns run-time
 
 ### Relocation Entries
 
-When an assember generates an object module, it does not know where the code and data will ultimately be stored in memory. Nor does it know the locations of any externally defined function or global variables that are referenced by the module. So **whenever the assembler encounters a reference to an object whose ultimate location is unknow, it genereate a *relocation entries*** that tells the linker how to modify the reference when it merges the object file into an executable. **Relocation entries for code are places in `.rel.text`. Relocation entries for data are placed in `.rel.data`**.
+When an assember generates an object module, it does not know where the code and data will ultimately be stored in memory. Nor does it know the locations of any externally defined function or global variables that are referenced by the module. So **whenever the assembler encounters a reference to an object whose ultimate location is unknow, it genereate a *relocation entries*** that tells the linker how to modify the reference when it merges the object file into an executable. **Relocation entries for code are places in `.rel.text`. Relocation entries for data are placed in `.rel.data`**，
+
+where the element in `.rel.text` store:
+
++ the referencing address of the corresponding function(Location);
++ the referenced symbol index;
++ relocation type;
++ addend.
 
 **The format of ELF relocation entry:**
 
@@ -503,13 +510,13 @@ typedef struct{
 
 Note that `R_X86_64_PC32` and `R_X86_64_32` supports the X86-64 small code module, which assumes that the total size of the code and data in the executable object ile is smaller than 2GB. **The small code model is the default for GCC.**
 
-In Linux(`/usr/include/elf.h`) the format of ELF entry shoud be like :
+In Linux(`/usr/include/elf.h`) the format of ELF entry would be like this :
 
 ```c
 // Elf64_Addr, Elf64_Xword, Elf_Sxword is equal to uint_64
 
 typedef struct{
-  Elf64_Addr     r_offset; /* Address */
+  Elf64_Addr     r_offset; /* Address(Location) */
   Elf64_Xword    r_info;   /* Relocation type and symbol index */
   Elf64_Sxword   r_addend; /* Addend */
 } Elf64_Rela;
@@ -633,4 +640,4 @@ Figure 7.19(a) shows hot the GOT and PLT work together to lazily resolve the run
 Figure 7.19(b) shows the control flow for any subsequent invocations of `addvec`:
 
 1. Control passes to `PLT[2]` as before.
-2. However, this time the indirect jump through `GOT[4]` transfers control directly to `addvec`.
+2. However, this time the indirect jump through `GOT[4]` transfers control directly to `addvec`.  
