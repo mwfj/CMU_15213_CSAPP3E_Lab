@@ -1,6 +1,5 @@
 ## Table of Content
 
-<a name="index">**Index**</a>
 <a href="#0">Linking </a>  
 &emsp;&emsp;<a href="#1">Why Linkers?</a>  
 &emsp;<a href="#2">What Do Linkers Do?</a>  
