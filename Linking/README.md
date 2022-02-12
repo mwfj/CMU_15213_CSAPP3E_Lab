@@ -1,5 +1,7 @@
 ## Table of Content
 
+<a name="index">**Index**</a>
+
 <a href="#0">Linking </a>  
 &emsp;&emsp;<a href="#1">Why Linkers?</a>  
 &emsp;<a href="#2">What Do Linkers Do?</a>  
@@ -16,8 +18,8 @@
 &emsp;<a href="#13">Dynamic Linking with Shared Libraries</a>  
 &emsp;<a href="#14">Position-Independent Code(PIC)</a>  
 &emsp;&emsp;<a href="#15">PIC Function Call</a>  
-&emsp;&emsp;&emsp;<a href="#16">[In summary:](https://reverseengineering.stackexchange.com/questions/1992/what-is-plt-got)</a>  
-&emsp;&emsp;&emsp;<a href="#17">[[extra thought]What is the difference between .got and .got.plt section?](https://stackoverflow.com/questions/11676472/what-is-the-difference-between-got-and-got-plt-section)</a>  
+&emsp;&emsp;&emsp;<a href="#16">In summary:](https://reverseengineering.stackexchange.com/questions/1992/what-is-plt-got)</a>  
+&emsp;&emsp;&emsp;<a href="#17">[extra thought]What is the difference between .got and .got.plt section?](https://stackoverflow.com/questions/11676472/what-is-the-difference-between-got-and-got-plt-section)</a>  
 
 # <a name="0">Linking </a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
