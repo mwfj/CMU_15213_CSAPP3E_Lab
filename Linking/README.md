@@ -18,7 +18,7 @@
 &emsp;<a href="#13">Dynamic Linking with Shared Libraries</a>  
 &emsp;<a href="#14">Position-Independent Code(PIC)</a>  
 &emsp;&emsp;<a href="#15">PIC Function Call</a>  
-&emsp;&emsp;&emsp;<a href="#16">In summary</a>  
+&emsp;&emsp;<a href="#16">In summary</a>  
 
 # <a name="0">Linking </a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
