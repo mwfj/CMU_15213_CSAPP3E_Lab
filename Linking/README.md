@@ -18,8 +18,7 @@
 &emsp;<a href="#13">Dynamic Linking with Shared Libraries</a>  
 &emsp;<a href="#14">Position-Independent Code(PIC)</a>  
 &emsp;&emsp;<a href="#15">PIC Function Call</a>  
-&emsp;&emsp;&emsp;<a href="#16">In summary:](https://reverseengineering.stackexchange.com/questions/1992/what-is-plt-got)</a>  
-&emsp;&emsp;&emsp;<a href="#17">[extra thought]What is the difference between .got and .got.plt section?](https://stackoverflow.com/questions/11676472/what-is-the-difference-between-got-and-got-plt-section)</a>  
+&emsp;&emsp;&emsp;<a href="#16">In summary</a>  
 
 # <a name="0">Linking </a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
@@ -688,7 +687,7 @@ Figure 7.19(b) shows the control flow for any subsequent invocations of `addvec`
 + **Procedure Linkage Table(PLT)** used to call external procedures/functions whose address isn't known in the time of linking, and is left to be **resolved by the dynamic linker at run time**.
 + **Global Offsets Table(GOT)** and is similarly used to resolve addresses. Both PLT and GOT and other relocation information is explained in greater length in [this article](http://www.technovelty.org/linux/plt-and-got-the-key-to-code-sharing-and-dynamic-libraries.html).
 
-#### <a name="17">[[extra thought]What is the difference between .got and .got.plt section?](https://stackoverflow.com/questions/11676472/what-is-the-difference-between-got-and-got-plt-section)</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+#### [[extra thought]What is the difference between .got and .got.plt section?](https://stackoverflow.com/questions/11676472/what-is-the-difference-between-got-and-got-plt-section)
 
 + `.got` is for relocations regarding global 'variables' while `.got.plt` is a auxiliary section to act together with `.plt` when resolving procedures absolute addresses.
 
