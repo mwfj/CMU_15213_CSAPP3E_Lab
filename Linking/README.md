@@ -576,9 +576,9 @@ Next, the loader jumps to the program's entry point, which is always the address
 
 ## Dynamic Linking with Shared Libraries
 
-A shared library is an object that, **at either run time or load time**, can be loaded at arbitrary memory address and **linked with a program in memory**. This process is known as ***dynamic linking*** and is performed by a program called a ***dynamic linker***. Shared library are also referred as shared objects, and on Linux system they are indicated by the `.so` suffix. Microsoft operating system make heavy use of shared libraries, which they refer to as `DLLs`(dynamic link libraries).
+A shared library is an object that, **at either run time or load time**, can be loaded at arbitrary memory address and **linked with a program in memory**. This process is known as ***dynamic linking*** and is performed by a program called a ***dynamic linker***. The key purpose of shared libraries is to allow multiple running processes to share the same library code in memory and thus save precious memory resource. Shared library are also referred as shared objects, and on Linux system they are indicated by the `.so` suffix. Microsoft operating system make heavy use of shared libraries, which they refer to as `DLLs`(dynamic link libraries).
 
-Linking of references to shared library object is deffered until the program is actually loaded into the memory. But it can also happened at runtime, where the application requests the dynamic linker to load and link shared library without having to link in the applications against at the compile time. In that case, program can arbitrarily decided to load a function(after program has begun) that is decleard in a shared library, where, in Linux, this is done by calls to the `dlopen()` interface.
+**Linking of references to shared library object is deffered until the program is actually loaded into the memory. But it can also happened at runtime**, where the application requests the dynamic linker to load and link shared library without having to link in the applications against at the compile time. In that case, program can arbitrarily decided to load a function(after program has begun) that is decleard in a shared library, where, in Linux, this is done by calls to the `dlopen()` interface.
 
 Shared libraries are **"shared"** in two different ways:
 
@@ -605,13 +605,13 @@ Modern systems compile the code segments of shared modules so that they can be *
 
 On x86-64 systems, **references to symbols in the same executable object module require no special treatment to be PIC**. These references can be compiled using **PC-relative addressing** and **relocated by the static linker** when it builds the object file.
 
-For the global variable, no matter where we load an object module(including shared object module) in memory, the data segment is always the same distance from the code segment. Thus, **the distance between any instruction in the code segment and any variable in the data segment is a run-time constant**, independent of the absolute memory locations of the code and data segments. Comiler that want to **generate PIC references to global variable** exploit this fact by creating a table called the ***global offset table(GOT)*** at the begining of the data segment.
+For the **global variable**, no matter where we load an object module(including shared object module) in memory, the data segment is always the same distance from the code segment. Thus, **the distance between any instruction in the code segment(`.text `) and any variable in the data segment(`.data`) is a run-time constant**, independent of the absolute memory locations of the code and data segments. Comiler that want to **generate PIC references to global variable** exploit this fact by creating a table called the ***global offset table(GOT)*** at the begining of the data segment.
 
 ![got_table](./pic/got_table.jpg)
 
 <p align="center">GOT table, this figure is from the book <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 7</p>
 
-The GOT contains an 8-bytes entry for each global data of the data object(procedural or global variable) that is referenced by the object module. The compiler also generates a relocation record for each entry in the GOT. At load time, the dynamic linker relocates each GOT entry so that it contains the absolute address of the object. Each object module that references global objects has its own GOT.
+The GOT contains an 8-bytes entry for each global data of the data object(procedural or global variable) that is referenced by the object module. The compiler also generates a relocation record for each entry in the GOT.  The compiler also generates a relocation record for  each entry in the GOT. **At load time**, the dynamic linker relocates each GOT entry so that it contains the absolute address of the object. Each object module that references global objects has its own GOT.
 
 ### PIC Function Call
 
@@ -621,7 +621,9 @@ The motivation for **lazy binding** is that a typical application program will *
 
 The lazy binding implemented with a compact yet somewhat complext interaction between two data structures: 
 
-+ ***the procedure linkage table(PLT)***: The PLT is an array of `16-byte` code entries. 
++ ***the procedure linkage table(PLT)***: The PLT is an array of `16-byte` code entries, where each entry is a in struction. 
+
+  In other words, each PLT entry list a bunch of instructions to tell compiler how to get the run-time function address from the dynamic library(locate at memory map region) if the corresponding GOT entry doesn't record the relocated address of the function. Otherwise, GOT entry will store the run-time address of such funciton and compiler will call it directly.
 
   + `PLT[0]` **is a special entry that jumps into the dynamic linker**. Each shared library function called by the executable has its own PLT entry. Each of these entries is responsible for invoking a special function. 
   + `PLT[1]` invokes **the system startup function**(`__libc_start_main`), which 
@@ -656,3 +658,16 @@ Figure 7.19(b) shows the control flow for any subsequent invocations of `addvec`
 
 1. Control passes to `PLT[2]` as before.
 2. However, this time the indirect jump through `GOT[4]` transfers control directly to `addvec`.  
+
+#### [In summary:](https://reverseengineering.stackexchange.com/questions/1992/what-is-plt-got)
+
++ **Procedure Linkage Table(PLT)** used to call external procedures/functions whose address isn't known in the time of linking, and is left to be **resolved by the dynamic linker at run time**.
++ **Global Offsets Table(GOT)** and is similarly used to resolve addresses. Both PLT and GOT and other relocation information is explained in greater length in [this article](http://www.technovelty.org/linux/plt-and-got-the-key-to-code-sharing-and-dynamic-libraries.html).
+
+#### [[extra though]What is the difference between .got and .got.plt section?](https://stackoverflow.com/questions/11676472/what-is-the-difference-between-got-and-got-plt-section)
+
++ `.got` is for relocations regarding global 'variables' while `.got.plt` is a auxiliary section to act together with `.plt` when resolving procedures absolute addresses.
+
++ `.plt` uses lazy binding and `.plt.got` uses non-lazy binding.Lazy binding is possible when all uses of a function are simple function calls. However, if anything requires the address of the function, then non-lazy binding must be used, since binding can only occur when the function is called, and we may need to know the address before the first call. Note that when obtaining the address, the GOT entry is accessed directly; only the function calls go via `.plt` and `.plt.got`. If the `-fno-plt` compiler option is used, then neither `.plt` nor `.plt.got` are emitted, and function calls also directly access the GOT entry.
+
+  The answer from [here](https://stackoverflow.com/questions/58076539/plt-plt-got-what-is-different#:~:text=The%20difference%20between,the%20GOT%20entry.)
