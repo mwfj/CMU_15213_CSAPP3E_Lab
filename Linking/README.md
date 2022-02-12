@@ -67,7 +67,7 @@ linux > gcc -Og -o prog main.c sum.c
    linux > ./prog
    ```
 
-![the_driver_translate_process](/Users/mwfj/Desktop/pic/the_driver_translates_process.png)
+![the_driver_translate_process](./pic/the_driver_translates_process.png)
 
 <p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
 
@@ -134,7 +134,7 @@ Technically, an **object module** is a sequence of bytes and an **object file** 
 
 The basic concepts are similar, regardless of the particular format.
 
-![elf_format_1](/Users/mwfj/Desktop/pic/elf_format_1.png)
+![elf_format_1](./pic/elf_format_1.png)
 
 <p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
 
@@ -142,7 +142,7 @@ The basic concepts are similar, regardless of the particular format.
 + `.data` normally maintain the ***Initialized* global and static C variables**. Local C variabls are maitained at run time on the stack and do not appear either  the `.data` and `.bss` sections.
 + `.bss`: Uninitialized global and static C variables, along with any global or static variables that are initialized to zero. **This section occupies no actual space in the object file;** it is merely a placeholder. Object file formats distinguish between initialized and uninitialized variable for space efficiency: uninitialized variable do not have to occupy any actual disk space in the object file. **At run time, these variable are allocated in memory with an initial value of zero.**
 
-![elf_format_2](/Users/mwfj/Desktop/pic/elf_format_2.png)
+![elf_format_2](./pic/elf_format_2.png)
 
 <p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
 
@@ -424,7 +424,7 @@ When the compiler encounters a symbol(either a variable or function name) that i
 
 For multiple object modules, global symbols can be defined as the same name. Under such circumstances, the linker must either flag an error or somehow chooes one of the definetion and discard the rest.
 
-![symbol_resolution](/Users/mwfj/Desktop/pic/symbol_resolution.png)
+![symbol_resolution](./pic/symbol_resolution.png)
 
 <p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
 
@@ -442,7 +442,7 @@ Linux linker use the following rules for dealing with duplicate symbol names:
 >
 >3. Given multiple weak symbols with the same name, pick an arbitrary one.
 
-![linker_puzzles](/Users/mwfj/Desktop/pic/linker_puzzles.png)
+![linker_puzzles](./pic/linker_puzzles.png)
 
 <p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
 
@@ -456,7 +456,7 @@ Specifically, on Linux system, static libraries are stored on disk in a particul
 
 To enhance the linker, it tries to resolve unresolved external references by looking for the symbols in one or more archives. During the symbol resolution phase, the linker scans the relocatable object files and archives left to right in the same sequential order that they appear on the compiler driver's command line(The driver automatically translates any `.c` files on the command line into `.o` files).
 
-![static_lib](/Users/mwfj/Desktop/pic/static_lib.png)
+![static_lib](./pic/static_lib.png)
 
 <p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
 
@@ -478,7 +478,7 @@ If `U` is nonempty when the linker finishes scanning the input files on the comm
 
 The general rule for libraries is to place them at the end of the command line of any order when the member of the different libraries are independent. On the other hand, **the libraries are not independent, then they must be ordered** so that for each symbol `s` that is referenced externally by a member of an archive, at least one definetion of `s` follows a reference to `s` on the command line.
 
-![linking_static_lib](/Users/mwfj/Desktop/pic/linking_static_lib.png)
+![linking_static_lib](./pic/linking_static_lib.png)
 
 <p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
 
@@ -498,7 +498,7 @@ In the relocation step, the linker merges the input modules and assigns run-time
 
    In this step, the linker **modifies every symbol reference** in the bodies of the code and data sections so that **they point to the correct run-time address.** To perform this, the linker reiles on data structures in the relocatable object modules known as relocation entries.
 
-![relocation](/Users/mwfj/Desktop/pic/relocation.png)
+![relocation](./pic/relocation.png)
 
 <p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
 
@@ -571,17 +571,17 @@ __ __ __ __ | __ __ __ __ (each "__" represent 1 binary bit)
 
 + `r_addend` : This member specifies a constant addend used to compute the value to be stored into the relocatable field
 
-![relocation_entries](/Users/mwfj/Desktop/pic/relocation_entries.png)
+![relocation_entries](./pic/relocation_entries.png)
 
 <p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a><br>This is the option to include a bias in the offset. Since we're using the relative address of program counter, the values that going to placed here at these four bytes offset f from the current %rip value or program counter</p>
 
-![relocated_text_section](/Users/mwfj/Desktop/pic/relocated_text_section.jpeg)
+![relocated_text_section](./pic/relocated_text_section.jpeg)
 
 <p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
 
 ## <a name="12">The format of Executable Object Files(EOF) file</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
-![eof_format](/Users/mwfj/Desktop/pic/eof_format.jpeg)
+![eof_format](./pic/eof_format.jpeg)
 
 <p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
 
@@ -608,7 +608,7 @@ Shared libraries are **"shared"** in two different ways:
 1. In any given file system, there is **exactly one `.so` file for a paricular library**. The code and data in this `.so` file are **shared by all executable object files** that reference the library.
 2. A single copy of the `.text` section of a shared library in memory can be **shared by different running processes**.
 
-![dynamic_linking_at_load_time](/Users/mwfj/Desktop/pic/dynamic_linking_at_load_time.png)
+![dynamic_linking_at_load_time](./pic/dynamic_linking_at_load_time.png)
 
 Like the picture above, the basic idea is to do some of **the linking statically** when the executable file is created, and then **complete the linking process dynamically when the program is loaded**. It is important to realize that none of the code or data sections from lib vector.so are actually copied into the executable program at this point. Instead, the linker copies some relocation and symbol table information that will allow references to code and data in lib vector.so to be resolved at load time.
 
@@ -630,7 +630,7 @@ On x86-64 systems, **references to symbols in the same executable object module 
 
 For the **global variable**, no matter where we load an object module(including shared object module) in memory, the data segment is always the same distance from the code segment. Thus, **the distance between any instruction in the code segment(`.text `) and any variable in the data segment(`.data`) is a run-time constant**, independent of the absolute memory locations of the code and data segments. Comiler that want to **generate PIC references to global variable** exploit this fact by creating a table called the ***global offset table(GOT)*** at the begining of the data segment.
 
-![got_table](/Users/mwfj/Desktop/pic/got_table.jpg)
+![got_table](./pic/got_table.jpg)
 
 <p align="center">GOT table, this figure is from the book <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 7</p>
 
@@ -662,7 +662,7 @@ The lazy binding implemented with a compact yet somewhat complext interaction be
   + `GOT[2]` is the entry point for the dynamic linker in the `ld-linux.so`.
   + Each of the **remaining entries corresponds** to a called function whose **address need to be resolved at run time**, where each has a matching PLT entry. **Initially, each GOT entry points to the second instruction in the corresponding PLT entry.**
 
-![plt_got_external_function](/Users/mwfj/Desktop/pic/plt_got_external_function.jpg)
+![plt_got_external_function](./pic/plt_got_external_function.jpg)
 
 <p align="center">Using the PLT and GOT call external functions, this figure is from the book <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 7</p>
 
@@ -694,6 +694,4 @@ Figure 7.19(b) shows the control flow for any subsequent invocations of `addvec`
 
 + `.plt` uses lazy binding and `.plt.got` uses non-lazy binding.Lazy binding is possible when all uses of a function are simple function calls. However, if anything requires the address of the function, then non-lazy binding must be used, since binding can only occur when the function is called, and we may need to know the address before the first call. Note that when obtaining the address, the GOT entry is accessed directly; only the function calls go via `.plt` and `.plt.got`. If the `-fno-plt` compiler option is used, then neither `.plt` nor `.plt.got` are emitted, and function calls also directly access the GOT entry.
 
-  The answer from [here](
-
-+ https://stackoverflow.com/questions/58076539/plt-plt-got-what-is-different#:~:text=The%20difference%20between,the%20GOT%20entry.)
+  The answer from [here](https://stackoverflow.com/questions/58076539/plt-plt-got-what-is-different#:~:text=The%20difference%20between,the%20GOT%20entry.)
