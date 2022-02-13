@@ -225,7 +225,7 @@ Just like the related content in the previous section, the cache line structure 
 // the structure of word address in cache
 typedef struct cache_line{
     uint64_t tag; // used for 64 bit
-  	// Because we use LRU as the evict rules
+    // Because we use LRU as the evict rules
     // we need to record the current cache create time
     uint64_t time;
     int valid; // valid bit
@@ -353,7 +353,6 @@ void read_trace(FILE* file, cache_line_ptr* cache, uint64_t s,
             continue; // skip when flag is 'I'
         /**
          * Structure for block in Cache line:
-   
          *
          *
          * Address of word that CPU send to Cache: 64bit 
@@ -617,8 +616,8 @@ The cache memory layout in this part should be like this:
  *  
  *                                                2^5 = 32 bytes per cache block
  *                                                       4 bytes per block
- *                                                               /\
- *                                       /-----------------------  ----------------------\
+ *                                                              /\
+ *                                       /⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺  ⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺\
  *              / +-----------+----------+-----------------------------------------------+
  *             |  + Valid Bit + Tag Bit  +  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  | 
  *             |  +-----------+----------+-----------------------------------------------+ 
@@ -634,7 +633,7 @@ The cache memory layout in this part should be like this:
  *             |  +-----------+----------+-----------------------------------------------+
  *             |  + Valid Bit + Tag Bit  +  248|  249|  250|  251|  252|  253|  254|  255|
  *              \ +-----------+----------+-----------------------------------------------+
- *                 \----------------------------------  ---------------------------------/
+ *                 \⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽  ⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽⎽/
  *                                                    \/
  *                                             1 cache line per set
 **/
@@ -651,7 +650,7 @@ The miss times I expected is `2x8x16 = 256`, where, in each block both of matrix
 ```txt
  	Each block represent 1 byte
  	Each line represent one element of the matrix
- 			 +--+--+--+--+
+       +--+--+--+--+
  A[0]  | 0| 1| 2| 3|
        +--+--+--+--+
  A[1]  | 4| 5| 6| 7|
@@ -966,9 +965,9 @@ To get the minimal cache miss, the transpose operation should be done inside of 
 // with block-shifting and lazy-transposing, it reaches theoratical limit: 1024 = 16 * 64
 char trans_64_64_desc[] = "The 64x64 matrix transposition"; 
 void trans_64_64(int M, int N, int A[N][M], int B[M][N]){
-	// i = jj, j = ii, bi = i, bj = j
-	// i and j are the outside loop index
-	// whereas bi, bj are the inside loop index
+    // i = jj, j = ii, bi = i, bj = j
+    // i and j are the outside loop index
+    // whereas bi, bj are the inside loop index
     int i, j, bi, bj;
     int tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
     for(i = 0; i < N; i+= BLOCK_SIZE){
