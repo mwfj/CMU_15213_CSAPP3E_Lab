@@ -76,3 +76,7 @@ In the picture above:
   + a null address indicates that the virtual page has not yet been allocated.
   + otherwise, the address points to the start of the virtual page on disk(not cached).
 
+**Page Hit:** reference to VM word that is in physical memory(DRAM cache hit).
+
+**Page Faults:** In virtual  memory parlance, **a DRAM cache miss known as a page fault**, where it reference to VM word that is not in physical memory. Page fault causes the transfer of chunk of code in the kernel called ***page fault handler***, which select a victm page. 
+
