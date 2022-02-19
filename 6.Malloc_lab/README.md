@@ -78,5 +78,42 @@ In the picture above:
 
 **Page Hit:** reference to VM word that is in physical memory(DRAM cache hit).
 
-**Page Faults:** In virtual  memory parlance, **a DRAM cache miss known as a page fault**, where it reference to VM word that is not in physical memory. Page fault causes the transfer of chunk of code in the kernel called ***page fault handler***, which select a victm page. 
+**Page Faults:** In virtual  memory parlance, **a DRAM cache miss known as a page fault**, where it reference to VM word that is **not in physical memory**. Page fault causes the transfer of chunk of code in the kernel called ***page fault handler***, which select a victm page.  
+
++ When CPU reference a word VP but that word has not in the memory, **a page fault exception** will be triggered and that exception then invoke a **page fault exception** handler in the kernel.
++ Next, the kernel copies **VP(virtual page) from disk to PP(physical page)** in memory, **updates PTE(page table entry)** and then returns.
++ When the handler returns, it restarts the faulting instruction, which **resends the faulting virtual address to the address translation hardware(MMU)**.
++ In the final, MMU check PTE again and fetch it.
+
+For the terminology perspective, blocks in DRAM(main memory) and SRAM(cache memory) is known as ***pages***. 
+
+The activity of transferring a page between disk and memory is known as ***swapping*** or ***paging***.
+
+Pages are ***swapped in***(paged in) from disk to DRAM, and ***swapped out***(paged out) from DRAM to disk.
+
+The strategy of **waiting until the last moment** to swap in a page, when a miss occurs, is known as ***demand paging***.
+
+
+
+Although the total number of distinct pages that programs reference during an entrie run might exceed the total size of physical memory, **the principle of locality** promises that any any point in time they will tend to work on a **smaller set** of ***active pages*** known as the ***working set*** or ***resident set***.
+
+If the working set size exceeds the size of physical memory, then the program can produce an unfortunate situation known as thrashing, where pages are swappe in and out continuously.
+
+#### VM as a tool for memory management
+
+In fact, operating systems provide **a separate page table**, and thus **a separate virtual address space**, for each process.
+
+Notice that **multiple virtual page can be mapped to the same shared physical page**.
+
+The combination of demand pageing and separate virtual address space has a profound impact on the way that memory is used and managed in a system. In paricular, **VM simplifies linking and loading, the sharing of code and data, and allocating memory to applications**.
+
++ *Simplifying Linking*: a separate address space allows each process to use the same basic format for its memory image, regardless of where the code and data actually reside in physical memory. 
+
+  For example, 64-bit address space in Linux:
+
+  + **the code segment always starts at virtual address 0x400000.** 
+  + The data segment follows the code segment after a suitable alignment gap.
+  + The stack occupies the highest portion of the user process address space and grows downward.
+
+
 
