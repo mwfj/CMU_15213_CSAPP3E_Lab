@@ -99,7 +99,7 @@ Although the total number of distinct pages that programs reference during an en
 
 If the working set size exceeds the size of physical memory, then the program can produce an unfortunate situation known as thrashing, where pages are swappe in and out continuously.
 
-#### VM as a tool for memory management
+#### VM as a Tool for Memory Management
 
 In fact, operating systems provide **a separate page table**, and thus **a separate virtual address space**, for each process.
 
@@ -107,7 +107,7 @@ Notice that **multiple virtual page can be mapped to the same shared physical pa
 
 The combination of demand pageing and separate virtual address space has a profound impact on the way that memory is used and managed in a system. In paricular, **VM simplifies linking and loading, the sharing of code and data, and allocating memory to applications**.
 
-+ *Simplifying Linking*: a separate address space allows each process to use the same basic format for its memory image, regardless of where the code and data actually reside in physical memory. 
++ ***Simplifying Linking***: a separate address space allows each process to use the same basic format for its memory image, regardless of where the code and data actually reside in physical memory. 
 
   For example, 64-bit address space in Linux:
 
@@ -115,5 +115,48 @@ The combination of demand pageing and separate virtual address space has a profo
   + The data segment follows the code segment after a suitable alignment gap.
   + The stack occupies the highest portion of the user process address space and grows downward.
 
++ ***Simplifying loading***: To load `.text` and `.data` sections of an object file into a **newly created process**, the Linux loader(`execve`) allocates virtual pages for the code and data segments, **marks them as invalid**(i.e. not cached) and **points their page table entries to the appropriate locations** in the object file. 
 
+  The interesting point is that the **loader never actually copies any data from disk into memory**. 
+
+  The data are paged in automatically and on demand by the virtual memory system the first time each page is referenced, either by **the CPU** when it fetches an instruction or by an **executing instruction** when it references a memory location.
+
+  This notion of mapping a set of contiguous virtual pages to an arbitrary locaiton in an arbitrary file is known as ***memory mapping***. Linux provides a system call called `mmap `that allows application programs to do their own memory mapping.
+
+  ![mem_layout](./pic/mem_layout.png)
+
+  <p align="center">Memory layout, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+
++ ***Simplifying sharing***: Separate address spaces provide the operating system with a consistent mechanism for managing sharing between user processes and the operating system itself.
+
+  In general, **each process has it own private code, data, heap, and stack areas** that are not shared with any other process. In this case, the operating system creates page tables that map the corresponding virual pages to disjoint physical pages. However, in some instances it is desirable for processes the share code and data.
+
+  For example, every process must call the same operating system kernel code, and every C program makes calls to routines in the standard C library such as `printf`. Rather than including separate copies of the kernel and standard C library in each process, the operating system can arrange for multiple processes to share a single copy of the code by **mapping the appropriate virtual pages in different processes to the same physical pages**.
+
+  ![separate_addr_space](./pic/separate_addr_space.png)
+
+  <p align="center">VM provides separate address spaces, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+
++ ***Simplifying memory allocation***: When a program running for allocating additional memory to user processes. When a program running in a user process requests additional heap space, the operating system allocates an appropriate number, say 𝐾, of contiguous virtual memory pages, and **maps them to 𝐾 arbitrary physical pages** located anywhere in physical memory. Because of the way page tables work, there is no need for the operating system to locate 𝐾 contiguous pages of physical memory. **The pages can be scattered randomly in physical memory**. 
+
+#### VM as a Tool for Memory Protection
+
+Providing separate virtual address space makes it easy to isolate the private memories of different processes. But the address translation mechanism can be extended in an natural to provide more finer access control. Since the address translation hardware reads a PTE each time the CPU generates an address, it is straightforward to control access to the content of a virtual page by adding some additional permission bits to PTE.
+
+Specifically:
+
++ A user process should not be allowed to modify its read-only code setion;
++ A user process should be allowed to read or modify any of the code and data structures in the kernel;
++ A user process should not be allowed to read or write the private memory of other processes;
++ A user process should not be allowed to modify any virtual pages that are shared with other processes, unless all parties explicitly allow it.(via calls to explicit interprocess communication system calls)
+
+![mem_protection](./pic/mem_protection.png)
+
+<p align="center">VM Protect the Memory as a Tool, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+
++ Processes running in ***kernel mode*** can access any page, but processes running in ***user mode*** are only allowed to access the pages fpr which **SUP is 0**.
++ The READ and WRITE bits contorl read and write access to the page.
++ If the instruction violates these permissions, then the CPU triggers a **general protection fault** that transfers control to an exception handler in the kernel, which sens a `SIGSEGV `signal to the offending process. Linux typically report this exception as a `segmentation fault`.
+
+#### Address Translation
 
