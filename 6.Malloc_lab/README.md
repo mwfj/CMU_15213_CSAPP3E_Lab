@@ -58,8 +58,10 @@ As with any cache, the VM system must have some way to determine if a virtual pa
 These capabilities are provided by a combination of
 
 + Operating system software;
-+ Address translation in the ***MMU(Memory Management Unit)***;
++ Address translation in the ***MMU(Memory Management Unit)***, where **MMU** converts a logical address through a hardware call ***segmentation unit*** and then another hardware called ***paging unit***, which converts linear address into physical address.
 + A data structure stored in physical memory known as a ***page table*** that maps virtual pages to physical pages. The address translation hardware reads the page table each time it converts a virtual address to a physical address.
+
+![mmu_structure](./pic/mmu_structure.jpeg)
 
 **The operating system is responsible for maintaining the contents of the page table and transferring pages back and forth between disk and DRAM.**
 
@@ -160,3 +162,61 @@ Specifically:
 
 #### Address Translation
 
+Formally, address translation is a  mapping between the elements of an 𝑁-element virtual address space(VAS) and 𝑀-element physical address space(PAS), `MAP: VAS ⟹ PAS U {∅}`, where 𝑁 usually larger than 𝑀
+
+![addr_trans_equation](./pic/addr_trans_equation.png)
+
+<p align="center">Address translation equation, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+
+
+
+![addr_trans_pg_tb](./pic/addr_trans_pg_tb.png)
+
+<p align="center">How MMU uses the page table to perform the mapping, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+
+A control register in the CPU, the ***page table base register(PTBR)*** points to  the current page table. 
+
+The 𝒏-bit virtual  address has two components: 
+
++ a 𝒑-bit ***virtual page offset(VPO)*** 
++ an (𝒏 - 𝒑)-bit ***virtual page number(VPN)***
+
+The **MMU** uses the **VPN** to select the appropriate **PTE**. 
+
+The corresponding physical address is the concatenation of the **physical page number** from **the page table entry** and the **VPO** from the virtual address.
+
+Notice that since the physical and virtual pages are both 𝑷 bytes, ***the physical page offset(PPO)*** is identical to the ***VPO***.
+
+##### Address Translation: Page Hit
+
+![addr_trans_page_hit](./pic/addr_trans_page_hit.png)
+
+<p align="center">Page hit in the address translation, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+
+​    ⓵       Processor sends virtual address to MMU
+
+​    ⓶-⓷ MMU fetches PTE from page table in memory
+
+​    ⓸      MMU sends physical address to cache/memory
+
+​    ⓹      Cache/memory sends word to processor
+
+##### Address Translation: Page fault
+
+![addr_trans_page_fault](./pic/addr_trans_page_fault.png)
+
+<p align="center">Page fault in the address translation, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+
+​    ⓵       Processor sends virtual address to MMU
+
+​    ⓶-⓷ MMU fetches PTE from page table in memory
+
+​    ⓸       Valid bit is zero, so MMU triggers page fault exception
+
+​    ⓹       Handler identifies victim(and, if dirty, page it out to disk)
+
+​    ⓺       Handlerr pages in new page and updates PTE in memory
+
+​    ⓻       Handler returns to original process, restarting faulting instruction
+
+   
