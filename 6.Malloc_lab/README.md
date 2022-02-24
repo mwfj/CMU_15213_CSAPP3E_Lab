@@ -227,6 +227,10 @@ A TLB is a small, virtually addressed cache where each line holds a block consis
 
 In TLB, the ***TLB index(TLBI)*** and ***TLB tag(TLBT)*** that are used for **set selection** and **line matching** are extracted from the virtual page number in the virtual address, where if TLB has `𝑇 = 2ᵗ`, ***TLBL*** consists of the **𝙩 least significant bits** of VPN, and ***TLBT*** consists of **remaining bits** in the VPN.
 
+![tlb_structure](./pic/tlb_structure.png)
+
+
+
 ![tlb_fetch_process](./pic/tlb_fetch_process.jpeg)
 
 <p align="center">TLB fetch process</p>
