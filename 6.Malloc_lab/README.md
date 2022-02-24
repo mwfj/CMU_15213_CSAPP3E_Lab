@@ -219,4 +219,14 @@ Notice that since the physical and virtual pages are both 𝑷 bytes, ***the phy
 
 ​    ⓻       Handler returns to original process, restarting faulting instruction
 
-   
+   #### Speeding Up Address Translation with a TLB(Translation Lookaside Buffer)
+
+Every time the CPU generates a virtual address, the **MMU must refer to a PTE** in order to translate the virtual address into a physical address. **In the worst case**, this requires an addtional fetch from memory, at a cost of tens to hundreds of cycles. However, many systems try to eliminate  evem this cost by including a small cache of PTEs in the MMU called a ***translationi lookaside buffer(TLB)***.
+
+A TLB is a small, virtually addressed cache where each line holds a block consisting of a single PT, where it maps virtual page numbers to physical page numbers. A TLB usually has a high degree of associativity.
+
+In TLB, the ***TLB index(TLBI)*** and ***TLB tag(TLBT)*** that are used for **set selection** and **line matching** are extracted from the virtual page number in the virtual address, where if TLB has `𝑇 = 2ᵗ`, ***TLBL*** consists of the **𝙩 least significant bits** of VPN, and ***TLBT*** consists of **remaining bits** in the VPN.
+
+![tlb_fetch_process](./pic/tlb_fetch_process.jpeg)
+
+<p align="center">TLB fetch process</p>
