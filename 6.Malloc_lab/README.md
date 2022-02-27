@@ -234,3 +234,31 @@ In TLB, the ***TLB index(TLBI)*** and ***TLB tag(TLBT)*** that are used for **se
 ![tlb_fetch_process](./pic/tlb_fetch_process.jpeg)
 
 <p align="center">TLB fetch process</p>
+
+#### Multi-Level Page Tables
+
+The main purpose of multi-level page table is to save the memory space if there are large regions of unused memory. In other word, multi-level page table only allocates page-table space in proportion to the amount of address space we using. Also, if carefully constructed, each portion of the page table fits neatly within a page, making it easier to manage memory, the OS can simply grab the next free page when it needs to allocate or grow a page table.
+
+The basic idea behind a multi-level page table is simple:
+
+1. chop up the page table into page-sized units;
+2. If an entire page of page table entries(PTE) is **invalid**, don't allocate that page of page table at all, where that level1 PTE is null and the corresponding level2 page does not even have to exist;
+3. **Only the level1 table needs to be in the main memory at all time.** 
+4. The level2 page tables can be created and paged in and out by the VM system as they are needed. **Only the most heavily used level2 page tables need to be cached in main memory.**
+
+we use ***page directory*** to track whether a page of the page table is valid( and if valid, where it is in memory). 
+
+The page directory thus either can be used to tell you:
+
++ where a page of the page table is;
++ whether the entire page of the page table contains no valid pages.
+
+![two_level_page_table](./pic/two_level_page_table.png)
+
+<p align="center">Two-level page table, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+
+
+
+![multi-level_page_table_translation](./pic/multi-level_page_table_translation.png)
+
+<p align="center">Translation with k-level page table, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
