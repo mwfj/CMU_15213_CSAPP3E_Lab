@@ -229,12 +229,6 @@ In TLB, the ***TLB index(TLBI)*** and ***TLB tag(TLBT)*** that are used for **se
 
 ![tlb_structure](./pic/tlb_structure.png)
 
-
-
-![tlb_fetch_process](./pic/tlb_fetch_process.jpeg)
-
-<p align="center">TLB fetch process</p>
-
 #### Multi-Level Page Tables
 
 The main purpose of multi-level page table is to save the memory space if there are large regions of unused memory. In other word, multi-level page table only allocates page-table space in proportion to the amount of address space we using. Also, if carefully constructed, each portion of the page table fits neatly within a page, making it easier to manage memory, the OS can simply grab the next free page when it needs to allocate or grow a page table.
@@ -262,3 +256,52 @@ The page directory thus either can be used to tell you:
 ![multi-level_page_table_translation](./pic/multi-level_page_table_translation.png)
 
 <p align="center">Translation with k-level page table, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+
+#### End-to-End Address translation
+
+In this example, we got:
+
++ 14-bit virtual addresses
++ 12-bit physical address
++ Page size = 64 bytes
+
+![vm_address](./pic/vm_address.png)
+
+<p align="center">Addressing, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
+For the virtual address:
+
++ The TLB is virtually addressed using the bits of the VPN. Since the TLB has four sets, **the 2 low-order bits of VPN serve as *the set index(TLBI)***.
++ The remaining **6 high-order bits serve as the *tag(TLBT)*** that distinguishes the different VPNs that might map to the same TLB set.
++ **VPN are not part of the page table and not stored in memory.**
+
+![virtual_page_structure](./pic/virtual_page_structure.png)
+
+<p align="center">Virtual page address layout, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
+For the physical address:
+
++ the PPN of each invalid PTE is denoted with a dash to reinforce the idea that whatever bit values might happen to be stored there are not meaningful.
++ CO denotes to ***Cache Offset(block offset)***
++ CI denotes to ***Cache Index(set index)***
++ CT denotes to ***Cache Tag(the tag)***
+
+![physical_page_structure](./pic/physical_page_structure.png)
+
+<p align="center">Physical page address layout, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
+1. To begin, the MMU extract the VPN from the virtual address and checks with the TLB to see if it has cached a copy of TPE from some previous memory reference. The TLB extracts the TLB index and the TLB tag from the VPN. hits on a valid match and returns the cache PPN to the MMU.
+
+2. If the TLB had cache missed, then the MMU would need to fetch the PTE from main memory. Futhermore, **The MMU must fetch the PPN from PTE** in the page table.
+   + If the resulting **PTE is invalid**, then there is a **page fault** and the kernel must page in the appropriate page and **rerun the load instruction**.
+   + Another possible case is if the PTE is valid, but the necessary memory block misses in this cache.
+
+3. Then MMU concatenates the PPN from the PTE with VPO from the virtual address, which forms the physical address.
+4. The MMU sends the physical address to the cache, which extract cache offset(CO), the set index(CI), and the cache tag(CT) from the physical address.
+5. The cache detects a hit, read out the data byte at offset CO, and returns itt to the MMU, which then passes it back to the CPU.
+
+![tlb_fetch_process](./pic/tlb_fetch_process.jpeg)
+
+<p align="center">TLB fetching process</p>
+
+Note that: **the virtual page offset is always identical to the physical page offset**, because the block size between virual page and physical page are the same size.
