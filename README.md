@@ -4,6 +4,8 @@
 ### or 
 ### The lab from book :  *Computer Systems: A Programmer's Perspective, 3/E (CS:APP3e)*
 
+### You can go to [CMU website](https://scs.hosted.panopto.com/Panopto/Pages/Sessions/List.aspx#folderID=%22b96d90ae-9871-4fae-91e2-b1627b43e25e%22&sortColumn=0&sortAscending=true&maxResults=50) to watch the lecture video.
+
 ### Running Environment: Ubuntu 18.04
 
 ### **Updating...**
