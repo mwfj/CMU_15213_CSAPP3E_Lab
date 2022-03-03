@@ -305,3 +305,66 @@ For the physical address:
 <p align="center">TLB fetching process</p>
 
 Note that: **the virtual page offset is always identical to the physical page offset**, because the block size between virual page and physical page are the same size.
+
+### Case Study: Linux Memory System
+
+![i7_memory_system](./pic/i7_memory_system.png)
+
+<p align="center">Intel Core i7 Memory System, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
+The processor package(chip) includes four cores, a large L3 cache shared by all of the cores, and a DDR3 memory controller.
+
+Each core contains:
+
++ **a hierarchy of TLBs**, where the TLBs are virtually addressed, and 4-way set associative.
++ **a hierarchy of data and instruction caches**, where an instruction cache that only stores instructions, and a data cache that only stores data.. 
++ **a set of fast point-to-point links** based on the QuickPath technology, for communicating directly with the other cores
++ **the external I/O bridges**
+
+The L1, L2, L3 caches are physically addressed, with a block size of 64 bytes, where L1 and L2 are 8-way set associative, and L3 is 16-way set associative.
+
+**The page size can be configured start-up time as either 4KB or 4 MB. Linux uses 4KB pages.**
+
+
+
+![i7_addrs_translation](./pic/i7_addrs_translation.png)
+
+<p align="center">End-to-end Core i7 Address Translation, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
+The Core-i7 uses a four-level page table hierarchy. Each process has its own private page table hierarchy.
+
+When a Linux process is running, **the page tables associated with allocated pages are all memory-resident**, although the Core i7 architecture allows these page table to be swapped in and out.
+
+The CR3 control register contains the physical address of the beginning of the level1(L1) page table. The value of CR3 is part of each process context, and is resotred during each context swich. 
+
+Note that CR3 used when [virtual addressing](https://en.wikipedia.org/wiki/Virtual_memory) is enabled, hence when the PG bit is set in CR0. CR3 enables the processor to translate linear addresses into physical addresses by locating the page directory and [page tables](https://en.wikipedia.org/wiki/Page_table) for the current task. Typically, the upper 20 bits of CR3 become the *page directory base register* (PDBR), which stores the physical address of the first page directory. If the PCIDE bit in [CR4](https://en.wikipedia.org/wiki/Control_register#CR4) is set, the lowest 12 bits are used for the [process-context identifier](https://en.wikipedia.org/wiki/Process-context_identifier) (PCID).[[1\]](https://en.wikipedia.org/wiki/Control_register#cite_note-Intel-Vol3a1-1) ([from_wiki_control_register](https://en.wikipedia.org/wiki/Control_register))
+
+![i7_PTE_1_3](./pic/i7_PTE_1_3.png)
+
+<p align="center">Core i7 Level 1-3 Page Table Entries, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
+![i7_PTE_4](./pic/i7_PTE_4.png)
+
+<p align="center">Core i7 Level 4 Page Table Entries, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
+The PTE has **three permission bits** that control access to the page:
+
++ `R/W bit`: determines whether the contents of a page are read/write or read-only
++ `U/S bit`, which determines **whether the page can be accessed in user node**, protects code and data in the operating system kernel from user programs.
++ `XD bit`(execute disable), which was introduced in 64-bit systems, can be used to **disable instruction fetches from individual memory pages**. This is an important new feature that allows the operating system kernel to reduce the risk of buffer-overflow attacks by restricting execution to the read-only cpde segment.
+
+As the MMU translates each virtual address, it also updates **two other bits** that can be used by **the kernel's page fault handler**:
+
++ the MMU sets `A bit (reference bit)`,  each time a page is accessed. The kernel can use the reference bit to implement its **page replacement algorighm**.
+
++ the MMU sets `D bit (dirty bit)` each time the page is written to. **A page that has been modified is sometimes called dirty page**.
+
+  The dirty bit tells the kernel whether or not **it must write back a victim page before it copies in a replacement page**.
+
+**The kernel can call a special kernel-mode instruction to clear the reference or dirty bit.**
+
+
+
+![i7_page_table_translation](./pic/i7_page_table_translation.png)
+
+<p align="center">Core i7 Page Table Translation, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
