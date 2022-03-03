@@ -1,31 +1,36 @@
-# Lab 4 Cache Lab Report
-### <a name="index">Table Of Content: </a>
+# Table of Content
 
-&emsp;<a href="#1"></a>  
-&emsp;<a href="#2">Little Background Review:</a>  
-&emsp;&emsp;<a href="#3">- Cache Memory Read Background</a>  
-&emsp;&emsp;<a href="#4">- Simple Example : Direct-Mapped Caches</a>  
-&emsp;<a href="#5">Part A: Writing a Cache Simulator</a>  
-&emsp;&emsp;<a href="#6">- Problem Description</a>  
-&emsp;&emsp;<a href="#7">- My Solution</a>  
-&emsp;&emsp;<a href="#8">- Result</a>  
-&emsp;<a href="#9">Part B: Optimizing Matrix Transpose</a>  
-&emsp;&emsp;<a href="#10">Problem Description</a>  
-&emsp;&emsp;<a href="#11">Using `Blocking` technique to improve the locality of inner loops</a>  
-&emsp;&emsp;<a href="#12">My Solution</a>  
-&emsp;&emsp;&emsp;&emsp;<a href="#13">• 32 X 32 Matrix Transposition</a>  
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="#14">- Basic Solution</a>  
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="#15">- Optimize Solution</a>  
-&emsp;&emsp;&emsp;&emsp;<a href="#16">• 64x64 Matrix Transposition</a>  
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="#17">- The code would be like this: </a>  
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="#18">- Running result</a>  
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="#19">- Reference Link in Part B</a>  
-&emsp;&emsp;&emsp;&emsp;<a href="#20">• 61x67 Matrix Transposition</a>  
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="#21">- The code</a>  
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="#22">- The running result</a>  
-&emsp;<a href="#23">The Final Result</a>  
+<a name="index"></a>
+<a href="#0">Lab 4 Cache Lab Report</a>  
+&emsp;&emsp;<a href="#1">Little Background Review:</a>  
+&emsp;&emsp;&emsp;&emsp;- <a href="#2">Cache Memory Read Background</a>  
+&emsp;&emsp;&emsp;&emsp;- <a href="#3">Simple Example : Direct-Mapped Caches</a>  
+&emsp;&emsp;&emsp;&emsp;- <a href="#4">Issue with Writes</a>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;- <a href="#5">Write-misses</a>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;- <a href="#6">Core-i7 memory structure</a>  
+&emsp;&emsp;<a href="#7">Part A: Writing a Cache Simulator</a>  
+&emsp;&emsp;&emsp;&emsp;- <a href="#8">Problem Description</a>  
+&emsp;&emsp;&emsp;&emsp;- <a href="#9">My Solution</a>  
+&emsp;&emsp;&emsp;&emsp;- <a href="#10">Result</a>  
+&emsp;&emsp;<a href="#11">Part B: Optimizing Matrix Transpose</a>  
+&emsp;&emsp;&emsp;&emsp;- <a href="#12">Problem Description</a>  
+&emsp;&emsp;&emsp;&emsp;- <a href="#13">Using `Blocking` technique to improve the locality of inner loops</a>  
+&emsp;&emsp;<a href="#14">My Solution</a>  
+&emsp;&emsp;&emsp;&emsp;- <a href="#15">32 X 32 Matrix Transposition</a>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;- <a href="#16">Basic Solution</a>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;- <a href="#17">Optimize Solution</a>  
+&emsp;&emsp;&emsp;&emsp;- <a href="#18">64x64 Matrix Transposition</a>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;- <a href="#19">The code would be like this:</a>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;- <a href="#20">Running result</a>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;- ;<a href="#21">Reference Link in Part B</a>  
+&emsp;&emsp;&emsp;&emsp;- <a href="#22">61x67 Matrix Transposition</a>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;- <a href="#23">The code</a>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;- <a href="#24">The running result</a>  
+&emsp;<a href="#25">The Final Result</a>  
 
-## <a name="2">Little Background Review:</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+# <a name="0">Lab 4 Cache Lab Report</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+
+## <a name="1">Little Background Review:</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 Basically, in the memory syetem, there have two types of chips from the memory system:  **Dynamic Random-Access Memory(DRAM)** and **Static Random-Access Memory(SRAM)**, where **main memory** is composed of DRAM and **cache memory** is composed of SRAM. The reason they use different types of chips is that SRAM is more stable by disturbance and faster but cannot make dense and expensive, whereas DRAM can be made more densive and cheaper but more sensitive by a noise like the light ray and need to refresh. Furthermore, various sources of leakage current cause a DRAM cell to lose its charge within a time period around 10 to 100 millisecond, and thus the memory system must periodically refresh every bit of memory by reading it out and then rewriting it. 
 
@@ -40,7 +45,9 @@ At **hardware level**, the principle of locality allows computer designers to sp
 
 At **operating system level**, the principle of locality allows the system to use main memory as cache of the most recently referenced chunks of the virutal address space( same as locality between disk and main memory).
 
-Due to the **memory hierarchy** conception, the storage devices get slower, cheaper, and larger as we move from higher to lower levels, where the highest level(L0) can be accesses by CPU in a single clock cycle, whereas the next level SRAM cache can be taken a few clock cycles(see the table below). Furthermore, the central idea of a memory hierarchy is that for each `k`, the faster and smaller storage device at level `k `serves **as a cache for the larger and slower storage device at the level** `k+1`. In other words, each level in the hierarchy caches data objects from the next lower level.
+Due to the **memory hierarchy** conception, the storage devices get slower, cheaper, and larger as we move from higher to lower levels, where the highest level(L0) can be accesses by CPU in a single clock cycle, whereas the next level SRAM cache can be taken a few clock cycles(see the table below). Furthermore, the central idea of a memory hierarchy is that for each `k`, the faster and smaller storage device at level `k `serves **as a cache for the larger and slower storage device at the level** `k+1`. In other words, each level in the hierarchy caches data objects from the next lower level. [Related Stackoverflow Question](https://stackoverflow.com/questions/55752699/what-does-a-split-cache-means-and-how-is-it-usefulif-it-is).
+
+Of all the caches, the L1 cache needs to have the fastest possible access time (lowest latency), versus how much capacity it needs to have in order to provide an adequate "hit" rate. Therefore, it is built using larger transistors and wider metal tracks, trading off space and power for speed. The higher-level caches need to have higher capacities, but can afford to be slower, so they use smaller transistors that are packed more tightly.
 
 ![mem_hierarchy](./readme-pic/memory_hierarchy.png)
 
@@ -68,7 +75,7 @@ In general, devices lower in the hierarchy(further from the CPU) have **longer a
 
 
 
-### <a name="3">Cache Memory Read Background</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+### <a name="2">Cache Memory Read Background</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 The idea of a cache is to deliver cached data in 1 cycle to keep the CPU running at maximum speed.
 
@@ -144,7 +151,7 @@ Generally, the size(capacity) of cache `C = S x E x B` **(valid bits and tag bit
 
 
 
-### <a name="4">Simple Example : Direct-Mapped Caches</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+### <a name="3">Simple Example : Direct-Mapped Caches</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 A cache line with **exactly one line per set(E = 1)** is known as a direct-mapped caches. We use this simple structure of go through the process of cache read.
 
@@ -178,7 +185,7 @@ The process that a cache goes through of determinging whether a request is a hit
 
 + Unfortunately, if we encounter a cache miss, then we need to retrieve the requested block from the next level in the memory hierarchy and store the new block in one of the cache lines of the set indicated by the set index bits. In general, if the current set is full of valid cache line, then one of the existing lines must be evicted.
 
-### Issue with Writes
+### <a name="4">Issue with Writes</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 Suppose we write a word 𝒘 that is already cached( a ***write hit*** ). 
 
@@ -196,7 +203,7 @@ After the cache updates its copy of 𝒘, there have **two ways** to update the 
 
      The cache must maintain an additional ***dirty bit*** for each cache line that indicates whether or not the cache block has been modified.
 
-#### Write-misses
+#### <a name="5">Write-misses</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 1. ***write-allocate*** : loads the corresponding block from the next level into the cache and then updates the cache block.
    + Advantage : write-allocate tries to exploit spatial locality of write
@@ -209,11 +216,37 @@ After the cache updates its copy of 𝒘, there have **two ways** to update the 
 
 As a rule, **caches at lower levels** of the memory hierarchy are **more likely to use *write-back* instead of *write-through***, because of the larger transfer time.
 
-But as logic densities increase, the increased conplexity of write-back is becoming less of an impediment and we are 
++ As logic densities increase, the increased conplexity of write-back is becoming less of an impediment and we are seeing write-back caches at all levels of modern systems.
++ Write-back approach is that it is symmetric to the way reads are handled, in that write-back write-allocate tries to exploit locality.
 
-## <a name="5">Part A: Writing a Cache Simulator</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+Thus, we can develop our programs at a high level to exhibit good spatial and temporal locality rather than trying to optimize for a particualr memory system.
 
-### <a name="6">Problem Description</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+#### <a name="6">Core-i7 memory structure</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+
+In fact, caches can hold instructions as well as data.
+
+A cache that holds instructions only is called an `i-cache`, where i-cache typically read-only; 
+
+A cache that holds program data only is called a `d-cache`;
+
+A cache holds both instructions and data is known as a `unified-cache.`
+
+The reason for the modern processors separating i-cache, and d-cache is that 
+
++ **processor can read an instruction word and a data word at the same time;**
++ two cache are often optimized to different access patterns and can have different 
+  + block sizes, 
+  + associativities
+  + capacities.
++ separate caches ensures that **data accesses do not create confilct misses with instruction access**, and vice versa, at the cost of a potential increase in capacity misses.
+
+![i7_memory_structure](./readme-pic/i7_memory_structure.png)
+
+<p align="center">Direct-mapped cache from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/11-memory-hierarchy.pdf">cmu-213 slide</a></p>
+
+## <a name="7">Part A: Writing a Cache Simulator</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+
+### <a name="8">Problem Description</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 **This section mainly focus on the cache read.**
 
@@ -237,7 +270,7 @@ Your job for Part A is to **ﬁll in the `csim.c` ﬁle so that it takes the sam
 + Your simulator must work correctly for arbitrary `s`, `E`, and `b`. This means that you will need to allocate storage for your simulator’s data structures using the malloc function. Type “man malloc” for information about this function.
 + For this lab, we are interested only in **data cache performance**, so your simulator should **ignore all instruction cache accesses** (lines starting with “I”). Recall that valgrind always puts “I” in the ﬁrst column (with no preceding space), and “M”, “L”, and “S” in the second column (with a preceding space). This may help you parse the trace.
 
-### <a name="7">My Solution</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+### <a name="9">My Solution</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 Just like the related content in the previous section, the cache line structure in our code should be like this :
 
@@ -486,7 +519,7 @@ void printInfo(uint64_t* s, uint64_t* E, uint64_t* b,char** t){
 }
 ```
 
-### <a name="8">Result</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+### <a name="10">Result</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 We pass all the test.
 
@@ -517,9 +550,9 @@ M 12,1 miss eviction hit
 hits:4 misses:5 evictions:3
 ```
 
-## <a name="9">Part B: Optimizing Matrix Transpose</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+## <a name="11">Part B: Optimizing Matrix Transpose</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
-### <a name="10">Problem Description</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+### <a name="12">Problem Description</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 In Part B you will write a transpose function in `trans.c` that causes as few cache misses as possible.
 
@@ -566,7 +599,7 @@ As we can see in the picture below, miss rates may vary due to the different way
 
 <p align="center">This picture is from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/11-memory-hierarchy.pdf">cmu-213 slide</a></p>
 
-### <a name="11">Using `Blocking` technique to improve the locality of inner loops</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+### <a name="13">Using `Blocking` technique to improve the locality of inner loops</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 The **general idea** of blocking is to origanize the data structures in a program into large chunks (In this context, **“block”** refers to an **application-level chunk of data**, not to a cache block). The program is structured so that it load chunk into L1 cache, does all reads and writes that it needs to on that chunk, then discard the chunk, loads the next chunk and so on. 
 
@@ -672,9 +705,9 @@ The cache memory layout in this part should be like this:
 **/
 ```
 
-## <a name="12">My Solution</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+## <a name="14">My Solution</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
-### <a name="13">32 X 32 Matrix Transposition</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+### <a name="15">32 X 32 Matrix Transposition</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 The first thought that came to my mind is to use the block technique, where I will use `8x8` block. Actually, the size of the design block is an empirical value. In here, we find that one cache line can hold 8 elements of matrix and thus we use `8x8` as our block size.
 
@@ -775,6 +808,7 @@ For better explain the process of the cache line, the figures below show how the
     <img src="./readme-pic/mat_3_x_3_3.jpeg" width=502>
 </p>
 
+
 **If you still confused of the principle behind that, I highly recommend you to watch this [Youtube Video](https://www.youtube.com/watch?v=huz6hJPl_cU&ab_channel=TomNurkkala) from [Dr. Tom Nurkkala](https://www.taylor.edu/employees/faculty/tom-nurkkala).**
 
 Back to `8x8` cache block, we have already know that diagonal position will cause 2 extra cache misses except the first position `mat[0][0]` and `mat[7][7]`, where they only cause extra miss. Furthermore, when we do the transpose condition of the last position, the cache miss count may be less than we thought, the reason is that most of the data at that time we want already in the cache, and Matrix A may just evict a few lines and cause a few cache misses.
@@ -787,7 +821,7 @@ Now the question is how to reduce such cache miss as much as we could ?
 
 **The answer is to use the local variable.** Most of cache miss we can reduce is the extra miss from the matrix diagonal. As the analysis before, the diagonal cache misses comes from multiple and repeated read and write operations between the corresponding rows of matrix A and matrix B. Thus, we can use the local variables to record the whole line of matrix A and when matrix B gets the data from matrix A, it can directly read these elements from the register rather than cache memory.
 
-#### <a name="14">Basic Solution</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+#### <a name="16">Basic Solution</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 In short the key of this method is:
 
@@ -844,7 +878,7 @@ Summary for official submission (func 0): correctness=1 misses=287
 TEST_TRANS_RESULTS=1:287
 ```
 
-#### <a name="15">Optimize Solution</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+#### <a name="17">Optimize Solution</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 In short the key of this method is:
 
@@ -946,7 +980,7 @@ Address Matrix B : 0x5629fad41120
 Transpose Succeed!!
 ```
 
-### <a name="16">64x64 Matrix Transposition</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+### <a name="18">64x64 Matrix Transposition</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 When we use the same method to run the `64x64` matrix transposition, we find that the cache miss the huge and far beyond with the requirment: `64 × 64: 8 points if m < 1, 300, 0 points if m > 2, 000`
 
@@ -991,7 +1025,7 @@ To get the minimal cache miss, the transpose operation should be done inside of 
 
 ![64_non_diag](./readme-pic/64_diag_3.jpg)
 
-### <a name="17">The code would be like this: </a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+### <a name="19">The code would be like this:</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 ```c
 // without blocks-shifting and lazy-transposing, the expected cache miss is: 1176 = 35 * 8 + 16 * 56
@@ -1200,7 +1234,7 @@ void trans_64_64(int M, int N, int A[N][M], int B[M][N]){
 }
 ```
 
-#### <a name="18">Running result</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+#### <a name="20">Running result</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 ```bash
 ➜  ~/cmu-15-213-CSAPP3E-lab/4.Cache_lab/cachelab-handout ./test-trans -M 64 -N 64
@@ -1215,7 +1249,7 @@ Summary for official submission (func 0): correctness=1 misses=1027
 TEST_TRANS_RESULTS=1:1027
 ```
 
-#### <a name="19">Reference Link in Part B</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+#### <a name="21">Reference Link in Part B</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 [1. CSAPP Cache Lab 缓存实验(in Chinese)](https://yangtau.me/computer-system/csapp-cache.html#_17)
 
@@ -1223,13 +1257,13 @@ TEST_TRANS_RESULTS=1:1027
 
 [3. CSAPP - Cache Lab的更(最)优秀的解法(In Chinese)](https://zhuanlan.zhihu.com/p/387662272)
 
-### <a name="20">61x67 Matrix Transposition</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+### <a name="22">61x67 Matrix Transposition</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 For this part of problem, we need to reduce the cache miss less than 2000 to get the full point.
 
 For this irregular matrix, the best way I can do is to use the `8x23` block, the method is same as what we did in the `32x32` matrix part, although I think there should have a better way to optimize this matrix transposition. 
 
-#### <a name="21">The code</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+#### <a name="23">The code</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 ```c
 /**
@@ -1281,7 +1315,7 @@ void trans_61_67(int M, int N, int A[N][M], int B[M][N]){
 }
 ```
 
-#### <a name="22">The running result</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+#### <a name="24">The running result</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 ```bash
 ➜  ~/cmu-15-213-CSAPP3E-lab/4.Cache_lab/cachelab-handout ./test-trans -M 61 -N 67
@@ -1297,7 +1331,7 @@ TEST_TRANS_RESULTS=1:1971
 
 ```
 
-## <a name="23">The Final Result</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+## <a name="25">The Final Result</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
 ```bash
 ➜  ~/cmu-15-213-CSAPP3E-lab/4.Cache_lab/cachelab-handout ./driver.py             
