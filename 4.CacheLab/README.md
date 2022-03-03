@@ -70,6 +70,8 @@ In general, devices lower in the hierarchy(further from the CPU) have **longer a
 
 ### <a name="3">Cache Memory Read Background</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
+The idea of a cache is to deliver cached data in 1 cycle to keep the CPU running at maximum speed.
+
 Before staring to write the code, we need to figure out **the cache line structure** and how it works first, where it should from the Book([CSApp3E](https://csapp.cs.cmu.edu/)) or [slides](https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/schedule.html).
 
 Just like the book talks about, the cache memory structure as figure show below:
@@ -176,7 +178,38 @@ The process that a cache goes through of determinging whether a request is a hit
 
 + Unfortunately, if we encounter a cache miss, then we need to retrieve the requested block from the next level in the memory hierarchy and store the new block in one of the cache lines of the set indicated by the set index bits. In general, if the current set is full of valid cache line, then one of the existing lines must be evicted.
 
+### Issue with Writes
 
+Suppose we write a word 𝒘 that is already cached( a ***write hit*** ). 
+
+After the cache updates its copy of 𝒘, there have **two ways** to update the copy of 𝒘 in the next lower level of the hierarchy:
+
+1. ***write-through***: it immediately write 𝒘's  cache block to the next lower level. 
+
+   + Disadvantage : **Causing bus traffic with every write**.
+
+2. ***write-back***: It defers the update as long as possible by writing the updated block to the next lower level only when it is evicted from the cache by the replacement algorithm.
+
+   + Advantage : Because of locality, ***write-back* can significantly reduce the amount of bus traffic**
+
+   + Disadvantage : write-back will have add on additional complexity. 
+
+     The cache must maintain an additional ***dirty bit*** for each cache line that indicates whether or not the cache block has been modified.
+
+#### Write-misses
+
+1. ***write-allocate*** : loads the corresponding block from the next level into the cache and then updates the cache block.
+   + Advantage : write-allocate tries to exploit spatial locality of write
+   + Disadvantage : every miss resullts in a block transfer from the next lower level to the cache.
+2. ***no-write-allocate*** : bypasses the cache and writes the word directly to the next level.
+
+***Write-through* typically *no-write-allocates*, whereas *write-back* caches are typically *write-allocate*.**
+
+
+
+As a rule, **caches at lower levels** of the memory hierarchy are **more likely to use *write-back* instead of *write-through***, because of the larger transfer time.
+
+But as logic densities increase, the increased conplexity of write-back is becoming less of an impediment and we are 
 
 ## <a name="5">Part A: Writing a Cache Simulator</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
 
