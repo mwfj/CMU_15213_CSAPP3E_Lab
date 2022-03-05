@@ -323,6 +323,8 @@ Each core contains:
 
 The L1, L2, L3 caches are physically addressed, with a block size of 64 bytes, where L1 and L2 are 8-way set associative, and L3 is 16-way set associative.
 
+**The root reason of L1 cache is so small** is that the number of cache index and cache offset bits is exactly identical with the VPO in the virtual address and also the cache offset and index bit in the physical address are identical to the VPO(the offset bit of the virtual address). In other words, the way Intel implements the cache lookups depends on the cache index and cache offset bit in the physical address which identical to the offset bit in the virtual address.
+
 **The page size can be configured start-up time as either 4KB or 4 MB. Linux uses 4KB pages.**
 
 
@@ -333,11 +335,9 @@ The L1, L2, L3 caches are physically addressed, with a block size of 64 bytes, w
 
 The Core-i7 uses a four-level page table hierarchy. Each process has its own private page table hierarchy.
 
+In summary, when we do the cache lookups,  the cache does the lookup using the the physical address, where it takes the index bits to identify set and uses the tag to see if there is a match. If there is, we have a cache hit, which returns the resulting word back to the CPU. Otherwise, there has a cache miss, so the cache request the data from the L2, L3, main memory or even disk.   
+
 When a Linux process is running, **the page tables associated with allocated pages are all memory-resident**, although the Core i7 architecture allows these page table to be swapped in and out.
-
-The CR3 control register contains the physical address of the beginning of the level1(L1) page table. The value of CR3 is part of each process context, and is resotred during each context swich. 
-
-Note that CR3 used when [virtual addressing](https://en.wikipedia.org/wiki/Virtual_memory) is enabled, hence when the PG bit is set in CR0. CR3 enables the processor to translate linear addresses into physical addresses by locating the page directory and [page tables](https://en.wikipedia.org/wiki/Page_table) for the current task. Typically, the upper 20 bits of CR3 become the *page directory base register* (PDBR), which stores the physical address of the first page directory. If the PCIDE bit in [CR4](https://en.wikipedia.org/wiki/Control_register#CR4) is set, the lowest 12 bits are used for the [process-context identifier](https://en.wikipedia.org/wiki/Process-context_identifier) (PCID).[[1\]](https://en.wikipedia.org/wiki/Control_register#cite_note-Intel-Vol3a1-1) ([from_wiki_control_register](https://en.wikipedia.org/wiki/Control_register))
 
 ![i7_PTE_1_3](./pic/i7_PTE_1_3.png)
 
@@ -368,3 +368,74 @@ As the MMU translates each virtual address, it also updates **two other bits** t
 ![i7_page_table_translation](./pic/i7_page_table_translation.png)
 
 <p align="center">Core i7 Page Table Translation, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
+The CR3 control register contains the physical address of the beginning of the level1(L1) page table. The value of CR3 is part of each process context, and is resotred during each context swich. 
+
+Note that CR3 used when [virtual addressing](https://en.wikipedia.org/wiki/Virtual_memory) is enabled, hence when the PG bit is set in CR0. CR3 enables the processor to translate linear addresses into physical addresses by locating the page directory and [page tables](https://en.wikipedia.org/wiki/Page_table) for the current task. Typically, the upper 20 bits of CR3 become the *page directory base register* (PDBR), which stores the physical address of the first page directory. If the PCIDE bit in [CR4](https://en.wikipedia.org/wiki/Control_register#CR4) is set, the lowest 12 bits are used for the [process-context identifier](https://en.wikipedia.org/wiki/Process-context_identifier) (PCID).[[1\]](https://en.wikipedia.org/wiki/Control_register#cite_note-Intel-Vol3a1-1) ([from_wiki_control_register](https://en.wikipedia.org/wiki/Control_register))
+
+![speed_up_L1_access](./pic/speed_up_L1_access.png)
+
+<p align="center">Speeding Up L1 Access, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
++ Bits that determine CI identical in virtual and physical address
++ Can index into cache while address translation taking place
++ Generally, we hit in TLB, so PPN bits(CT bits) available next
++ "Virtual indexed, physical tagged"
++ Cache carefully sized to make this possible
+
+### Linux Virtual Memory System
+
+![virtual_address_space_for_a_Linux_process](./pic/virtual_address_space_for_a_Linux_process.png)
+
+<p align="center">Virtual Address Space of a Linux Process, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
+The **kernel virutal memory** contains the code and data structures in the kernel. 
+
+Some regions of the kernel virutal memroy are mapped to physical pages that are shared by all processes.  For example, **each process shares the kernel's code and global data structures**.
+
+Linux also **maps a set of contigious virtual pages**(equal in size to the total amount of DRAM in the system) **to the corresponding set of contiguous physical pages**. This provides the kernel with a convenient way to access any specific location in physical memory - for example, when it needs to access page tables or to perform memory-mapped I/O operations on devices that are mapped to particular physical memory locations. **Basically, by reading and writing into these region, the kernel is reading and writing into physical memory.**
+
+Other region of kernel virtual memory contain data that differ for each processes, where the kernel maintain for each process that the form of the  context. **Thus, we refer all these data structure that differents from each process as the context**.
+
+Actually, there has a big gap between the top user stack and the beginning of the kernel coding data. 
+
+The reason is that Intel architecture say that there have 48 address bits. 
+
++ If the higher order bit of that 48-bit address is zero, then all the remaining bit have to be zero, which is kind of like a sign extention. 
++ If the higher order bit of that 48-bit address is one, then you extend the one all way up to the remaining higher order bits.
+
+So you can think that the kernel lives in the very top of the 64-bit address space. 
+
+Another way to think that 
+
++ kernel address space always start with one, where the most significant bit is 1
++ user address space always have the most significant bit of 0 
+
+![vm_in_Linux](./pic/vm_in_Linux.png)
+
+<p align="center">Linux Organizes VM as Collection of "Areas", the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
+Linux Organizes the virtual memory as collection of ***areas***( also called ***segments*** ).
+
+**An area is a contiguous chunk of existing( allocated ) virtual memory whose pages are related in someway.**  For example, ***the code segment*, *data segment*, *heap*, *shared library segment*, and *user stack* are all distinct areas**. Each existing virtual page is contained in some area, and any virtual page that is not part of some area does not exist and cannot be referenced by the process. The kernel does not keep track of virtual page that do not exist, and such pages do not consume any additional reousrce in memroy, on disk, or in the kernel itself.
+
+The kernel maintains a distinct task structure(`task_struct`) for each process in the system. The element if the `task_struct` either contain or point to all of the information that the kernel needs to run the process.
+
+One of the entries in the task structure points to an `mm_struct` that characterizes **the current state of the virtual memory**.
+
++ `pgd(Page global directory address)`: points to the base of the level1 table( the page table directory )
++ `mmap`: points to a list of  `vm_area_structs`, each of which characterizes an area of the current virtual address space.
+  + `fvm_start`: points to the **beginning** of the area
+  + `vm_end`: points to the **end** of the area
+  + `vm_port`: describes the **read/write permissions** for all of the pages contained in the area.
+  + `vm_flags`: describes(among other things) whether the pages in the area are **shared with other processes** or **private to this process**.
+  + `vm_next`: points to the **next area** in the list.
+
+When the kernel runs this process, it stroes `pgd` in the CR3 control register.
+
+![linux_page_fault_handling](./pic/linux_page_fault_handling.png)
+
+<p align="center">Linux Page Fault Handling, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
+### Memory Mapping
+
