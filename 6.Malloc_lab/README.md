@@ -333,7 +333,17 @@ The L1, L2, L3 caches are physically addressed, with a block size of 64 bytes, w
 
 <p align="center">End-to-end Core i7 Address Translation, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
 
-The Core-i7 uses a four-level page table hierarchy. Each process has its own private page table hierarchy.
+The Core-i7 uses a **four-level page** table hierarchy. Each process has its own private page table hierarchy. The full 64-bit nature of the virtual memory address space is not yet in use, however, rather only bottom 48 bits.
+
++ The top 16 bits of a virtual address are unused.
+
++ The bottom 12 bits(due to the 4-KB page size) are used as the offset(and hence **used directly, and not translated**).
+
++ Leaving the middle 36 bits of virtual address to take part in the translation.
+
+  + P1 portion of the address is used to index into the topmost page directory, and the translation proceeds from there, one level at a time, until the actual page of the page table is indexed by P4, yielding the desired page table entry.
+
+  ![virtual_mem_layout](./pic/virtual_mem_layout.JPG)
 
 In summary, when we do the cache lookups,  the cache does the lookup using the the physical address, where it takes the index bits to identify set and uses the tag to see if there is a match. If there is, we have a cache hit, which returns the resulting word back to the CPU. Otherwise, there has a cache miss, so the cache request the data from the L2, L3, main memory or even disk.   
 
@@ -362,8 +372,6 @@ As the MMU translates each virtual address, it also updates **two other bits** t
   The dirty bit tells the kernel whether or not **it must write back a victim page before it copies in a replacement page**.
 
 **The kernel can call a special kernel-mode instruction to clear the reference or dirty bit.**
-
-
 
 ![i7_page_table_translation](./pic/i7_page_table_translation.png)
 
@@ -397,9 +405,13 @@ Linux also **maps a set of contigious virtual pages**(equal in size to the total
 
 Other region of kernel virtual memory contain data that differ for each processes, where the kernel maintain for each process that the form of the  context. **Thus, we refer all these data structure that differents from each process as the context**.
 
+Upon a context switch, the user portion of the currently-running address space **changes**, whereas the kernel portion is the same across processes.
+
 Actually, there has a big gap between the top user stack and the beginning of the kernel coding data. 
 
-The reason is that Intel architecture say that there have 48 address bits. 
+In classic 32-bit Linux, the split between user and kernel portions of the address space takes place at address `OxC0000000`
+
+The reason is that Intel architecture say that there have 48 address bits in 64-bit. 
 
 + If the higher order bit of that 48-bit address is zero, then all the remaining bit have to be zero, which is kind of like a sign extention. 
 + If the higher order bit of that 48-bit address is one, then you extend the one all way up to the remaining higher order bits.
@@ -436,6 +448,29 @@ When the kernel runs this process, it stroes `pgd` in the CR3 control register.
 ![linux_page_fault_handling](./pic/linux_page_fault_handling.png)
 
 <p align="center">Linux Page Fault Handling, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
+Linux contains **two types of kernel virtual addresses**:
+
++ ***Kernel logical addresses***: this is what you would consider the **normal virtual address space of the kernel**;
+
+  to get more memory of this type, kernel code merely needs to call `kmalloc`.
+
+  **Most kernel data structure living here**, such as page table, per-process kernel stack.
+
+  **Unlike most other memory in the system, kernel logical memory *cannot* be swapped to disk.**
+
+  There is a **direct mapping** between **kernel logical addresses** and **the first portion of physical memory**, where the direct mapping has two ways to implement:
+
+  1. It is simply translate back and forth between kernel logical addresses and physical addresses. As a result, these addresses are often treated as if they are indeed physical.
+  2. If a chunk of memory is **contiguous in kernel logical address space**, it is also **contiguous in physical memory**. This makes memory allocated in this part of the kernel's address space suitable for operations which need contiguous physical memory to work correctly, such as I/0 transfer to and from devices via ***directory memory access(DMA)***.
+
++ ***Kernel virutal address***: to get the memory of this type, kernel code calls `vmalloc`, which returns a pointer to a virtually contiguous region of the desired size.
+
+  Unlike kernel logical address, **kernel virutal memory is usually not contiguous.** Each kernel virtual page may map to non-contiguous physical pages. However, such memory is **easier to allocate** as a result, and thus used for large buffers where **finding a contiguous large chunk of physical memory would be challenging**.
+
+  + **In 32-bit Linux**, one other reason for the existence of kernel virtual addresses is that they enable the kernel to address more than(roughly) 1GB.
+
+  + However, with the move to **64-bit Linux**, the need is less urgent, because the kernel is not confined to only the last 1GB of the virtual address space.
 
 #### Memory Mapping
 
