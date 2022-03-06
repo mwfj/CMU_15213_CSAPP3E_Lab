@@ -141,7 +141,7 @@ The combination of demand pageing and separate virtual address space has a profo
 
 + ***Simplifying memory allocation***: When a program running for allocating additional memory to user processes. When a program running in a user process requests additional heap space, the operating system allocates an appropriate number, say 𝐾, of contiguous virtual memory pages, and **maps them to 𝐾 arbitrary physical pages** located anywhere in physical memory. Because of the way page tables work, there is no need for the operating system to locate 𝐾 contiguous pages of physical memory. **The pages can be scattered randomly in physical memory**. 
 
-#### VM as a Tool for Memory Protection
+### VM as a Tool for Memory Protection
 
 Providing separate virtual address space makes it easy to isolate the private memories of different processes. But the address translation mechanism can be extended in an natural to provide more finer access control. Since the address translation hardware reads a PTE each time the CPU generates an address, it is straightforward to control access to the content of a virtual page by adding some additional permission bits to PTE.
 
@@ -437,5 +437,138 @@ When the kernel runs this process, it stroes `pgd` in the CR3 control register.
 
 <p align="center">Linux Page Fault Handling, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
 
-### Memory Mapping
+#### Memory Mapping
 
+Linux initializes the content of a virtual memory area by associating it with an object on disk, a process known as memory mapping.
+
+Areas can be mapped to one of two types of objects:
+
+1. ***Regular file*** on disk(i.e., get its initial value from): An area can be mapped to a **contiguous section of a regular disk file**, such as an executable object file, where **the initial page bytes come form a section of file.** That is, it happned in the case of the page containing the code and that area contains with the code is mapped to a portion of the executable binary, and **the initial value of that area comes from the corresponding executable binary file.** 
+
+   **The file section is divided into page-size pieces**, with **each piece containing the initial contents of a virtual page**. Because of demand paging, **none of these virtual pages in actually swapped into physical memory until the CPU first touch that page**( i.e., issues a virtual address that falls within that page's region of the address space). 
+
+   **If the area is larger than the file section, then the area is padded with zeros.**
+
+2. ***Anonymous file***(e.g. nothing): An area can be mapped to an anonymous file, **created by the kernel, that contains all binary zeros**. 
+
+   The first time the CPU touches a virtual page in such an area, 
+
+   + the kernel finds an appropriate victim page in physical memory, 
+   + swaps out the victim page if it is dirty, overwrites the victim page with binary zeros, 
+   + and updates the page table to mark the page as resident.
+
+   Notice that no data are actually transferred between disk and memory. For this reason, pages in areas that are mapped to anonymous files are sometimes called ***demand-zero pages***.
+
+In either case, once a virutal page is initialized, it is swapped back and forth between a sepcial swap file maintained by the kernel. The swap file is also known as the ***swap space*** or the ***swap area***.
+
+ An important point to realize is that at any point in time, **the swap space bounds the total amount of virtual pages that can be allocated by the currently running processes.**
+
+
+
+####Sharing Objects
+
+An object can be mapped into an area of virtual memory as either a ***shared object*** or a ***private object***.
+
++ If a process maps a ***shared object*** into an area of its virtual address space, then **any writes that the process makes to that area are visible to any other processes that have also mapped the shared object into their virtual memory.** 
+
+  Furthermore, the changes are also **reflected** in the original object on disk.
+
++ Changes made to an area mapped to a ***private object***, on the other hand, **are not visible to other processes**, and **any writes that the process makes to the area are not reflect back to the object on disk.**
+
+<p align="center"> <img src="./pic/shared_objects.png" alt="shared_objects" style="zoom:100%;"/> </p>
+
+<p align="center">Shared Objects, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
+1. Process 1 maps the shared object
+2. Process 2 maps the shared object
+3. Notice how the virtual addresses can be different
+
+#### #### Private Copy-on-write(COW) objects
+
+The core idea of copy-on-write is that it defer the copying of the pages in private objects until the last possible mement
+
+A private object begins life in exactly the same way as a known as shared object, with **only one copy of the private object stored in physical memory**.
+
+For each process that maps the private object, the page table entries(PTE) for the corresponding private area are **flagged as read-only**, and the area struct is flagged as ***private copy-on-write***. 
+
+However, as soon as a process attempts to write to some page in the private area, the write triggers a **protection fault**.
+
+When the fault handler notices that the protection exception was caused by the process trying to write to a page in a private copy-on-write area, it **creates a new copy of the page**, and then **restores writes permission to the page**.
+
+When the fault handler returns, **the CPU re-executes the write**, which now proceeds normally on  the newly created page.
+
+<p align="center"> <img src="./pic/cow.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Private Copy-on-write Objects, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
+#### The `fork` Function Revisited
+
+When the `fork` function is called by the current process, the kernel creates various data structures for the new process and assign it a unique PID.
+
++ To create the virutal address for new process, it creates exact copies of the current process's `mm_struct`, `vm_area_struct` and page tables.
++ Flag each page in both processes as read-only
++ Flag each `vm_area_struct  ` in both processes as ***private copy-on-write***.
+
+When `fork` returns in the new process, **the new process now has an exact copy of the virtual memory as it existed** when the `fork `was called.
+
+When either of the processes **performs any subsequent writes**, **the copy-on-write mechanism creates new pages**, thus preserving the abstraction of a private address space for each process.
+
+#### The `execve` Function Revisited
+
+For the function `execve("a.out", NULL, NULL);`
+
+The `execve` function loads and runs the program contained in the executable object file `a.out` within the current process, effectively **replacing the current program with the `a.out` program**.
+
+1. **Delete existing user areas**, where it free `vm_area_struct` and **page table** for old areas.
+
+2. **Map private areas**. Create new area structs for the code, data, bss, and stack area of the new program. All of these new areas are ***private copy-on-write***. Specifically, it creates `vm_area_struct` and **page table** for new areas.
+
+   + Programs and initialized data backed by object files.
+   + `.bss` and **stack** backed by anonymous files.
+
+3. Map shared areas.
+
+   <p align="center"> <img src="./pic/execve_mem_mapping.png" alt="execve_mem_mapping" style="zoom:100%;"/> </p>
+
+   
+
+   <p align="center">Map private areas, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
+4. Set the program counter(PC) in `.text`. `execve` sets the program counter in the current process's context to point to the entry point in the code area.
+
+**Note that the loading operation in `execve` deferred until that page is actually referenced.** Before that, `execve` just creates new structs and do the mapping operation. 
+
+#### User-Level Memory Mapping(`mmap`)
+
+Linux processes can use the `mmap` function to **create new areas of virtual memory** and to **map objects into these areas**.
+
+```c
+#include<unistd.h>
+#include<sys/mman.h>
+
+// Return pointer to start of mapped area if OK, MAP_FAILED(-1) on error
+void *mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset);
+```
+
+The `mmap` function asks the kernel to **create a new virtual memory areas**, preferably one that starts at address `start`, and to map a c**ontiguous chunk of the objects** specified by file descriptor `fd` to the new area.
+
+The contiguous object chunk has a size of  `length` bytes and starts at an offset of  `offset` bytes from the beginning of the file.
+
+The `start` address is merely a hint, and is usually specified as `NULL`.
+
+<p align="center"> <img src="./pic/mmap.png" alt="mmap" style="zoom:100%;"/> </p>
+
+<p align="center">mmap function <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
+The `prot`argument contains bits that describe the access permissions of the newly mapped virtual memory area(i.e, the `vm_prot` bits in the corresponding area struct)
+
++ `PROT_EXEC`: pages in the area consist of **instructions** that may be executed by the CPU.
++ `PROT_READ`: pages in the area may be **read**.
++ `PROT_WRITE`: pages in the area may be **written**.
++ `PROT_NONE`: pages in the area **cannot be accessed**.
+
+The `flags` argument consist of bits that describe the **type** of the mapped object:
+
++ If the `MAP_ANON` flag bit is set, then the backing store is an anonymous object and the corresponding virtual pages are demand-zero.
++ `MAP_PRIVATE`: indicates a ***private copy-on-write object***.
++ `MAP_SHARED`: indecates a **shared object**.
