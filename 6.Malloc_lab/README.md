@@ -365,13 +365,15 @@ The PTE has **three permission bits** that control access to the page:
 
 As the MMU translates each virtual address, it also updates **two other bits** that can be used by **the kernel's page fault handler**:
 
+The page cache tracks if entries are **clean**(read but not update) or **dirty**(a.k.a modified).
+
 + the MMU sets `A bit (reference bit)`,  each time a page is accessed. The kernel can use the reference bit to implement its **page replacement algorighm**.
 
 + the MMU sets `D bit (dirty bit)` each time the page is written to. **A page that has been modified is sometimes called dirty page**.
 
   The dirty bit tells the kernel whether or not **it must write back a victim page before it copies in a replacement page**.
 
-**The kernel can call a special kernel-mode instruction to clear the reference or dirty bit.**
+**The kernel can call a special kernel-mode instruction to clear the reference or dirty bit.** 
 
 ![i7_page_table_translation](./pic/i7_page_table_translation.png)
 
@@ -474,6 +476,12 @@ Linux contains **two types of kernel virtual addresses**:
 
 #### Memory Mapping
 
+The Linux **page cache** is unified, **keeping pages in memory from three primary source**:
+
+1. **memory-mapped file**
+2. file data
+3. metadata from device(usually accessed by directing `read()` and `write()` calls to the file system)
+
 Linux initializes the content of a virtual memory area by associating it with an object on disk, a process known as memory mapping.
 
 Areas can be mapped to one of two types of objects:
@@ -486,6 +494,8 @@ Areas can be mapped to one of two types of objects:
 
 2. ***Anonymous file***(e.g. nothing): An area can be mapped to an anonymous file, **created by the kernel, that contains all binary zeros**. 
 
+   Normally, heap and stack pages that comprise each process are called **anonymous memory**, becuase there is no named file underneath of it, but rather swap space.
+
    The first time the CPU touches a virtual page in such an area, 
 
    + the kernel finds an appropriate victim page in physical memory, 
@@ -494,11 +504,20 @@ Areas can be mapped to one of two types of objects:
 
    Notice that no data are actually transferred between disk and memory. For this reason, pages in areas that are mapped to anonymous files are sometimes called ***demand-zero pages***.
 
+These entities are kept in a ***page cache hash table***, allowing for quick lookup when said data is needed. Dirty data is periodically written to the backing store(i.e., to a specific file for file data, or to swap space for anonymous regions) by background threads(called `pdflush`), thus ensuring the modified data eventually is written back to persistent storage. This background activity either takes place after a certain time period or if too many pages are consider ed dirty.
+
 In either case, once a virutal page is initialized, it is swapped back and forth between a sepcial swap file maintained by the kernel. The swap file is also known as the ***swap space*** or the ***swap area***.
 
  An important point to realize is that at any point in time, **the swap space bounds the total amount of virtual pages that can be allocated by the currently running processes.**
 
+In some cases, a system runs low on memory, and Linux has to decide which page to kick out of memory to free up space. To do this, Linux uses a modified form of ***2Q replacement***. It keeping two lists, and dividing memory between them. 
 
++ When **accessed for the first time**, a page is placed on one queue(called ***inactive list*** in Linux).
++ When it is **re-referenced**, the page is promoted to the other queue(called ***active list*** in Linux).
+
+When replacement needs to take place, the candidate moves page from the bottom of **active list** to the **inactive list**, keeping the active list is about **two-thirds** of the total page cache size. Linux would ideally manage these lists in perfect LRU order, but doing so is costly. Thus, as with many operating systems, an **approximation of LRU** similar to the clock replacement algorithm is utilized.
+
+**The 2Q approach generally behaves quite a bit like LRU, but notably handles the case where a cyclic large-file access occurs by confining the pages of that cyclic access to the inactive list.** Because pages associate with cyclic large-file are **never re-referenced before getting kicked out of memory**, they do not flush out other useful page found in the active list.
 
 #### Sharing Objects
 
