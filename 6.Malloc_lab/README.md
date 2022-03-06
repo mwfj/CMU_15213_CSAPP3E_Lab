@@ -465,7 +465,7 @@ In either case, once a virutal page is initialized, it is swapped back and forth
 
 
 
-####Sharing Objects
+#### Sharing Objects
 
 An object can be mapped into an area of virtual memory as either a ***shared object*** or a ***private object***.
 
@@ -483,7 +483,7 @@ An object can be mapped into an area of virtual memory as either a ***shared obj
 2. Process 2 maps the shared object
 3. Notice how the virtual addresses can be different
 
-#### #### Private Copy-on-write(COW) objects
+#### Private Copy-on-write(COW) objects
 
 The core idea of copy-on-write is that it defer the copying of the pages in private objects until the last possible mement
 
