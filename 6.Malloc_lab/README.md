@@ -626,3 +626,197 @@ The `flags` argument consist of bits that describe the **type** of the mapped ob
 + If the `MAP_ANON` flag bit is set, then the backing store is an anonymous object and the corresponding virtual pages are demand-zero.
 + `MAP_PRIVATE`: indicates a ***private copy-on-write object***.
 + `MAP_SHARED`: indecates a **shared object**.
+
+## Dynamic Memory Allocation
+
+A dynamic allocator maintains an area of a process's virtual memory known as ***heap***.
+
+The most important reason that programs use dynamic memory allocation is that often **they do not know the sizes of certain data structure until the program actually runs**.
+
+An allocator maintains the heap as a collection of ***various-size blocks***. Each block is a contiguous chunk of virtual memory that is either ***allocated*** or ***free***.
+
++ An ***allocated block*** has been explicitly reserved for user by the application, where it remains allocated until it is freed, either explicitly by the application or implicitly by the memory allocator itself.
++ A ***free block*** remains free until it is explicitly allocated by the application.
+
+### Types of allocator
+
++ ***Explicit allocator***: application allocates and frees space
+  + E.g. `malloc `and `free `in C
+  + The `new `and `delete `calls in C++
++ ***Implicit allocator***: application allocates, but does not free space
+  + E.g. garbage collection
+
+Note that the total amount of virtual memory allocated by all of the processes in a system is **limited by the amount of swap space on disk**.
+
+### The `malloc` and `free` functions
+
+Programs allocate blocks from the heap by calling the `malloc` function
+
+The `malloc` function **returns a pointer** to a block of memory of **at least size bytes that is suitably aligned for any kind of data object** that might be contained in the block. In practice, the alignment depends on whether the code is compiled to run in 32-bit mode(`gcc -m32` or 64-bit machine) or 64-bit mod(the default in 64-bit machine):
+
++ In 32-bit mode, `malloc` returns a block whose **address is always a multiple of 8**;
++ In 64-bit mode, **the address is always a multiple of 16**.
+
+Specifically:
+
+```c
+#include <stdlib.h>
+void *malloc(size_t size);
+```
+
++ If successful, it returns a pointer to a memory block o f at least size bytes aligned to an **8-byte (x86)** or **16-byte (x86-64**) boundary
++ If `malloc` encounters a problem(e.g. the program requests a block of memory that is larger than the avaliable virtual memory), then it returns `NULL` and sets `errno`. 
++ `malloc` does not initialize the memory it returns. Applications that want to **initialized dynamic memory** can use `calloc`, a thin wrapper around the `malloc` function that initializes the **allocated memory to zero**. Application that want to **change the size of a previously allocated block** can use the `realloc` function.
+
+Dynamic memory allocates such as `malloc` can allocate or deallocate the heap memory explicitly by using the `mmap` and `munmap` functions, or they can use the `sbrk` function:
+
+```c
+#include <unistd.h>
+void *sbrk(intprt_t incr);
+```
+
+The `sbrk` function grows or shrinks the heap by adding ***incr*** to the kernel's ***brk pointer***.
+
++ If successful, it returns the **old value** of `brk`
++ Otherwise, it returns -1 and sets **errno** to `ENOMEM`.
++ If **incr** is zero, then `sbrk` returns the current value of **brk**.
++ `sbrk` with ***a negative incr is legal*** but tricky because **the return value(the old value of brk) points to abs(incr) bytes past the new top of the heap**.
+
+Program free allocated heap blocks by calling the `free` function
+
+```c
+#include <stdlib.h>
+void free(void *ptr);
+```
+
++ Returns the block pointed by `p` to pool of available memory
+
++ The `ptr` argument must point to the beginning of an allocated block that was obtained from `malloc`, `calloc` and `realloc`
+
+  If not, then the behavior of free is undefined.
+
+  Even worse, since it returns nothing, free gives no  indication to the application that something is wrong.
+
+
+
+<p align="center">Allocating and freeing blocks with malloc() and free() <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 9</p>
+
+### Fragmentation
+
+#### Internel Fragmentation
+
+For given block, internal fragmentation occurs if payload is smaller than block size.
+
+<p align="center"> <img src="./pic/internal_fragmentation.png" alt="internal_fragmentation" style="zoom:100%;"/> </p>
+
+<p align="center">Internal fragmentation <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
+For internal fragmentation, we can just look at all the previous request we made and look the size of payload for each one of these request, where we can determine the level of internal fragmentation. In other words, it is simply the sum of the differences between the sizes of the allocated blocks and their payloads.
+
+#### External Fragmentation
+
+External Fragmentation occurs when there is enough aggregate heap memory, but **no single free block is large enough**.
+
+**External fragmentation is much more diffcult to quantify** than internal fragmentation becasue it depends not only on the pattern of previous request ans the allocator implementation but also on the pattern of ***future*** requests. Since external fragmentation is diffcult to quantify and impossible to predict, allocators typically employ heuristics that attempt to **maintain small numbers of larger free blocks rathan than large numbers of small free blocks**.
+
+
+
+### Implicit Free Lists
+
+Any practical allocator needs some data structure that allows it to distinguish **block boundaries** and to distinguish between **allocated and free blocks**.
+
+In this case, a block consists of **a one-word header**, **the payload**, and **possibly some additional padding**. The header encodes the block size(includeing the header and any padding) as well as whether the block is allocated or free.
+
+If we impose a double-word alignment constraint, then the block size is always a **multiply of 8** and ***the 3 low-order bits of the block size are always zero***. Thus, we need to store only the 29 high-order bits of the block size, freeing the remaining 3 bits to encode other information. In this case, we are using the least significant of these bits(***the allocated bit***) to indicate whether the block is allocated or free.
+
+For example, suppose we have an **allocated block** with a block size of 24(0x18)bytes, then its header would be
+
+```c
+0x00000018 | 0x1 = 0x00000019
+```
+
+Similarly, a **free block** with a block size of 40(0x28) bytes would have a header of
+
+```c
+0x00000028 | 0x0 = 0x00000028
+```
+
+The header is followed by the payload that the application requested when it called `malloc`. The payload is followed by a chunk of unused padding that can be any size.
+
+The padding might be part of an allocator's strategy for combating external fragmenation. Or it might be needed to satisfy the alignment requirements.
+
+<p align="center"> <img src="./pic/simple_heap_block_format.png" alt="simple_heap_block_format" style="zoom:100%;"/> </p>
+
+<p align="center">Format of a simple heap block <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 9</p>
+
+In implicit free list, the free block blocks are linked implicitly by the size fields in the headers. **The allocator can indirectly traverse the entire set of free blocks by traversing *all* of the blocks in the heap.** Notice that we need some kind of specially marked end block — in this example, a terminating header with the allocated bit set and a size of zero.
+
+<p align="center"> <img src="./pic/implicit_free_list_structure.png" alt="implicit_free_list_structure" style="zoom:100%;"/> </p>
+
+<p align="center">Implicit free list structure <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a>  chapter 9</p>
+
+**Advantage:**
+
++ Simplicity.
+
+**Disadvantage:**
+
++ the cost of any operation that requires a search of the free list.
+
+It is important to realize that **the system's alignment requirement and the allocator's choice of block format impose a minimum block size on the allocator**. **No allocated or free block may be smaller than this minimum**.
+
+
+
+#### Finding a Free Block
+
+1. **first fit**: Search list from beginning, choose first free block that fits.
+   + Can take linear time in total number of blocks(allocated or free)
+   + In practice it can cause "splinters" at beginning of list.
+2. **next fit**: Like first fit, but **search list starting where previous search finished**
+   + **Should often be faster than first fit**: avoids re-scanning unhelpful blocks
+   + Some research suggests that fragmentation is worse
+3. **best fit**: Seach the list, choose the best free block: fits, with fewest bytes left over
+   + Keeps fragments small — usually improves memory utilization
+   + Will typically run slower than first fit
+
+#### Splitting Free Blocks
+
+Since allocated space might be smaller than free space, we might want to **split the block**, where the first part becomes the allocator block and the remainder becomes a new free block.
+
+<p align="center"> <img src="./pic/split_block.png" alt="split_block" style="zoom:100%;"/> </p>
+
+<p align="center">Split the block <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a>  chapter 9</p>
+
+```c
+void addblock(ptr p, int len){
+  int newsize = ((len+1) >> 1) << 1; // round up to even
+  int oldsize = *p & -2;             // mask out low bit(clear the "allocated" flag)
+  *p = newsize | 1;                  // set new length
+  if(newsize < oldsize)
+    *(p+newsize) = oldsize - newsize;// set length in remaining
+                                     // part of block
+}
+```
+
+#### Coalescing
+
+Join(coalesce) with next/ previous blocks, if they are free. Such adjacent free blocks can cause a phenomenon known as ***false fragmentation,*** where there is a lot of available free memory chopped up into, small, unusable free blocks. 
+
+To coalesce blocks, 
+
++ the allocator can opt for **immediate coalescing** by merging any advance blocks each time a block is freed. Immediate coalescing is straightforward and can be performed in constant time, but with some request patterns it can introduce a form of **threshing where a block is repeatedly coalesced and then split soon thereafter**.
++ Or it can opt for **deferred coalescing** by waiting to coalesce by waiting to coalesce free blocks at some later time. For example the allocator might defer coalescing until some allocation requests fails, and then scan the entire heap, coalescing all free blocks. **Fast allocators often opt for some form of deferred coalescing**.
+
+
+
+## Reference
+
+[[1] Malloc tutorial.](https://danluu.com/malloc-tutorial/)
+
+[[2] CMU-15213 Slide: Virtual Memory: Concepts.](https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf)
+
+[[3] CMU-15213 Slide: Virtual Memory: Systems.](https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf)
+
+[[4] CMU-15213 Slide: Dynamic Memory Allocation: Basic Concepts.](https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/19-malloc-basic.pdf)
+
+[[5] CMU-15213 Slide: Dynamic Memory Allocation: Advanced Concepts.](https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/20-malloc-advanced.pdf)
