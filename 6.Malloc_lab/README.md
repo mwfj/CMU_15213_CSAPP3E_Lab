@@ -753,7 +753,7 @@ In implicit free list, the free block blocks are linked implicitly by the size f
 
 <p align="center"> <img src="./pic/implicit_free_list_structure.png" alt="implicit_free_list_structure" style="zoom:100%;"/> </p>
 
-<p align="center">Implicit free list structure <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a>  chapter 9</p>
+<p align="center">Implicit free list structure <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
 
 **Advantage:**
 
@@ -785,7 +785,7 @@ Since allocated space might be smaller than free space, we might want to **split
 
 <p align="center"> <img src="./pic/split_block.png" alt="split_block" style="zoom:100%;"/> </p>
 
-<p align="center">Split the block <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a>  chapter 9</p>
+<p align="center">Split the block <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
 
 ```c
 void addblock(ptr p, int len){
@@ -807,9 +807,28 @@ To coalesce blocks,
 + the allocator can opt for **immediate coalescing** by merging any advance blocks each time a block is freed. Immediate coalescing is straightforward and can be performed in constant time, but with some request patterns it can introduce a form of **threshing where a block is repeatedly coalesced and then split soon thereafter**.
 + Or it can opt for **deferred coalescing** by waiting to coalesce by waiting to coalesce free blocks at some later time. For example the allocator might defer coalescing until some allocation requests fails, and then scan the entire heap, coalescing all free blocks. **Fast allocators often opt for some form of deferred coalescing**.
 
+<p align="center"> <img src="./pic/coalesce_block.png" alt="coalesce_block" style="zoom:100%;"/> </p>
+
+<p align="center">Coalesce the block <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
+```c
+void free_block(prt p){
+  *p = *p & -2;        // clear allocated flag
+  next = p + *p;       // find next block
+  if((*next & 1) == 0)
+    *p = *p + *next;   // add to this block if not allocated.
+}
+```
+
+
+
+<p align="center"> <img src="./pic/boundary_tag.png" alt="boundary_tag" style="zoom:100%;"/> </p>
+
+<p align="center">Format of heap block that uses a boundary tag <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 9</p>
+
 To coalesce the previous block or do the bidirectional coalescing, we can use the ***boundary tags***, where it allows for constant-time coalescing of previous block. The idea is to add ***footer(boundary tags)*** at the end of each block, where the **footer is a replica of the header**. If each block includes such a footer, then the allocator can determine the **starting location** and **status of the previous block** by inspecting its footer, which is **always one word away from the start of the current block**.
 
-
+Futhermore, we can optimize the bounday tags by eliminates the need for a footer in allocated blocks. If we were to store the allocated/free bit of the previous block in **one of the excess low-order bits of the current block**, **then the allocated blocks would not need footers**, and we could use that extra space for payload. Note, however, that free blocks would still need footers.
 
 ## Reference
 
