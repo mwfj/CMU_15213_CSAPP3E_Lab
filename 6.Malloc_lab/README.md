@@ -807,6 +807,8 @@ To coalesce blocks,
 + the allocator can opt for **immediate coalescing** by merging any advance blocks each time a block is freed. Immediate coalescing is straightforward and can be performed in constant time, but with some request patterns it can introduce a form of **threshing where a block is repeatedly coalesced and then split soon thereafter**.
 + Or it can opt for **deferred coalescing** by waiting to coalesce by waiting to coalesce free blocks at some later time. For example the allocator might defer coalescing until some allocation requests fails, and then scan the entire heap, coalescing all free blocks. **Fast allocators often opt for some form of deferred coalescing**.
 
+To coalesce the previous block or do the bidirectional coalescing, we can use the ***boundary tags***, where it allows for constant-time coalescing of previous block. The idea is to add ***footer(boundary tags)*** at the end of each block, where the **footer is a replica of the header**. If each block includes such a footer, then the allocator can determine the **starting location** and **status of the previous block** by inspecting its footer, which is **always one word away from the start of the current block**.
+
 
 
 ## Reference
