@@ -830,6 +830,47 @@ To coalesce the previous block or do the bidirectional coalescing, we can use th
 
 Futhermore, we can optimize the bounday tags by eliminates the need for a footer in allocated blocks. If we were to store the allocated/free bit of the previous block in **one of the excess low-order bits of the current block**, **then the allocated blocks would not need footers**, and we could use that extra space for payload. Note, however, that free blocks would still need footers.
 
+
+
+### Explicit Free List(Doubly Linked List)
+
+Since by definition **the body of a free block is not needed** by the program, the pointers that implement the data structure can be stored within the bodies of the free blocks. For example, the heap can be organized as a doubly linked free list by including a `pred`(predecessor) and `succ`(successor) pointer in each free block.
+
+Using a doubly linked list instead of an implicit free list **reduces the first-fit allocation time** from **linear in the total number of blocks** to **linear in the number of free block**. However, **the time to free a block can be either linear or constant**, dependinig on the policy we choose for ordering the blocks in the free list.
+
+<p align="center"> <img src="./pic/explicit_free_list_structure.png" alt="explicit_free_list_structure" style="zoom:100%;"/> </p>
+
+<p align="center">Format of heap block that uses doubly linked free list <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 9</p>
+
+
+
+<p align="center"> <img src="./pic/explicit_free_list_organize.png" alt="explicit_free_list_organize" style="zoom:100%;"/> </p>
+
+<p align="center">Explicit Free List <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
+
+
+<p align="center"> <img src="./pic/explicit_free_list_allocation.png" alt="explicit_free_list_allocation" style="zoom:100%;"/> </p>
+
+<p align="center">Allocation From Explicit Free List <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
+
+
+#### Insertion Policy
+
++ **LIFO(last-in-first-out) policy**
+  + Insert freed block at **the beginning of the free list**
+  + **Pros**: Simple and constant time
+  + **Cons**: Framentation is wrose than address ordered.
++ Address-order policy
+  + Insert freed blocks so that **free list blocks are always in address order**
+  + **Cons:** Requires Search
+  + **Pros:** Fragmentation is lower than LIFO
+
+### Segregated Free Lists
+
+
+
 ## Reference
 
 [[1] Malloc tutorial.](https://danluu.com/malloc-tutorial/)
