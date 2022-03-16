@@ -862,14 +862,50 @@ Using a doubly linked list instead of an implicit free list **reduces the first-
   + Insert freed block at **the beginning of the free list**
   + **Pros**: Simple and constant time
   + **Cons**: Framentation is wrose than address ordered.
-+ Address-order policy
++ **Address-order policy**
   + Insert freed blocks so that **free list blocks are always in address order**
   + **Cons:** Requires Search
   + **Pros:** Fragmentation is lower than LIFO
 
 ### Segregated Free Lists
 
+Segregated Free list is to maintain multiple free lists, where each list holds blocks that are roughly the same size.
 
+The general idea is to partition the set of all possible block sizes into equivalence classes called size classes.
+
+<p align="center"> <img src="./pic/segregated_list.png" alt="segregated_list" style="zoom:100%;"/> </p>
+
+<p align="center">Segregated List <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/18-vm-systems.pdf">cmu-213 slide</a></p>
+
+There are have many ways to define the size of classes:
+
++ Partition the block sizes by powers of 2
++ Assign small blocks to their own size classes and partition large blocks by powers of 2
+
+#### Simple Segregated Storage
+
+With simple segregated storage, the free list for **each size class contains same-size blocks**, **each the size of the largest element of the size class**. For example, if some size class is defined as {17 - 32}, then the free list for that calss consists entirely of block size of 32.
+
+To **allocate a block of some give size**, we check the appriopriate free list.
+
++ If the **list is not empty**, we simply allocate the first block in its entirety. Free blocks are never split to satisfy allocation requests.
++ If the **list is empty**, the allocator requests a **fixed-size chunk of additional memory from the operating system**(typically a multiple of the page size), **divides the chunk into equal-size blocks**, and **links the blocks together** to form the new free list. To free a block, the allocator simply inserts the block at the front of the appropriate free list.
++ Since there is no coalescing or splitting, allocated block do not need an allocated/free flag in the header and don't need footers either.
++ A significant disadtantage is that simple segregated storage is **susceptible to internal and external fragmentation.**
+
+#### Segregated Fits
+
+With this approach, the allocator maintains an array of free lists. Each free list is associated with a size class and is organized as some kind of explicit or implicit list. Each list contains potentially **different-size blocks** whose sizes are members of the size class.
+
+To allocate a block, we determine the size class of the request and do first-fit search of the appropriate free list for a block that fits.
+
+1. If we **find one**, then we**(optionally) split it** and **insert the fragment in the appropriate free list**.
+
+2. If we **cannot find a block** that fits, then we **search the free list for the next larger size class**.
+
+3. We repeat the step 2 until we find a block that fits
+4. If **none of the free list yields a block that fits**, then **we request additional heap memory** from the operating system, **allocate the block** out of this new heap memory, and place the remainder in the appropriate size class.
+5. To **free a block**, we **coalesce** and place the result on the appropriate free list.
 
 ## Reference
 
