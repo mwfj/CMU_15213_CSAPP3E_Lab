@@ -907,6 +907,26 @@ To allocate a block, we determine the size class of the request and do first-fit
 4. If **none of the free list yields a block that fits**, then **we request additional heap memory** from the operating system, **allocate the block** out of this new heap memory, and place the remainder in the appropriate size class.
 5. To **free a block**, we **coalesce** and place the result on the appropriate free list.
 
+
+
+***Buddy Systems*** is a special case of segregated fits where **each size class is power of 2**.
+
+Originally, there is one block of size `2ᵐ` words. **To allocate a block** of size `2ᵏ`, we find the first available block of size `2ʲ`, where `k ≤ j ≤ m`.
+
++ if `j = k`, then we are done
+
++ Otherwise, we **recursively split the block in half until**` j = k`. 
++ Each **remaining half(known as buddy)** is placed on the appropriate free list.
+
+To **free** a block of size `2ᵏ`. we continue coalescing with the free buddies. When **we encounter an allocated buddy, we stop the coalescing**.
+
+
+
++ The **advantage** of buddy system is that
+  + given the address and the size of a block, it is **easy to compute the address of its buddy**
+  + buddy system allocator is its **fast searching and coalescing**.
++ The **disadvantage** of buddy system is that the power-of-w requirement on the block size can cause **significant internal fragmentation**.
+
 ## Reference
 
 [[1] Malloc tutorial.](https://danluu.com/malloc-tutorial/)
