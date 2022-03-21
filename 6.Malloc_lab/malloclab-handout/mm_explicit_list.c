@@ -203,7 +203,7 @@ static void printblock(void* bp){
 **/
 static void checkblock(void* bp){
     /* Check alignment correction */
-    if( GET_SIZE(HDRP(bp)) % ALIGNMENT )
+    if( (size_t)bp % ALIGNMENT )
         printf("Error: %p is not Double Word(8 bytes) alignment", bp);
     /* Check size correction between header and footer */
     if( GET(HDRP(bp)) != GET(FTRP(bp)) )
@@ -226,7 +226,7 @@ static void checkheap(int verbose){
         where it created during initialization and never freed
     **/
     if((GET_SIZE(HDRP(heap_listp)) != DSIZE ) || // The current block is allocated
-        (GET_ALLOC(HDRP(heap_listp)))) // The allocate bit is set
+        !(GET_ALLOC(HDRP(heap_listp)))) // The allocate bit is not set
         printf("Bad Prologue Header\n");
     checkblock(heap_listp);
     
