@@ -36,7 +36,13 @@ team_t team = {
 };
 
 
-// #define NEXT_FIT
+/*
+ * If NEXT_FIT defined use next fit search, else use first-fit search 
+ */
+#define NEXT_FIT
+
+// #define heapchecker(verbose, lineno) mm_checkheap(verbose, lineno)
+#define heapchecker(verbose, lineno)
 
 /* single word (4) or double word (8) alignment */
 #define ALIGNMENT 8
@@ -111,9 +117,12 @@ team_t team = {
 
 /* Global variables that always points to the prologue block */
 static char* heap_listp = 0; // Heap List Pointer: the pointer to the first block
+#ifdef NEXT_FIT
+static char* rover; /** Next fit rover */ 
+#endif
 
 /* Function prototypes for internal helper routines */
-static void checkheap(int verbose);
+static void checkheap(int verbose, int lineno);
 static void checkblock(void *bp);
 static void printblock(void* bp);
 static void *extend_heap(size_t words);
@@ -142,6 +151,11 @@ int mm_init(void)
     /** Initialize Epilogue Header */
     PUT(heap_listp + (3 * WSIZE), PACK(0, 1));
     heap_listp += (2*WSIZE);
+
+#ifdef NEXT_FIT
+    rover =  heap_listp;
+#endif
+
     /* Extend the empty heap with a free block of CHUNKSIZE bytes */
     if (extend_heap(CHUNKSIZE/WSIZE) == NULL)
         return -1;
@@ -197,7 +211,7 @@ void *mm_malloc(size_t size)
 
     /** Split block if necessary */
     place(bp,asize);
-    // mm_checkheap(1);
+    // heapchecker(0,__LINE__);
     // printf("Malloc Finished\n");
     return bp;
     // int newsize = ALIGN(size + SIZE_T_SIZE);
@@ -240,6 +254,8 @@ void mm_free(void *bp)
 
     /** Coalesce with adjancency free block if necessary */
     coalesce(bp);
+    /** Checking for the heap correction */
+    heapchecker(0, __LINE__);
 }
 /* $end mmfree */
 
@@ -302,6 +318,15 @@ static void *coalesce(void* bp){
         /** Update the block pointer */
         bp = PREV_BLKP(bp);
     }
+
+#ifdef NEXT_FIT
+    /** Make sure rover isn't pointing to the free block */
+    /** that we just coalesce */
+    /** The current block is the nearest free block */
+    if((rover > (char*)bp) && (rover < NEXT_BLKP(bp)))
+        rover = bp;
+#endif
+
     return bp;
 }
 
@@ -430,6 +455,21 @@ static void *extend_heap(size_t words){
 static void *find_fit(size_t asize)
 /* $end mmfirstfit-proto */
 {
+#ifdef NEXT_FIT
+    char* oldrover = rover;
+
+    /** Search from the current rover to the end of the list */
+    for(; GET_SIZE(HDRP(rover)) > 0; rover = NEXT_BLKP(rover))
+        if(!(GET_ALLOC(HDRP(rover))) && (asize <= GET_SIZE(HDRP(rover))))
+            return rover;
+
+    /** If not search the free block starting at the current block */
+    /** Search from the beginning of the list to the oldrover */
+    for(rover = heap_listp; rover < oldrover; rover = NEXT_BLKP(rover))
+        if(!(GET_ALLOC(HDRP(rover))) && (asize <= GET_SIZE(HDRP(rover))))
+            return rover;
+
+#else
     /* $begin mmfirstfit */
     /* First-fit search */
     void* bp;
@@ -440,6 +480,7 @@ static void *find_fit(size_t asize)
             return bp;
         }
     }
+#endif
     /** Not find any fittable free list */
     return NULL;
 }
@@ -448,9 +489,9 @@ static void *find_fit(size_t asize)
 /* 
  * mm_checkheap - Check the heap for correctness
  */
-void mm_checkheap(int verbose)  
+void mm_checkheap(int verbose, int lineno)  
 { 
-    checkheap(verbose);
+    checkheap(verbose, lineno);
 }
 
 /* 
@@ -462,7 +503,7 @@ static void printblock(void* bp){
     /* The size stored in footer, the allocation bit in footer */
     size_t fsize, falloc;
 
-    checkheap(0);
+    checkheap(0,__LINE__);
     hsize = GET_SIZE(HDRP(bp));
     halloc = GET_ALLOC(HDRP(bp));
     fsize = GET_SIZE(FTRP(bp));
@@ -493,12 +534,14 @@ static void checkblock(void* bp){
 /* 
  * checkheap - Minimal check of the heap for consistency 
 **/
-static void checkheap(int verbose){
+static void checkheap(int verbose, int lineno){
     /* Initialize the payload pointer of the block */
     char* bp = heap_listp;
     /* Print the infomation */
-    if(verbose)
+    if(verbose){
+        printf("mm_checkheap called from %d\n",lineno);
         printf("Heap: (%p):\n", heap_listp);
+    }
     
     /* Check the correction of Prologue Header correction */
     /* 

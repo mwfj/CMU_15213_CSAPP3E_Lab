@@ -6,7 +6,8 @@ VERSION = 1
 HANDINDIR = /home/mwfj/cmu-15-213-CSAPP3E-lab/6.Malloc_lab/malloclab-handout/
 
 CC = gcc
-CFLAGS = -Wall -O2 -m32
+CFLAGS = -g -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter
+# CFLAGS = -Wall -O0 -g -m32 -fno-stack-protector -pg
 
 OBJS =  memlib.o fsecs.o fcyc.o clock.o ftimer.o
 
@@ -40,4 +41,4 @@ handin:
 	cp mm.c $(HANDINDIR)/$(TEAM)-$(VERSION)-mm.c
 
 clean:
-	rm -f *~ *.o mdriver explicit
+	rm -f *~ *.o mdriver explicit gmon.out
