@@ -927,6 +927,71 @@ To **free** a block of size `2ᵏ`. we continue coalescing with the free buddies
   + buddy system allocator is its **fast searching and coalescing**.
 + The **disadvantage** of buddy system is that the power-of-w requirement on the block size can cause **significant internal fragmentation**.
 
+
+
+## Solution
+
+### Implicit Free List
+
+**Result of First Fit Search**
+
+```bash
+➜  ~/cmu-15-213-CSAPP3E-lab/6.Malloc_lab/malloclab-handout ./mdriver -v
+Team Name:Self-study
+Member 1 :Wufangjie Ma:mwfj0215@gmail.com
+Using default tracefiles in /home/mwfj/cmu-15-213-CSAPP3E-lab/6.Malloc_lab/malloclab-handout/traces/
+Measuring performance with gettimeofday().
+
+Results for mm malloc:
+trace  valid  util     ops      secs  Kops
+ 0       yes   99%    5694  0.006875   828
+ 1       yes   99%    5848  0.005694  1027
+ 2       yes   99%    6648  0.009918   670
+ 3       yes  100%    5380  0.007094   758
+ 4       yes   66%   14400  0.000096149378
+ 5       yes   92%    4800  0.005179   927
+ 6       yes   92%    4800  0.005252   914
+ 7       yes   55%   12000  0.141966    85
+ 8       yes   51%   24000  0.250082    96
+ 9       yes   27%   14401  0.056451   255
+10       yes   34%   14401  0.001967  7322
+Total          74%  112372  0.490573   229
+
+Perf index = 44 (util) + 15 (thru) = 60/100
+```
+
+
+
+#### Result of Next Fit Search
+
+```bash
+➜  ~/cmu-15-213-CSAPP3E-lab/6.Malloc_lab/malloclab-handout ./mdriver -v
+Team Name:Self-study
+Member 1 :Wufangjie Ma:mwfj0215@gmail.com
+Using default tracefiles in /home/mwfj/cmu-15-213-CSAPP3E-lab/6.Malloc_lab/malloclab-handout/traces/
+Measuring performance with gettimeofday().
+
+Results for mm malloc:
+trace  valid  util     ops      secs  Kops
+ 0       yes   91%    5694  0.001948  2923
+ 1       yes   92%    5848  0.001165  5021
+ 2       yes   95%    6648  0.002990  2223
+ 3       yes   97%    5380  0.002854  1885
+ 4       yes   66%   14400  0.000093154839
+ 5       yes   91%    4800  0.002795  1717
+ 6       yes   89%    4800  0.003186  1507
+ 7       yes   55%   12000  0.013566   885
+ 8       yes   51%   24000  0.006896  3480
+ 9       yes   27%   14401  0.053710   268
+10       yes   45%   14401  0.001931  7460
+Total          73%  112372  0.091134  1233
+
+Perf index = 44 (util) + 40 (thru) = 84/100
+
+```
+
+
+
 ## Reference
 
 [[1] Malloc tutorial.](https://danluu.com/malloc-tutorial/)
