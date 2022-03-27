@@ -59,11 +59,11 @@ Otherwise, compare character by character in a loop; if all the same, return tru
 ```asm
 (gdb) disas 0x401338
 Dump of assembler code for function strings_not_equal:
-   0x0000000000401338 <+0>:	push   %r12 ; push the current callee tempare variable
+   0x0000000000401338 <+0>:	push   %r12 ; push the current callee template variable
    0x000000000040133a <+2>:	push   %rbp ; %r12, %rbp, %rbx to the stack
    0x000000000040133b <+3>:	push   %rbx ; for keeping the old value
    0x000000000040133c <+4>:	mov    %rdi,%rbx ; record the pass variable 1 to the %rbx
-   0x000000000040133f <+7>:	mov    %rsi,%rbp ; record the pass variable 2 to the %rbx
+   0x000000000040133f <+7>:	mov    %rsi,%rbp ; record the pass variable 2 to the %rbp
    0x0000000000401342 <+10>:	callq  0x40131b <string_length> ; call string_length function to get the string length(I guess)
    0x0000000000401347 <+15>:	mov    %eax,%r12d ; record the return value in the %r12: string 1
    0x000000000040134a <+18>:	mov    %rbp,%rdi
