@@ -424,6 +424,10 @@ static void place(void* bp, size_t asize){
  * extend_heap - Extend heap with free block by chunk size byte and 
  * creates the initial free block
  * return its block pointer
+ * 
+ * This function is invoked in two different circumstances:
+ * - When the heap is initialized
+ * - When mm_malloc is unable to find a suitable fit
 **/
 /* $begin mmextendheap */
 static void *extend_heap(size_t words){
