@@ -992,6 +992,37 @@ Perf index = 44 (util) + 40 (thru) = 84/100
 
 
 
+### Explicit Free List
+
+#### Test Result
+
+```bash
+➜  ~/cmu-15-213-CSAPP3E-lab/6.Malloc_lab/malloclab-handout ./mdriver -v
+Team Name:Self-study
+Member 1 :Wufangjie Ma:mwfj0215@gmail.com
+Using default tracefiles in /home/mwfj/cmu-15-213-CSAPP3E-lab/6.Malloc_lab/malloclab-handout/traces/
+Measuring performance with gettimeofday().
+
+Results for mm malloc:
+trace  valid  util     ops      secs  Kops
+ 0       yes   89%    5694  0.000218 26179
+ 1       yes   92%    5848  0.000148 39567
+ 2       yes   94%    6648  0.000298 22286
+ 3       yes   96%    5380  0.000214 25187
+ 4       yes   99%   14400  0.000142101337
+ 5       yes   86%    4800  0.000443 10840
+ 6       yes   85%    4800  0.000476 10095
+ 7       yes   55%   12000  0.003606  3328
+ 8       yes   51%   24000  0.003096  7753
+ 9       yes   99%   14401  0.000097147703
+10       yes   53%   14401  0.000087165719
+Total          82%  112372  0.008824 12735
+
+Perf index = 49 (util) + 40 (thru) = 89/100
+```
+
+
+
 ## Reference
 
 [[1] Malloc tutorial.](https://danluu.com/malloc-tutorial/)
