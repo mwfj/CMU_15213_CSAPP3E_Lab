@@ -340,7 +340,7 @@ int mm_init(void)
     /** Extend the size of current dynamic heap for
      *  storing the regular block
      */
-    if (extend_heap(CHUNKSIZE/WSIZE) == NULL)
+    if (extend_heap((1 << 6) / DSIZE) == NULL)
         return -1;
 
     return 0;
@@ -428,38 +428,70 @@ void mm_free(void *bp)
  */
 void *mm_realloc(void *bp, size_t size)
 {
-    size_t copysize;
-    void* newbp = NULL;
+    size_t old_size;
+    void* newbp = 0;
 
     /** If realloc size is zero, just free the current block*/
-    if(!size){
+    if(size == 0){
         mm_free(bp);
         return 0;
     }
     
     /** If the bp pointer is NULL, just malloc a block with required size */
-    if(bp == NULL)
+    if( !bp )
         return mm_malloc(size);
 
+
+    /** Copy the old data from the old one to the new one */
+    old_size = (size_t)GET_SIZE(HDRP(bp));
+    /** Add the size of Header/Footer for the required payload size */
+    size_t base_size = (size + 2*WSIZE);
+    /** The current block is big enough, no need to expand */
+    if(old_size >= base_size)
+        return bp;
+    /** 
+     * Otherwise, to check whether 
+     * the size of combining the current old block the next adjacency block
+     * can meet the requirment if the next adjacency is freed.
+     * in order to increase the usage of free block
+     */
+
+    /** Get the allocate condition for the next block */
+    size_t next_alloc = GET_ALLOC(HDRP(NEXT_BLKP(bp)));
+    size_t next_blk_size = GET_SIZE(HDRP(NEXT_BLKP(bp)));
+    
+    /**
+     * When next block is free and
+     * the size of two block is greater than or equal the required size,
+     * then just combine this two block
+     */
+    if(!next_alloc && (old_size + next_blk_size) >= base_size){
+        /** Remove that block from the free list */
+        delete_node(NEXT_BLKP(bp));
+        /** Merge these two blocks */
+        PUT(HDRP(bp), PACK((old_size + next_blk_size), 1));
+        PUT(FTRP(bp), PACK((old_size + next_blk_size), 1));
+        return bp;
+    
+    }
+    
+    /** Otherwise, allocate newly one */
     newbp = mm_malloc(size);
 
     /** Fail to allocate */
     if(!newbp)
         return 0;
-
-    /** Copy the old data from the old one to the new one */
-    copysize = (size_t)GET_SIZE(HDRP(bp));
-    
-    if(size < copysize)
-        copysize = size;
-        
-    memcpy(newbp,bp,copysize);
+    /** Split the block */
+    place(newbp, size);
+    /** Copy the contend of the old block */
+    memcpy(newbp,bp,size);
 
     /** Free the old block */
     mm_free(bp);
 
     /** Return new block */
     return newbp;
+
 }
 
 /* 
