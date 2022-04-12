@@ -324,7 +324,7 @@ int mm_init(void)
      *                       It create during the initialized and never be freed
      * - Epilogure Block: the zero size allocated block that consist of only a header(1 word)
      */
-    if( ( heap_listp = mem_sbrk(8 * WSIZE) ) == NULL)
+    if( ( heap_listp = mem_sbrk(6 * WSIZE) ) == (void*)-1)
         return -1;
 
     /** Alignment Padding */
@@ -336,13 +336,15 @@ int mm_init(void)
     /** Initialze Epilogue Header */
     PUT((heap_listp + (3 * WSIZE)), PACK(0, 1));
     /** Jump the pointer between header and footer of Prologue block*/
-    heap_freep = heap_listp + (2 * WSIZE);
+    heap_listp += (2 * WSIZE);
+    heap_freep = heap_listp;
     /** Extend the size of current dynamic heap for
      *  storing the regular block
+     *  After several tests, it can bring the highest score when the initial block size is 64 bytes.
      */
     if (extend_heap((1 << 6) / DSIZE) == NULL)
         return -1;
-
+    heapchecker(0, __LINE__);
     return 0;
 }
 
@@ -421,6 +423,7 @@ void mm_free(void *bp)
      * coalesce it with its adjacency free block 
     **/
    coalesce(bp);
+   heapchecker(0, __LINE__);
 }
 
 /*
@@ -559,13 +562,13 @@ static void checkheap(int verbose, int lineno){
     if((GET_SIZE(HDRP(heap_listp)) != DSIZE ) || // The current block is allocated
         !(GET_ALLOC(HDRP(heap_listp)))) // The allocate bit is not set
         printf("Bad Prologue Header\n");
-    checkblock(heap_listp);
+    checkblock(heap_freep);
     
     /* 
      * Iterate all the block,
      * print block and check its correctness.
     **/
-    for(bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)){
+    for(bp = heap_freep; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)){
         if(verbose)
             printblock(bp);
         checkblock(bp);
