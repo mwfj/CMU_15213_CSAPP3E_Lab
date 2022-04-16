@@ -937,7 +937,7 @@ For this part, I just follow the [source code](http://csapp.cs.cmu.edu/3e/ics3/c
 
 Please see the book  or `mm_implicit` in this repo for more details.
 
-### Next-fit search
+#### Next-fit search
 
 For the next fit search,  we used a pointer to record the lastest fit block:
 
@@ -984,7 +984,7 @@ static void *find_fit(size_t asize)
 }
 ```
 
-### Split the block
+#### Split the block
 
 For the split block, we first check whether the current target free block is big enough, where the remain block is big enough to make a new block(at least bigger than one header plus one footer)  
 
@@ -1039,7 +1039,7 @@ gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-par
 
 ```
 
-**Result of First Fit Search**
+#### Result of First Fit Search
 
 ```bash
 ➜  ~/cmu-15-213-CSAPP3E-lab/6.Malloc_lab/malloclab-handout ./mdriver -v
@@ -1406,7 +1406,7 @@ void *mm_realloc(void *bp, size_t size)
 }
 ```
 
-***Note that, our explicit free list might have memory leak issue, I will figure it out later if I have time.***
+***Note that: our explicit free list might have memory leak issue, I will figure it out later if I have time.***
 
 #### Compile explicit free list
 
@@ -1455,6 +1455,8 @@ Perf index = 49 (util) + 40 (thru) = 89/100
 ```
 
 
+
+### 
 
 ## Reference
 
