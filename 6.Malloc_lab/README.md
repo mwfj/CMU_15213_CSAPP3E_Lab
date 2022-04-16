@@ -933,6 +933,112 @@ To **free** a block of size `2ᵏ`. we continue coalescing with the free buddies
 
 ### Implicit Free List
 
+For this part, I just follow the [source code](http://csapp.cs.cmu.edu/3e/ics3/code/vm/malloc/mm.c) from the book  [CS:APP3e Chapter 9](http://csapp.cs.cmu.edu/3e/home.htmlchapter).
+
+Please see the book  or `mm_implicit` in this repo for more details.
+
+### Next-fit search
+
+For the next fit search,  we used a pointer to record the lastest fit block:
+
+```c
+static char* rover; /** Next fit rover */ 
+```
+
+And make it point to the head of free block list `heap_listp` when do the initialization.
+
+When finding the suitable free block, we start at the position the `rover` points to, and go to the next block until find a suitable one or hit the end of the free list
+
+```c
+static void *find_fit(size_t asize)
+/* $end mmfirstfit-proto */
+{
+#ifdef NEXT_FIT
+    char* oldrover = rover;
+
+    /** Search from the current rover to the end of the list */
+    for(; GET_SIZE(HDRP(rover)) > 0; rover = NEXT_BLKP(rover))
+        if(!(GET_ALLOC(HDRP(rover))) && (asize <= GET_SIZE(HDRP(rover))))
+            return rover;
+
+    /** If not search the free block starting at the current block */
+    /** Search from the beginning of the list to the oldrover */
+    for(rover = heap_listp; rover < oldrover; rover = NEXT_BLKP(rover))
+        if(!(GET_ALLOC(HDRP(rover))) && (asize <= GET_SIZE(HDRP(rover))))
+            return rover;
+
+#else
+    /* $begin mmfirstfit */
+    /* First-fit search */
+    void* bp;
+
+    for(bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)){
+        /** Find the suitable free list */
+        if( !GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE( HDRP(bp) )) ){
+            return bp;
+        }
+    }
+#endif
+    /** Not find any fittable free list */
+    return NULL;
+}
+```
+
+### Split the block
+
+For the split block, we first check whether the current target free block is big enough, where the remain block is big enough to make a new block(at least bigger than one header plus one footer)  
+
++ If yes,  we make new header and footer with remaining size(`block_size - asize`), and point to the new block with unallocate mark(`0`). Mark the block with required size as allocated(`1`)
++ Otherwise, we won't split the current block(may cause internal fragmentation btw)
+
+```c
+static void place(void* bp, size_t asize){
+/* $end mmplace-proto */
+    /** Get the block size */
+    size_t block_size = GET_SIZE(HDRP(bp));
+    
+    /** The current block can be splitted
+     *  if the remain block meet the requirement of the minimum block size
+     *  after it allocates the space to the block we need 
+     */
+    if( (block_size - asize) >= ( 2 * DSIZE ) ){
+        /** The block with asize as allocated */
+        PUT(HDRP(bp), PACK(asize, 1));
+        PUT(FTRP(bp), PACK(asize, 1));
+        /** Update the pointer to the newly free block after split */
+        bp = NEXT_BLKP(bp);
+        /** Update the header/footer of the newly free block */
+        PUT(HDRP(bp), PACK( (block_size - asize), 0));
+        PUT(FTRP(bp), PACK( (block_size - asize), 0));
+    }
+    /** Otherwise, don't need to split */
+    else{
+        /** The block with asize as allocated */
+        PUT(HDRP(bp), PACK(block_size, 1));
+        PUT(FTRP(bp), PACK(block_size, 1));
+    }
+}
+```
+
+#### Compile Implicit free list
+
+Enter `make implicit` to compile the code contain the implicit list
+
+```bash
+➜  ~/cmu-15-213-CSAPP3E-lab/6.Malloc_lab/malloclab-handout make clean   
+rm -f *~ *.o mdriver explicit gmon.out
+➜  ~/cmu-15-213-CSAPP3E-lab/6.Malloc_lab/malloclab-handout make implicit
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter   -c -o mdriver.o mdriver.c
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter   -c -o mm_implicit_list.o mm_implicit_list.c
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter   -c -o memlib.o memlib.c
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter   -c -o fsecs.o fsecs.c
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter   -c -o fcyc.o fcyc.c
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter   -c -o clock.o clock.c
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter   -c -o ftimer.o ftimer.c
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter -o mdriver mdriver.o mm_implicit_list.o memlib.o fsecs.o fcyc.o clock.o ftimer.o
+
+```
+
 **Result of First Fit Search**
 
 ```bash
@@ -959,8 +1065,6 @@ Total          74%  112372  0.490573   229
 
 Perf index = 44 (util) + 15 (thru) = 60/100
 ```
-
-
 
 #### Result of Next Fit Search
 
@@ -993,6 +1097,335 @@ Perf index = 44 (util) + 40 (thru) = 84/100
 
 
 ### Explicit Free List
+
+Just like the last section described, **explicit free list linked all free block together**. Specifically, we add two extra section `predecessor `and `successor  `  in the heap block structure to mark the **previous free block** and the **next free block** of **the current free block**.
+
+<p align="center"> <img src="./pic/explicit_free_list_structure.png" alt="explicit_free_list_structure" style="zoom:100%;"/> </p>
+
+```c
+/** Get the address of the predecessor */
+/** Equal to *(char **) bp */
+#define GET_PREDECESSOR(bp)     (GET_LIST_PTR(bp))
+// #define GET_PREDECESSOR(bp)     (GET(PRED_PTR(bp)))
+
+/** Get the address of the successor */
+/** Equal to *(char **) SUCC_PTR(bp) */
+#define GET_SUCCESSOR(bp)       (GET_LIST_PTR(SUCC_PTR(bp)))
+// #define GET_SUCCESSOR(bp)       (GET(SUCC_PTR(bp)))
+
+#define SET_SUCCESSOR(bp, vp)   (GET_SUCCESSOR(bp) = vp)
+#define SET_PREDECESSOR(bp, vp) (GET_PREDECESSOR(bp) = vp)
+```
+
+In addition, we add new linker list pointer to point all free blocks. 
+
+```c
+static char *heap_freep = 0; // Point to the first free block
+```
+
+Initially, the `*heap_freep` will point to the same position as `*heap_lisp`
+
+```c
+int mm_init(void)
+{
+    // printf("Init Explicit Free List....\n");
+    /** Create initial empty heap */
+    /**
+     * The Initial block size is 4 Word size
+     * - One unused padding: 1 word
+     * - One Prologue Block: One Header(1 Word) + One Footer(1 word).
+     *                       It create during the initialized and never be freed
+     * - Epilogure Block: the zero size allocated block that consist of only a header(1 word)
+     */
+    if( ( heap_listp = mem_sbrk(6 * WSIZE) ) == (void*)-1)
+        return -1;
+
+    /** Alignment Padding */
+    PUT(heap_listp, 0);
+    /** Initialze Prologue Header */
+    PUT((heap_listp + (1 * WSIZE)), PACK(DSIZE, 1));
+    /** Initialze Prologue Footer */
+    PUT((heap_listp + (2 * WSIZE)), PACK(DSIZE, 1));
+    /** Initialze Epilogue Header */
+    PUT((heap_listp + (3 * WSIZE)), PACK(0, 1));
+    /** Jump the pointer between header and footer of Prologue block*/
+    heap_listp += (2 * WSIZE);
+    heap_freep = heap_listp;
+    /** Extend the size of current dynamic heap for
+     *  storing the regular block
+     *  After several tests, it can bring the highest score when the initial block size is 64 bytes.
+     */
+    if (extend_heap((1 << 6) / DSIZE) == NULL)
+        return -1;
+    heapchecker(0, __LINE__);
+    return 0;
+}
+```
+
+For the `static void* coalesce(void* bp)`, instead just mark the free block as unallocated and coalesce adjacency free blocks together, **the dynamic allocator will insert newly free block into the free list**. Similarly,  **when the free block get allocated, it will be removed from the free list**. In our program, we user `void insert_node(void* bp)` and `void delete_node(void* bp)` to achieve this behavior.
+
+```c
+/** Maintain the free list in last-in-first-out(LIFO) strategy by
+ *  inserting and removing the newly free block
+ */
+__attribute__((always_inline)) static inline void insert_node(void* bp){
+    /** Insert the free block at the begin of the free list */
+    SET_SUCCESSOR(bp, heap_freep),
+    SET_PREDECESSOR(heap_freep, bp);
+    SET_PREDECESSOR(bp, NULL);
+    /** Move the heap_freep to the newest head */
+    heap_freep = bp;
+}
+
+/**
+ * Remove the first element of the free list
+ * which is the latest inserted one
+**/
+__attribute__((always_inline)) static inline void delete_node(void* bp){
+
+    /** If the current free block is the only one
+     *  just insert it at the beginning
+    **/
+    if(GET_PREDECESSOR(bp) == NULL)
+        /** heap_freep -> bp -> NUll => heap_freep -> NULL */
+        heap_freep = GET_SUCCESSOR(bp);
+    /* The current free list have more than one free block */
+    else
+        /** Remove the current block from the free list 
+         * prev_node -> bp -> next_node -> ...
+         * => prev_node -> next_node -> ...
+        */
+        SET_SUCCESSOR(GET_PREDECESSOR(bp), GET_SUCCESSOR(bp));
+    SET_PREDECESSOR(GET_SUCCESSOR(bp), GET_PREDECESSOR(bp));
+}
+```
+
+The `static void* coalesce(void* bp)` would be like:
+```c
+static void* coalesce(void* bp){
+    /** 
+     * To mark whether the previous block is allocated or not *
+     *  + Previous block has allocated
+     *  + The current block is the first element of free list
+    **/
+    size_t is_prev_alloc = GET_ALLOC( FTRP(PREV_BLKP(bp)) ) || PREV_BLKP(bp) == bp;
+    /** Mark whether the next block is allocatd or not */
+    size_t is_next_alloc = GET_ALLOC( HDRP(NEXT_BLKP(bp)) );
+    /** Get the size of the current block */
+    size_t size = GET_SIZE(HDRP(bp));
+    /** Case 1: Both previous block and next block are allocated */
+    
+    /** Just Insert the current block into the free list 
+     *  Don't need anyother operation
+    */
+
+    /** Case 2: Previous block are allocated, but the next block are freed*/
+    if(is_prev_alloc && !is_next_alloc){
+        /** Coalesce the current block and the previous block */
+        size += GET_SIZE( HDRP( NEXT_BLKP(bp) ) );
+        delete_node(NEXT_BLKP(bp));
+        /** Update the header of previous block */
+        PUT(HDRP(bp), PACK(size, 0));
+        /** Update the footer of current block */
+        PUT(FTRP(bp), PACK(size, 0));
+    /** Case 3: Previous block are freed but the next block are allocated */
+    }else if(!is_prev_alloc && is_next_alloc){
+        /** Coalesce the current block and the next block */
+        size += GET_SIZE( HDRP( PREV_BLKP(bp) ));
+        bp = PREV_BLKP(bp);
+        delete_node(bp);
+        /** Update the header of current block */
+        PUT(HDRP(bp), PACK(size, 0));
+        /** Update the footer of next block */
+        PUT(FTRP(bp), PACK(size, 0));
+    /** Case 4: Both previous block and next block are freed*/
+    }else if(!is_next_alloc && !is_prev_alloc){
+        size += GET_SIZE( HDRP( PREV_BLKP(bp) )) + GET_SIZE( HDRP( NEXT_BLKP(bp) ) );
+        /** Remove previous block from freelist */
+        delete_node(PREV_BLKP(bp));
+        /** Remove next block from freelist */
+        delete_node(NEXT_BLKP(bp));
+        bp = PREV_BLKP(bp);
+        /** Update the header of previous block */
+        PUT(HDRP(bp), PACK(size, 0));
+        /** Update the footer of footer block */
+        PUT(FTRP(bp), PACK(size, 0));
+    }
+    /** Insert the newly coalesce block into free list */
+    insert_node(bp);
+    // printf("Coalesce.\n");
+    return bp;
+}
+```
+
+
+
+My `void* find_fit(size_t asize)` is relatively easy, just iterate the whole free block and return the first fit one.
+
+```c
+/** 
+ * Place: 
+ *  Iterate the whole free list to search a free block
+ *  that need the size requirement
+ */
+static void* find_fit(size_t asize){
+    void* bp = NULL;
+    /** Iterate the free block list to find a fit one */
+    for(bp = heap_freep; !GET_ALLOC(HDRP(bp)); bp = GET_SUCCESSOR(bp)){
+        if(!GET_ALLOC(HDRP(bp)) && asize <= GET_SIZE(HDRP(bp))){
+            return bp;
+        }
+    }
+    return NULL;
+}
+```
+
+
+
+For **split block,** we need to insert the newly free block with remain size into the free list, where we get one free block from the free list, split that block, and insert the remaining one into the free list
+
+```c
+/**
+ * place - Place the request block at the beginning of the free block,
+ *         splitting only if the size of the remainder would equal or exceeed the minimum block size
+ */
+__attribute__((always_inline)) static inline void place(void *bp, size_t asize){
+    /** Get the block size */
+    size_t block_size = GET_SIZE(HDRP(bp));
+
+    /** Delete pointer from the free list */
+    delete_node(bp);
+    
+
+    /** The current block can be splitted
+     *  if the remain block meet the requirement of the minimum block size
+     *  after it allocates the space to the block we need 
+    **/
+    if((block_size - asize) >= (2 * DSIZE)){
+        /** Mark the old block pointer as allocated */
+        PUT(HDRP(bp), PACK(asize, 1));
+        PUT(FTRP(bp), PACK(asize, 1));
+        /** Update the pointer to the newly free block after split */
+        bp = NEXT_BLKP(bp);
+        /** Update the header/footer of the newly free block */
+        PUT(HDRP(bp), PACK((block_size - asize), 0));
+        PUT(FTRP(bp), PACK((block_size - asize), 0));
+        /** Insert it into the free list
+         *  And coalesce it with adjacency free blocks
+         */
+        coalesce(bp);
+
+    /** Otherwise, the current block don't need to be splited
+     *  Use this block directly
+     */
+    }else{
+        /** Mark the old block pointer as allocated */
+        PUT(HDRP(bp), PACK(block_size, 1));
+        PUT(FTRP(bp), PACK(block_size, 1));
+    }
+}
+```
+
+
+
+For `void *mm_realloc(void *bp, size_t size)`, one thing to notice is that we need to figure out whether the previous unallocated blocks that are physically adjacent can be merged with the current block, and also whether their total size meets the requirements for the newly block. 
+
++ If answer is yes, we just use the current resource instead of extending the size from `mm_sbrk`. 
++ Otherwise, we apply to get the extra free block with the required size from `mm_sbrk`
+
+```c
+*
+ * mm_realloc - Implemented simply in terms of mm_malloc and mm_free
+ */
+void *mm_realloc(void *bp, size_t size)
+{
+    size_t old_size;
+    void* newbp = 0;
+
+    /** If realloc size is zero, just free the current block*/
+    if(size == 0){
+        mm_free(bp);
+        return 0;
+    }
+    
+    /** If the bp pointer is NULL, just malloc a block with required size */
+    if( !bp )
+        return mm_malloc(size);
+
+
+    /** Copy the old data from the old one to the new one */
+    old_size = (size_t)GET_SIZE(HDRP(bp));
+    /** Add the size of Header/Footer for the required payload size */
+    size_t base_size = (size + 2*WSIZE);
+    /** The current block is big enough, no need to expand */
+    if(old_size >= base_size)
+        return bp;
+    /** 
+     * Otherwise, to check whether 
+     * the size of combining the current old block the next adjacency block
+     * can meet the requirment if the next adjacency is freed.
+     * in order to increase the usage of free block
+     */
+
+    /** Get the allocate condition for the next block */
+    size_t next_alloc = GET_ALLOC(HDRP(NEXT_BLKP(bp)));
+    size_t next_blk_size = GET_SIZE(HDRP(NEXT_BLKP(bp)));
+    
+    /**
+     * When next block is free and
+     * the size of two block is greater than or equal the required size,
+     * then just combine this two block
+     */
+    if(!next_alloc && (old_size + next_blk_size) >= base_size){
+        /** Remove that block from the free list */
+        delete_node(NEXT_BLKP(bp));
+        /** Merge these two blocks */
+        PUT(HDRP(bp), PACK((old_size + next_blk_size), 1));
+        PUT(FTRP(bp), PACK((old_size + next_blk_size), 1));
+        return bp;
+    
+    }
+    
+    /** Otherwise, allocate newly one */
+    newbp = mm_malloc(size);
+
+    /** Fail to allocate */
+    if(!newbp)
+        return 0;
+    /** Split the block */
+    place(newbp, size);
+    /** Copy the contend of the old block */
+    memcpy(newbp,bp,size);
+
+    /** Free the old block */
+    mm_free(bp);
+
+    /** Return new block */
+    return newbp;
+
+}
+```
+
+***Note that, our explicit free list might have memory leak issue, I will figure it out later if I have time.***
+
+#### Compile explicit free list
+
+Enter `make explicit` to compile the code contain the explicit free list
+
+```bash
+➜  ~/cmu-15-213-CSAPP3E-lab/6.Malloc_lab/malloclab-handout make clean   
+rm -f *~ *.o mdriver explicit gmon.out
+➜  ~/cmu-15-213-CSAPP3E-lab/6.Malloc_lab/malloclab-handout make explicit  
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter   -c -o mdriver.o mdriver.c
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter   -c -o mm_explicit_list.o mm_explicit_list.c
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter   -c -o memlib.o memlib.c
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter   -c -o fsecs.o fsecs.c
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter   -c -o fcyc.o fcyc.c
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter   -c -o clock.o clock.c
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter   -c -o ftimer.o ftimer.c
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter -o mdriver mdriver.o mm_explicit_list.o memlib.o fsecs.o fcyc.o clock.o ftimer.o
+
+```
 
 #### Test Result
 
