@@ -517,9 +517,9 @@ __attribute__((always_inline)) static inline void place(void *bp, size_t asize){
 }
 
 /** 
- * Place: 
- *  Iterate the whole free list to search a free block
- *  that need the size requirement
+ * find_fit: 
+ *  Iterate the whole free list to search a suitable free block
+ *  that meets the size requirement
  */
 static void* find_fit(size_t asize){
     void* bp = NULL;
