@@ -1501,3 +1501,5 @@ Perf index = 49 (util) + 40 (thru) = 89/100
 [[4] CMU-15213 Slide: Dynamic Memory Allocation: Basic Concepts.](https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/19-malloc-basic.pdf)
 
 [[5] CMU-15213 Slide: Dynamic Memory Allocation: Advanced Concepts.](https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/20-malloc-advanced.pdf)
+
+[[6] Debugging Programs with GDB and memory leaks](https://www.cs.cmu.edu/~guna/15-123S11/Lectures/Lecture06.pdf)
