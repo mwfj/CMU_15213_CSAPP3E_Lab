@@ -1436,8 +1436,6 @@ void *mm_realloc(void *bp, size_t size)
 }
 ```
 
-***Note that: our explicit free list might have memory leak issue, I will figure it out later if I have time.***
-
 #### Compile explicit free list
 
 Enter `make explicit` to compile the code contain the explicit free list
