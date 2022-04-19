@@ -1102,25 +1102,38 @@ Just like the last section described, **explicit free list linked all free block
 
 <p align="center"> <img src="./pic/explicit_free_list_structure.png" alt="explicit_free_list_structure" style="zoom:100%;"/> </p>
 
+Add **predecessor** and **successor** as figure shown above:
+
 ```c
+/** The position where the pointer of the predecessor located for free block*/
+#define PRED_PTR(bp)            ((char*) bp)
+/** The position where the pointer of the successor located for free block */
+#define SUCC_PTR(bp)            ((char*) bp  + WSIZE)
+
+/** Get the address of the pointer of the pointer */
+#define GET_LIST_PTR(bp)        (*(char**) bp)
+
 /** Get the address of the predecessor */
 /** Equal to *(char **) bp */
 #define GET_PREDECESSOR(bp)     (GET_LIST_PTR(bp))
-// #define GET_PREDECESSOR(bp)     (GET(PRED_PTR(bp)))
 
 /** Get the address of the successor */
 /** Equal to *(char **) SUCC_PTR(bp) */
 #define GET_SUCCESSOR(bp)       (GET_LIST_PTR(SUCC_PTR(bp)))
-// #define GET_SUCCESSOR(bp)       (GET(SUCC_PTR(bp)))
-
-#define SET_SUCCESSOR(bp, vp)   (GET_SUCCESSOR(bp) = vp)
-#define SET_PREDECESSOR(bp, vp) (GET_PREDECESSOR(bp) = vp)
 ```
 
-In addition, we add new linker list pointer to point all free blocks. 
+In addition, we add new linke list pointer to point all free blocks. 
 
 ```c
-static char *heap_freep = 0; // Point to the first free block
+static char *heap_freep = 0; // Point to the first free blocktypedef signed long long int uint64_t;
+/** Prevent from null pointer exception **/
+static uint64_t head_addr;
+static uint64_t tail_addr;
+
+/* Global variables */
+static char *heap_listp = 0; // Heap List Pointer: the pointer to the first block
+static void *heap_freep = &head_addr; // the begin of free block list
+static void *tail = &tail_addr; // the end of the free block list
 ```
 
 Initially, the `*heap_freep` will point to the same position as `*heap_lisp`
@@ -1137,7 +1150,7 @@ int mm_init(void)
      *                       It create during the initialized and never be freed
      * - Epilogure Block: the zero size allocated block that consist of only a header(1 word)
      */
-    if( ( heap_listp = mem_sbrk(6 * WSIZE) ) == (void*)-1)
+    if( ( heap_listp = mem_sbrk(8 * WSIZE) ) == (void*)-1)
         return -1;
 
     /** Alignment Padding */
@@ -1150,13 +1163,17 @@ int mm_init(void)
     PUT((heap_listp + (3 * WSIZE)), PACK(0, 1));
     /** Jump the pointer between header and footer of Prologue block*/
     heap_listp += (2 * WSIZE);
-    heap_freep = heap_listp;
+    
+    /** Initialize Free block list */
+    GET_SUCCESSOR(heap_freep) = tail;
+    GET_PREDECESSOR(tail) = heap_freep;
     /** Extend the size of current dynamic heap for
      *  storing the regular block
      *  After several tests, it can bring the highest score when the initial block size is 64 bytes.
      */
     if (extend_heap((1 << 6) / DSIZE) == NULL)
         return -1;
+  	/* Debug */
     heapchecker(0, __LINE__);
     return 0;
 }
@@ -1170,12 +1187,24 @@ For the `static void* coalesce(void* bp)`, instead just mark the free block as u
  */
 __attribute__((always_inline)) static inline void insert_node(void* bp){
     /** Insert the free block at the begin of the free list */
-    SET_SUCCESSOR(bp, heap_freep),
-    SET_PREDECESSOR(heap_freep, bp);
-    SET_PREDECESSOR(bp, NULL);
-    /** Move the heap_freep to the newest head */
-    heap_freep = bp;
+    /**
+     * Before:
+     *      heap_freep -> cur -> ... -> tail
+     * After
+     *      heap_freep -> bp -> cur -> ... -> tail
+     */
+    /** Get the first position pointer */
+    char *cur = GET_SUCCESSOR(heap_freep);
+    /** (heap_freep.successor ->  cur) => (heap_freep.successor -> bp) */
+    GET_SUCCESSOR(GET_PREDECESSOR(cur)) = (char*)(bp);
+    /** bp.predecessor -> heap_freep */
+    GET_PREDECESSOR(bp) = GET_PREDECESSOR(cur);
+    /** (cur.prev->heap_freep) => (cur.prev -> bp) */
+    GET_PREDECESSOR(cur) = (char*)(bp);
+    /** bp.successor -> cur */
+    GET_SUCCESSOR(bp) = (char *)(cur);
 }
+
 
 /**
  * Remove the first element of the free list
@@ -1186,17 +1215,12 @@ __attribute__((always_inline)) static inline void delete_node(void* bp){
     /** If the current free block is the only one
      *  just insert it at the beginning
     **/
-    if(GET_PREDECESSOR(bp) == NULL)
-        /** heap_freep -> bp -> NUll => heap_freep -> NULL */
-        heap_freep = GET_SUCCESSOR(bp);
-    /* The current free list have more than one free block */
-    else
-        /** Remove the current block from the free list 
-         * prev_node -> bp -> next_node -> ...
-         * => prev_node -> next_node -> ...
-        */
-        SET_SUCCESSOR(GET_PREDECESSOR(bp), GET_SUCCESSOR(bp));
-    SET_PREDECESSOR(GET_SUCCESSOR(bp), GET_PREDECESSOR(bp));
+    /** Remove the current block from the free list 
+     * prev_node -> bp -> next_node -> ...
+     * => prev_node -> next_node -> ...
+    */
+    GET_SUCCESSOR(GET_PREDECESSOR(bp)) = GET_SUCCESSOR(bp);
+    GET_PREDECESSOR(GET_SUCCESSOR(bp)) = GET_PREDECESSOR(bp);
 }
 ```
 
@@ -1208,9 +1232,9 @@ static void* coalesce(void* bp){
      *  + Previous block has allocated
      *  + The current block is the first element of free list
     **/
-    size_t is_prev_alloc = GET_ALLOC( FTRP(PREV_BLKP(bp)) ) || PREV_BLKP(bp) == bp;
+    bool is_prev_alloc = GET_ALLOC( FTRP(PREV_BLKP(bp)) ) || PREV_BLKP(bp) == bp;
     /** Mark whether the next block is allocatd or not */
-    size_t is_next_alloc = GET_ALLOC( HDRP(NEXT_BLKP(bp)) );
+    bool is_next_alloc = GET_ALLOC( HDRP(NEXT_BLKP(bp)) );
     /** Get the size of the current block */
     size_t size = GET_SIZE(HDRP(bp));
     /** Case 1: Both previous block and next block are allocated */
@@ -1218,9 +1242,12 @@ static void* coalesce(void* bp){
     /** Just Insert the current block into the free list 
      *  Don't need anyother operation
     */
-
+    if(is_prev_alloc && is_next_alloc){
+        insert_node(bp);
+        return bp;
+    }
     /** Case 2: Previous block are allocated, but the next block are freed*/
-    if(is_prev_alloc && !is_next_alloc){
+    else if(is_prev_alloc && !is_next_alloc){
         /** Coalesce the current block and the previous block */
         size += GET_SIZE( HDRP( NEXT_BLKP(bp) ) );
         delete_node(NEXT_BLKP(bp));
@@ -1232,30 +1259,31 @@ static void* coalesce(void* bp){
     }else if(!is_prev_alloc && is_next_alloc){
         /** Coalesce the current block and the next block */
         size += GET_SIZE( HDRP( PREV_BLKP(bp) ));
-        bp = PREV_BLKP(bp);
-        delete_node(bp);
-        /** Update the header of current block */
-        PUT(HDRP(bp), PACK(size, 0));
+        delete_node(PREV_BLKP(bp));
         /** Update the footer of next block */
         PUT(FTRP(bp), PACK(size, 0));
+        /** Update the header of current block */
+        PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));
+        bp = PREV_BLKP(bp);
     /** Case 4: Both previous block and next block are freed*/
     }else if(!is_next_alloc && !is_prev_alloc){
-        size += GET_SIZE( HDRP( PREV_BLKP(bp) )) + GET_SIZE( HDRP( NEXT_BLKP(bp) ) );
+        size += GET_SIZE( HDRP( PREV_BLKP(bp) )) + GET_SIZE( FTRP( NEXT_BLKP(bp) ) );
         /** Remove previous block from freelist */
         delete_node(PREV_BLKP(bp));
         /** Remove next block from freelist */
         delete_node(NEXT_BLKP(bp));
-        bp = PREV_BLKP(bp);
         /** Update the header of previous block */
-        PUT(HDRP(bp), PACK(size, 0));
+        PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));
         /** Update the footer of footer block */
-        PUT(FTRP(bp), PACK(size, 0));
+        PUT(FTRP(NEXT_BLKP(bp)), PACK(size, 0));
+        bp = PREV_BLKP(bp);
     }
     /** Insert the newly coalesce block into free list */
     insert_node(bp);
     // printf("Coalesce.\n");
     return bp;
 }
+
 ```
 
 
@@ -1271,8 +1299,8 @@ My `void* find_fit(size_t asize)` is relatively easy, just iterate the whole fr
 static void* find_fit(size_t asize){
     void* bp = NULL;
     /** Iterate the free block list to find a fit one */
-    for(bp = heap_freep; !GET_ALLOC(HDRP(bp)); bp = GET_SUCCESSOR(bp)){
-        if(!GET_ALLOC(HDRP(bp)) && asize <= GET_SIZE(HDRP(bp))){
+    for(bp = GET_SUCCESSOR(heap_freep); bp != tail; bp = GET_SUCCESSOR(bp)){
+        if(asize <= GET_SIZE(HDRP(bp))){
             return bp;
         }
     }
@@ -1305,6 +1333,7 @@ __attribute__((always_inline)) static inline void place(void *bp, size_t asize){
         /** Mark the old block pointer as allocated */
         PUT(HDRP(bp), PACK(asize, 1));
         PUT(FTRP(bp), PACK(asize, 1));
+        delete_node(bp);
         /** Update the pointer to the newly free block after split */
         bp = NEXT_BLKP(bp);
         /** Update the header/footer of the newly free block */
@@ -1322,6 +1351,7 @@ __attribute__((always_inline)) static inline void place(void *bp, size_t asize){
         /** Mark the old block pointer as allocated */
         PUT(HDRP(bp), PACK(block_size, 1));
         PUT(FTRP(bp), PACK(block_size, 1));
+        delete_node(bp);
     }
 }
 ```
@@ -1455,6 +1485,8 @@ Perf index = 49 (util) + 40 (thru) = 89/100
 ```
 
 
+
+### Segregated free lists
 
 ### 
 
