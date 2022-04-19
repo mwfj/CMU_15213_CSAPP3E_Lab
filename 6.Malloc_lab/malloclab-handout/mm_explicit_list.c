@@ -66,7 +66,6 @@ team_t team = {
    Pack a size and allocated bit into a word, 
    which returns a value that can be stored in a header or footer
 */
-// #define PACK(size, alloc)  ((size) | (alloc))
 #define PACK(size, alloc)       ((size) | (alloc))
 /* Read and write a word at address p */
 
@@ -110,7 +109,6 @@ team_t team = {
 /* Given block ptr bp, compute address of next and previous blocks */
 
 #define NEXT_BLKP(bp)           ((char*)(bp) + GET_SIZE((char*)(bp) - WSIZE))
-// #define NEXT_BLKP(bp)           ((void *)(bp) + GET_SIZE(HDRP(bp)))
 #define PREV_BLKP(bp)           ((void*)(bp) - GET_SIZE((void*)(bp) - DSIZE))
 
 /** The position where the pointer of the predecessor located for free block*/
@@ -137,9 +135,9 @@ static uint64_t head_addr;
 static uint64_t tail_addr;
 
 /* Global variables */
-static char *heap_listp = 0; // Heap List Pointer: the pointer to the first block
-static void *heap_freep = &head_addr; // the begin of free block list
-static void *tail = &tail_addr; // the end of the free block list
+static char *heap_listp = 0; /** Heap List Pointer: the pointer to the first block */
+static void *heap_freep = &head_addr; /** the begin of free block list */
+static void *tail = &tail_addr; /** the end of the free block list */
 
 /* Function prototypes for internal helper routines */
 static void checkheap(int verbose, int lineno);
@@ -163,7 +161,6 @@ static void* find_fit(size_t asize);
  */
 int mm_init(void)
 {
-    // printf("Init Explicit Free List....\n");
     /** Create initial empty heap */
     /**
      * The Initial block size is 4 Word size
@@ -195,6 +192,7 @@ int mm_init(void)
      */
     if (extend_heap((1 << 6) / DSIZE) == NULL)
         return -1;
+    /** For Debug */
     heapchecker(0, __LINE__);
     return 0;
 }
@@ -244,6 +242,7 @@ void *mm_malloc(size_t size)
 
     /** Split block if necessary */
     place(bp,asize);
+    /** For Debug */
     heapchecker(0,__LINE__);
     return bp;
 }
@@ -273,6 +272,7 @@ void mm_free(void *bp)
      * coalesce it with its adjacency free block 
     **/
    coalesce(bp);
+   /** For Debug */
    heapchecker(0, __LINE__);
 }
 
@@ -341,6 +341,7 @@ void *mm_realloc(void *bp, size_t size)
 
     /** Free the old block */
     mm_free(bp);
+    /** For Debug */
     heapchecker(0, __LINE__);
     /** Return new block */
     return newbp;
@@ -348,7 +349,7 @@ void *mm_realloc(void *bp, size_t size)
 }
 /****************************************************************************
  * 
- *  Malloc/Free API Area Begin
+ *  Malloc/Free API Area End
  * 
 *****************************************************************************/
 
@@ -429,7 +430,6 @@ static void* coalesce(void* bp){
     }
     /** Insert the newly coalesce block into free list */
     insert_node(bp);
-    // printf("Coalesce.\n");
     return bp;
 }
 
@@ -616,8 +616,8 @@ static void checkheap(int verbose, int lineno){
         The prologue block is an 8-byte allocated block consisting of only a header and footoer,
         where it created during initialization and never freed
     **/
-    if((GET_SIZE(HDRP(heap_listp)) != DSIZE ) || // The current block is allocated
-        !(GET_ALLOC(HDRP(heap_listp)))) // The allocate bit is not set
+    if((GET_SIZE(HDRP(heap_listp)) != DSIZE ) || /** The current block is allocated */
+        !(GET_ALLOC(HDRP(heap_listp)))) /** The allocate bit is not set*/
         printf("Bad Prologue Header\n");
     checkblock(heap_listp);
     
