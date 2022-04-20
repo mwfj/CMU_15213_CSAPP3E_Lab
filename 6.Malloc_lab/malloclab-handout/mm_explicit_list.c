@@ -109,7 +109,7 @@ team_t team = {
 /* Given block ptr bp, compute address of next and previous blocks */
 
 #define NEXT_BLKP(bp)           ((char*)(bp) + GET_SIZE((char*)(bp) - WSIZE))
-#define PREV_BLKP(bp)           ((void*)(bp) - GET_SIZE((void*)(bp) - DSIZE))
+#define PREV_BLKP(bp)           ((char*)(bp) - GET_SIZE((char*)(bp) - DSIZE))
 
 /**
  * For the allocated block:
