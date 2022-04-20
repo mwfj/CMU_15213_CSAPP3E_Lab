@@ -130,6 +130,29 @@ static void *coalesce(void* bp);
 static void *find_fit(size_t asize);
 static void place(void* bp, size_t asize);
 
+/**
+ *
+ * For the allocated block:
+ * 
+ *                       31      ...           3| 2  1  0
+ *      start of heap -> --------------------------------
+ *                      | 00 00  ...    ...   00 00 00 00|  padding
+ *                       --------------------------------
+ *                      | 00 ... size (29 bits) | 0 0 a/f|  prologue header
+ *      heap_freep ->    --------------------------------
+ *                      | 00 ... size (29 bits) | 0 0 a/f|  prologue footer
+ *                       --------------------------------
+ *                      |                                |
+ *                      |                                |
+ *                      |   Free/Allocated Block Area    |
+ *                      |                                |
+ *                      |                                |
+ *                       --------------------------------
+ *                      | 00 ... size (29 bits) | 0 0 a/f| epilogure header
+ *      end of heap ->   --------------------------------
+ * 
+**/
+
 /* 
  * mm_init - initialize the malloc package.
  */
@@ -172,7 +195,7 @@ void *mm_malloc(size_t size)
 {
     size_t asize; /** Adjust block size */
     size_t extendsize; /** Amount to extend heap if no fit */
-    char* bp; /** block pointere */
+    char* bp; /** block pointer */
 
     if (heap_listp == 0){
         mm_init();
@@ -223,6 +246,7 @@ void *mm_malloc(size_t size)
     //     return (void *)((char *)p + SIZE_T_SIZE);
     // }
 }
+
 /* $end mmmalloc */
 
 /*

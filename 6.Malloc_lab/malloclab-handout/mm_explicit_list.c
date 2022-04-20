@@ -117,15 +117,20 @@ team_t team = {
  *       31      ...           3| 2  1  0
  *       --------------------------------
  *      | 00 ... size (29 bits) | 0 0 a/f| header
+ * bp -> --------------------------------
  *      |       content ...              |
+ *       --------------------------------
  *      |       content ...              |
+ *       --------------------------------
  *      | 00 ... size (29 bits) | 0 0 a/f| footer
  * 
  * For the free block
  *       31      ...           3| 2  1  0
  *       --------------------------------
  *      | 00 ... size (29 bits) | 0 0 a/f| header
+ * bp -> --------------------------------
  *      |       Predecessor              |
+ *       --------------------------------
  *      |        Successor               |
  *      | 00 ... size (29 bits) | 0 0 a/f| footer
  * 
@@ -175,6 +180,29 @@ static void* find_fit(size_t asize);
  *  Malloc/Free API Area Begin
  * 
 *****************************************************************************/
+
+/**
+ *
+ * For the allocated block:
+ * 
+ *                       31      ...           3| 2  1  0
+ *      start of heap -> --------------------------------
+ *                      | 00 00  ...    ...   00 00 00 00|  padding
+ *                       --------------------------------
+ *                      | 00 ... size (29 bits) | 0 0 a/f|  prologue header
+ *      heap_freep ->    --------------------------------
+ *                      | 00 ... size (29 bits) | 0 0 a/f|  prologue footer
+ *                       --------------------------------
+ *                      |                                |
+ *                      |                                |
+ *                      |   Free/Allocated Block Area    |
+ *                      |                                |
+ *                      |                                |
+ *                       --------------------------------
+ *                      | 00 ... size (29 bits) | 0 0 a/f| epilogure header
+ *      end of heap ->   --------------------------------
+ * 
+**/
 
 /* 
  * mm_init - initialize the malloc package.
@@ -410,7 +438,7 @@ static void* coalesce(void* bp){
     /** Case 1: Both previous block and next block are allocated */
     
     /** Just Insert the current block into the free list 
-     *  Don't need any other operations
+     *  Don't need any other operations.
     */
     if(is_prev_alloc && is_next_alloc){
         insert_node(bp);

@@ -935,6 +935,35 @@ To **free** a block of size `2ᵏ`. we continue coalescing with the free buddies
 
 For this part, I just follow the [source code](http://csapp.cs.cmu.edu/3e/ics3/code/vm/malloc/mm.c) from the book  [CS:APP3e Chapter 9](http://csapp.cs.cmu.edu/3e/home.htmlchapter).
 
+The structure of heap would be like this:
+
+```txt
+/**
+ *
+ * For the allocated block:
+ * 
+ *                       31      ...           3| 2  1  0
+ *      start of heap -> --------------------------------
+ *                      | 00 00  ...    ...   00 00 00 00|  padding
+ *                       --------------------------------
+ *                      | 00 ... size (29 bits) | 0 0 a/f|  prologue header
+ *      heap_freep ->    --------------------------------
+ *                      | 00 ... size (29 bits) | 0 0 a/f|  prologue footer
+ *                       --------------------------------
+ *                      |                                |
+ *                      |                                |
+ *                      |   Free/Allocated Block Area    |
+ *                      |                                |
+ *                      |                                |
+ *                       --------------------------------
+ *                      | 00 ... size (29 bits) | 0 0 a/f| epilogure header
+ *      end of heap ->   --------------------------------
+ * 
+**/
+```
+
+
+
 Please see the book  or `mm_implicit` in this repo for more details.
 
 #### Next-fit search
