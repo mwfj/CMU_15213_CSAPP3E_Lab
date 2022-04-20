@@ -410,7 +410,7 @@ static void* coalesce(void* bp){
     /** Case 1: Both previous block and next block are allocated */
     
     /** Just Insert the current block into the free list 
-     *  Don't need anyother operation
+     *  Don't need any other operations
     */
     if(is_prev_alloc && is_next_alloc){
         insert_node(bp);
