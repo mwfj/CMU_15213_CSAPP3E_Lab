@@ -111,6 +111,26 @@ team_t team = {
 #define NEXT_BLKP(bp)           ((char*)(bp) + GET_SIZE((char*)(bp) - WSIZE))
 #define PREV_BLKP(bp)           ((void*)(bp) - GET_SIZE((void*)(bp) - DSIZE))
 
+/**
+ * For the allocated block:
+ * 
+ *       31      ...           3| 2  1  0
+ *       --------------------------------
+ *      | 00 ... size (29 bits) | 0 0 a/f| header
+ *      |       content ...              |
+ *      |       content ...              |
+ *      | 00 ... size (29 bits) | 0 0 a/f| footer
+ * 
+ * For the free block
+ *       31      ...           3| 2  1  0
+ *       --------------------------------
+ *      | 00 ... size (29 bits) | 0 0 a/f| header
+ *      |       Predecessor              |
+ *      |        Successor               |
+ *      | 00 ... size (29 bits) | 0 0 a/f| footer
+ * 
+ */
+
 /** The position where the pointer of the predecessor located for free block*/
 #define PRED_PTR(bp)            ((char*) bp)
 /** The position where the pointer of the successor located for free block */
