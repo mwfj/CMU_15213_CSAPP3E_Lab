@@ -218,7 +218,7 @@ int mm_init(void)
      *                       It create during the initialized and never be freed
      * - Epilogure Block: the zero size allocated block that consist of only a header(1 word)
      */
-    if( ( heap_listp = mem_sbrk(8 * WSIZE) ) == (void*)-1)
+    if( ( heap_listp = mem_sbrk(4 * WSIZE) ) == (void*)-1)
         return -1;
 
     /** Alignment Padding */
