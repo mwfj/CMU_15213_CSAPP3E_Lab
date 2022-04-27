@@ -1526,11 +1526,20 @@ For the structure inside of block, we continue using the structure of explicit f
 As we can see below, the most one-time allocated byte size is **614784**. For the reason of segregate list separates free list by byte size, the largest free block entry must by coverd 43108, where the nearest binary interger should be 65535(a.k.a 2¹⁶)
 
 ```bash
-➜  ~/cmu-15-213-CSAPP3E-lab/6.Malloc_lab/malloclab-handout find . -name "*-bal.rep" ! -name "realloc*" -exec awk '{for(i=1; i<=NF;i++) if ($3 > max) max=$3}END {print max}' {} \; | sort -n | tail -1
+# The most allocated bytes size exclude realloc*.rep
+➜  ~/cmu-15-213-CSAPP3E-lab/6.Malloc_lab/malloclab-handout find ./traces -name "*-bal.rep" ! -name "realloc*" -exec awk '{for(i=1; i<=NF;i++) if ($3 > max) max=$3}END {print max}' {} \; | sort -n | tail -1
 43108
 ```
 
- 
+**Note that** we exclude all `realloc*.rep` in here,  cause it is not the one-time allocated, though there have even more bigger allocated byte in these excluded files.
+
+```bash
+# The most allocated bytes size for all traces files
+➜  ~/cmu-15-213-CSAPP3E-lab/6.Malloc_lab/malloclab-handout awk '{if ($3 > max) max=$3}END{print max}' traces/*-bal.rep
+614784
+```
+
+You can extend your segregated free list for including the maximum byte size in  `realloc*.rep`, but your final score may get influenced.
 
 ## Reference
 
