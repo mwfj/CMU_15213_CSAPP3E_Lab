@@ -561,7 +561,6 @@ __attribute__((always_inline)) static inline void place(void *bp, size_t asize){
         /** Mark the old block pointer as allocated */
         PUT(HDRP(bp), PACK(block_size, 1));
         PUT(FTRP(bp), PACK(block_size, 1));
-        delete_node(bp);
     }
 }
 
