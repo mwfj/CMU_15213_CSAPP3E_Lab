@@ -543,7 +543,6 @@ __attribute__((always_inline)) static inline void place(void *bp, size_t asize){
         /** Mark the old block pointer as allocated */
         PUT(HDRP(bp), PACK(asize, 1));
         PUT(FTRP(bp), PACK(asize, 1));
-        delete_node(bp);
         /** Update the pointer to the newly free block after split */
         bp = NEXT_BLKP(bp);
         /** Update the header/footer of the newly free block */
