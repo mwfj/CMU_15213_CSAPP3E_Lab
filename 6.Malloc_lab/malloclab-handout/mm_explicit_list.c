@@ -304,13 +304,14 @@ void mm_free(void *bp)
     /** The padding from the beginning cannot be freed */
     if(bp == 0)
         return ;
+        
+    /** Create new free list if there have no free list here */
+    if(heap_listp == 0)
+        mm_init();
     
     /** Get the block size */
     size_t block_size = (size_t)GET_SIZE(HDRP(bp));
 
-    /** Create new free list if there have no free list here */
-    if(heap_listp == 0)
-        mm_init();
     /** Clear the payload of the current block*/
     /** Update the header */
     PUT(HDRP(bp), PACK(block_size, 0));
@@ -331,7 +332,7 @@ void mm_free(void *bp)
 void *mm_realloc(void *bp, size_t size)
 {
     size_t old_size;
-    void* newbp = 0;
+    void* newbp = bp;
 
     /** If realloc size is zero, just free the current block*/
     if(size == 0){
@@ -347,9 +348,19 @@ void *mm_realloc(void *bp, size_t size)
     /** Copy the old data from the old one to the new one */
     old_size = (size_t)GET_SIZE(HDRP(bp));
     /** Add the size of Header/Footer for the required payload size */
-    size_t base_size = (size + 2*WSIZE);
+    // size_t base_size = (size + 2*WSIZE);
+    if(size <= DSIZE)        
+        size = 2 * DSIZE; /** 2*DSIZE is the minimum block size */
+    /**
+     * For requests over 8 bytes:
+     * The general rule is to add in the overhead bytes
+     * and then round up to the nearest multiple of 8
+     */
+    else
+        size = DSIZE * ( (size + (DSIZE) + (DSIZE - 1)) / DSIZE );
+
     /** The current block is big enough, no need to expand */
-    if(old_size >= base_size)
+    if(old_size >= size)
         return bp;
     /** 
      * Otherwise, to check whether 
@@ -367,7 +378,7 @@ void *mm_realloc(void *bp, size_t size)
      * the size of two block is greater than or equal the required size,
      * then just combine this two block
      */
-    if(!next_alloc && (old_size + next_blk_size) >= base_size){
+    if((!next_alloc || !next_blk_size) && (old_size + next_blk_size) >= size){
         /** Remove that block from the free list */
         delete_node(NEXT_BLKP(bp));
         /** Merge these two blocks */
@@ -378,11 +389,10 @@ void *mm_realloc(void *bp, size_t size)
     }
     
     /** Otherwise, allocate newly one */
-    newbp = mm_malloc(size);
+    if( (newbp = mm_malloc(size)) == NULL)
+        /** Fail to allocate */ 
+        return NULL;
 
-    /** Fail to allocate */
-    if(!newbp)
-        return 0;
     /** Split the block */
     place(newbp, size);
     /** Copy the contend of the old block */
