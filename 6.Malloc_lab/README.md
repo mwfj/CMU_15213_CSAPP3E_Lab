@@ -1535,9 +1535,45 @@ We define a macro to indicate the maximum segregated free list entry items:
 #define MAXSEGENTRY 16
 ```
 
+Here is the structure of my segregated free list design:
 
+```c
+/**
+ *
+ * Segregated Free List: The block size in each free list is from the smaller to bigger
+ * 
+ *         Headers:Round Down Size       In each free list, blocksize:  smaller ==> bigger
+ * 
+ *                         Header
+ * seg_free_listp     ==> +------+       +----+     +----+     +----+             +----+
+ *                        | 2^0  |  ===> |    | --> |    | --> |    | --> ... --> |    | --> NULL
+ *                        +------+       +----+     +----+     +----+             +----+
+ * seg_free_listp + 1 ==> +------+       +----+     +----+     +----+             +----+
+ *                        | 2^1  |  ===> |    | --> |    | --> |    | --> ... --> |    | --> NULL
+ *                        +------+       +----+     +----+     +----+             +----+
+ * seg_free_listp + 2 ==> +------+       +----+     +----+     +----+             +----+
+ *                        | 2^2  |  ===> |    | --> |    | --> |    | --> ... --> |    | --> NULL
+ *                        +------+       +----+     +----+     +----+             +----+
+ * seg_free_listp + 3 ==> +------+       +----+     +----+     +----+             +----+
+ *                        | 2^3  |  ===> |    | --> |    | --> |    | --> ... --> |    | --> NULL
+ *                        +------+       +----+     +----+     +----+             +----+
+ * 
+ *       ...                ...           ...        ...        ...       ...      ...
+ *       ...                ...           ...        ...        ...       ...      ...
+ *       ...                ...           ...        ...        ...       ...      ...
+ * 
+ * seg_free_listp +15 ==> +------+       +----+     +----+     +----+             +----+
+ *                        | 2^15 |  ===> |    | --> |    | --> |    | --> ... --> |    | --> NULL
+ *                        +------+       +----+     +----+     +----+             +----+
+ * seg_free_listp +16 ==> +------+       +----+     +----+     +----+             +----+
+ *                        | 2^16 |  ===> |    | --> |    | --> |    | --> ... --> |    | --> NULL
+ *                        +------+       +----+     +----+     +----+             +----+
+**/
+```
 
-**Note that** we exclude all `realloc*.rep` in here,  cause it is not the one-time allocated, though there have even more bigger allocated byte in these excluded files.
+For each free list, the block size in each free list is from the smaller to bigger and also we search the block from left to right.
+
++ **Note that** we exclude all `realloc*.rep` in here,  cause it is not the one-time allocated, though there have even more bigger allocated byte in these excluded files.
 
 ```bash
 # The most allocated bytes size for all traces files
@@ -1545,7 +1581,433 @@ We define a macro to indicate the maximum segregated free list entry items:
 614784
 ```
 
-You can extend your segregated free list for including that maximum byte size in  `realloc*.rep`, but your final score may get influenced.
+​	You can extend your segregated free list for including that maximum byte size in  `realloc*.rep`, but your final score may 	get influenced.
+
+To represent segregated free list, we use a global double pointer to achieve it:
+
+```c
+/** The pointer points to segregated free list */
+static char **seg_free_listp = 0; 
+```
+
+
+
+For the code perspective, some code logic is exactly same as what we did in explicit free list: 
+
++ `mm_free()`
+
++  `coalesce(void* *bp*)`
+
++  `extend_heap(size_t *words*)`.
+
+  
+
+For `mm_init(void)`, we add the logic of initializing segregated free list in here:
+
+```c
+/* 
+ * mm_init - initialize the malloc package.
+ */
+int mm_init(void)
+{
+    /** Initialize the Segregated free list */
+    if((seg_free_listp = mem_sbrk(MAXSEGENTRY * sizeof(void*))) == (void*)(-1))
+        return -1;
+
+    int i;
+    for(i=0; i<=MAXSEGENTRY; i++)
+        SELECT_SEG_ENTRY(i) = NULL;
+    
+    /**
+     * The Initial block size is 4 Word size
+     * - One unused padding: 1 word
+     * - One Prologue Block: One Header(1 Word) + One Footer(1 word).
+     *                       It create during the initialized and never be freed
+     * - Epilogure Block: the zero size allocated block that consist of only a header(1 word)
+     */
+    if( ( heap_listp = mem_sbrk(4 * WSIZE) ) == (void*)-1){
+        printf("Fail to get allocation from mem_sbrk at line %d", __LINE__);
+        return -1;
+    }
+
+    /** Alignment Padding */
+    PUT(heap_listp, 0);
+    /** Initialze Prologue Header */
+    PUT((heap_listp + (1 * WSIZE)), PACK(DSIZE, 1));
+    /** Initialze Prologue Footer */
+    PUT((heap_listp + (2 * WSIZE)), PACK(DSIZE, 1));
+    /** Initialze Epilogue Header */
+    PUT((heap_listp + (3 * WSIZE)), PACK(0, 1));
+    /** Jump the pointer between header and footer of Prologue block*/
+    heap_listp += (2 * WSIZE);
+    
+
+    /** Extend the size of current dynamic heap for
+     *  storing the regular block
+     *  After several tests, it can bring the highest score when the initial block size is 64 bytes.
+     */
+    if (extend_heap((1 << 6) / DSIZE) == NULL){
+        printf("Fail to extend heap at line %d", __LINE__);
+        return -1;
+    }
+    /** For Debug */
+    heapchecker(0, __LINE__);
+    return 0;
+}
+```
+
+For `void *mm_malloc(size_t *size*)`, we add the process of finding fit block in this function. Thus, there is no `find_fit` function in my program:
+
+```c
+/* 
+ * mm_malloc - Allocate a block by incrementing the brk pointer.
+ *     Always allocate a block whose size is a multiple of the alignment.
+ * Also, we combine the process of finding fit with malloc in that function
+ */
+void *mm_malloc(size_t size)
+{
+    size_t asize; /** Adjust block size */
+    size_t extendsize; /** The size need to be extended */
+    char* bp = NULL; /** Returned block pointer */
+
+    if(heap_listp == 0)
+        mm_init();
+
+    if(size <= 0)
+        return NULL;
+    /** Adjust block size to include overhead and alignment reqs */
+    /** 
+     * Enforce minimum block size of 16 bytes 
+     *     1. 8 bytes to satisfy the alignment requirement;
+     *     2. 8 bytes for the overhead of header and footer. 
+    **/
+    if(size <= DSIZE)        
+        asize = 2 * DSIZE; /** 2*DSIZE is the minimum block size */
+    /**
+     * For requests over 8 bytes:
+     * The general rule is to add in the overhead bytes
+     * and then round up to the nearest multiple of 8
+     */
+    else
+        asize = DSIZE * ( (size + (DSIZE) + (DSIZE - 1)) / DSIZE );
+
+    int list_entry_num = 0; /** Keep the track the free list entry number */
+    size_t search_size = asize; /** Keep track of the current size */
+    
+    /** 
+     *  Find the best fit for
+     *  searching the suitable free list entry and block in that free list
+    **/
+    while(list_entry_num < MAXSEGENTRY){
+        if(( (list_entry_num == MAXSEGENTRY - 1) || (search_size <= 1) ) &&
+             (SELECT_SEG_ENTRY(list_entry_num) != NULL)){
+            bp = SELECT_SEG_ENTRY(list_entry_num);
+
+            /** Search the current free list to find the suitable free block */
+            while((bp != NULL) && (GET_SIZE(HDRP(bp))) < asize)
+                bp = GET_SUCCESSOR(bp);
+            
+            /** Found the fit free block */
+            if(bp != NULL){
+                bp = place(bp,asize);
+                return bp;
+            }
+        }
+        search_size = search_size >> 1;
+        list_entry_num++;
+    }
+
+    /** None of the available free block is suitable for the requirement */
+    extendsize = MAX(asize, CHUNKSIZE);
+    if((bp = extend_heap(extendsize / WSIZE)) == NULL){
+        printf("Fail to extend heap at line %d", __LINE__);
+        return NULL;
+    }
+
+    bp = place(bp,asize);
+    /** For Debug */
+    heapchecker(0,__LINE__);
+    return bp;
+}
+```
+
+For `void *mm_realloc(void *bp, size_t size)`, most are the same, partially fine-tuning according to segregated free list:
+
+```c
+/*
+ * mm_realloc - Implemented simply in terms of mm_malloc and mm_free
+ */
+void *mm_realloc(void *bp, size_t size)
+{   
+    void *new_block = bp;
+
+    /** If the bp pointer is NULL, just malloc a block with required size */
+    if (bp == NULL) { 
+        if( (bp = mm_malloc(size)) == NULL){
+            printf("Fail to call mm_malloc at line : %d\n", __LINE__);
+            return NULL;
+        }
+        return bp;
+    }
+    /** If realloc size is zero, just free the current block*/
+    if (size == 0) { 
+        mm_free(bp);
+        return NULL;
+    }
+
+    /** Add the size of Header/Footer for the required payload size */
+    if (size <= DSIZE)
+        size = 2 * DSIZE;
+    /**
+     * For requests over 8 bytes:
+     * The general rule is to add in the overhead bytes
+     * and then round up to the nearest multiple of 8
+     */
+    else
+        size = DSIZE * ( (size + (DSIZE) + (DSIZE - 1)) / DSIZE );
+
+    /** Copy the old data from the old one to the new one */
+    size_t old_size = (size_t)GET_SIZE(HDRP(bp));
+    if(old_size >= size)
+        return bp;
+
+    /** 
+     * Otherwise, to check whether 
+     * the size of combining the current old block the next adjacency block
+     * can meet the requirment if the next adjacency is freed.
+     * in order to increase the usage of free block
+     */
+
+    /** Get the allocate condition for the next block */
+    size_t next_alloc = GET_ALLOC(HDRP(NEXT_BLKP(bp)));
+    size_t next_blk_size = GET_SIZE(HDRP(NEXT_BLKP(bp)));
+    
+
+    /**
+     * When next block is free and
+     * the size of two block is greater than or equal the required size,
+     * then just combine this two block
+     */    
+    if ((!next_alloc || !next_blk_size) && ((old_size + next_blk_size) >= size)){
+
+        delete_node(NEXT_BLKP(bp));
+        PUT(HDRP(bp), PACK(old_size + next_blk_size, 1));
+        PUT(FTRP(bp), PACK(old_size + next_blk_size, 1));
+        return bp;
+    } 
+    
+    /** Otherwise, allocate newly one */
+    if((new_block = mm_malloc(size)) == NULL){
+        /** Fail to allocate */ 
+        printf("Fail to call mm_malloc at line : %d\n", __LINE__);
+        return NULL;
+    }
+
+     /** Copy the contend of the old block */
+    memcpy(new_block, bp, size);
+    /** Free the old block */
+    mm_free(bp);
+    /** For Debug */
+    heapchecker(0, __LINE__);
+    /** Return new block */
+    return new_block;
+    
+}
+```
+
+For `void insert_node(void* bp, size_t size)`, because of I think the size order in each free list should be from the smaller block to the bigger one rather than using LIFO strategy. We need to make insertion meet such requirment:
+
+```c
+/** 
+ *  For every insertion, it maintains the free list in the size order
+ *  from smaller size to the larger size.
+ */
+__attribute__((always_inline)) static inline void insert_node(void* bp, size_t size){
+
+#ifdef DEBUG
+    assert(bp != NULL);
+#endif
+    int list_entry_num = 0; /** Keep the track the free list entry number */
+    void* insert_ptr = bp; /* The new block will be inserted after this pointer */
+    void* next_ptr = NULL; /** Keep track of the next pointer the insert_prt */
+
+    /** Select the suitable free list */
+    while((list_entry_num < (MAXSEGENTRY - 1) ) && (size > 1)){
+        size = size >> 1;
+        list_entry_num  ++;
+    }
+
+    insert_ptr = SELECT_SEG_ENTRY(list_entry_num);
+    if(insert_ptr != NULL)
+        next_ptr = GET_SUCCESSOR(insert_ptr);
+    else
+        next_ptr = NULL;
+    /* We keep the size order for each free list from the smaller size to the bigger size */
+    while((insert_ptr != NULL) && (GET_SIZE(HDRP(insert_ptr)) < size)){
+        insert_ptr = next_ptr;
+        next_ptr = GET_SUCCESSOR(next_ptr);
+    }
+
+    if(insert_ptr != NULL){
+        /** 
+         * Insert the new block at the middle of the current free list:
+         *      seg_free_listp[list_entry_num] -> ... -> insert_ptr -> bp -> next_ptr -> ... -> NULL
+        */
+        if(next_ptr != NULL){
+            GET_PREDECESSOR(bp) = insert_ptr;
+            GET_SUCCESSOR(insert_ptr) = bp;
+            GET_SUCCESSOR(bp) = next_ptr;
+            GET_PREDECESSOR(next_ptr) = bp;
+        }
+        /**
+         * Insert the new block at the end of the current free list:
+         *       seg_free_listp[list_entry_num] -> ... -> insert_ptr -> bp -> NULL(next_ptr)
+         */
+        else{
+            GET_PREDECESSOR(bp) = insert_ptr;
+            GET_SUCCESSOR(insert_ptr) = bp;
+            GET_SUCCESSOR(bp) = NULL;
+        }
+    }else{
+        /**
+         * Insert the new block at beginning of the free list;
+         * And also there still have other free blocks:
+         *      seg_free_listp[list_entry_num](insert_ptr(NULL)) -> bp -> next_ptr -> ... -> NULL
+         */
+        if(next_ptr != NULL){
+            GET_PREDECESSOR(bp) = NULL;
+            GET_SUCCESSOR(bp) = next_ptr;
+            GET_PREDECESSOR(next_ptr) = bp;
+            SELECT_SEG_ENTRY(list_entry_num) = bp;
+        }
+        /**
+         * The current free list is empty:
+         *      seg_free_listp[list_entry_num](insert_ptr(NULL)) -> bp -> NULL(next_ptr)
+         */
+        else{
+            GET_PREDECESSOR(bp) = NULL;
+            GET_SUCCESSOR(bp) = NULL;
+            SELECT_SEG_ENTRY(list_entry_num) = bp;
+        }
+    }
+}
+
+```
+
+Just like  `void insert_node(void* bp, size_t size)`, `void delete_node(void* bp)` should also meet the requirment above:
+
+```c
+/**
+ * Remove the first element of the free list
+ * which is the latest inserted one
+**/
+__attribute__((always_inline)) static inline void delete_node(void* bp){
+
+#ifdef DEBUG
+    assert(bp != NULL);
+#endif
+
+    int list_entry_num = 0; /** Keep the track the free list entry number */
+    size_t size = GET_SIZE(HDRP(bp));
+
+    /** Select the suitable free list */
+    while((list_entry_num < (MAXSEGENTRY - 1) ) && (size > 1)){
+        size = size >> 1;
+        list_entry_num  ++;
+    }
+
+    /** Just like insertion, we also need to separate deletion in separate situation */
+    if(GET_PREDECESSOR(bp) != NULL){
+        /**
+         * Before: 
+         *  seg_free_listp[list_entry_num] -> ... -> predecessor -> bp -> successor -> ... -> NULL
+         * After: 
+         *  seg_free_listp[list_entry_num] -> ... -> predecessor -> successor -> ... -> NULL
+         */
+        if(GET_SUCCESSOR(bp) != NULL){
+            GET_SUCCESSOR(GET_PREDECESSOR(bp)) = GET_SUCCESSOR(bp);
+            GET_PREDECESSOR(GET_SUCCESSOR(bp)) = GET_PREDECESSOR(bp);
+        }
+        /**
+         * Before: 
+         *  seg_free_listp[list_entry_num] -> ... -> predecessor -> bp -> NULL
+         * After: 
+         *  seg_free_listp[list_entry_num] -> ... -> predecessor -> NULL
+         */
+        else{
+            GET_SUCCESSOR(GET_PREDECESSOR(bp)) = NULL;
+        }
+    }else{
+        /**
+         * Before: 
+         *  seg_free_listp[list_entry_num] -> bp -> successor -> ... -> NULL
+         * After: 
+         *  seg_free_listp[list_entry_num] -> successor -> ... -> NULL
+         */
+        if(GET_SUCCESSOR(bp) != NULL){
+            SELECT_SEG_ENTRY(list_entry_num) = GET_SUCCESSOR(bp);
+            GET_PREDECESSOR(GET_SUCCESSOR(bp)) = NULL;
+        }
+        /**
+         * Before: 
+         *  seg_free_listp[list_entry_num] -> bp -> NULL
+         * After: 
+         *  seg_free_listp[list_entry_num] -> NULL
+         */
+        else{
+            SELECT_SEG_ENTRY(list_entry_num) = NULL;
+        }
+    }
+}
+```
+
+#### Compile the code of segregated free list
+
+Just simply enter `make` to compile the code contain the segregated free list, cause we put the segregated free list in the default `mm.c`
+
+```bash
+➜  ~/cmu-15-213-CSAPP3E-lab/6.Malloc_lab/malloclab-handout make clean   
+rm -f *~ *.o mdriver explicit gmon.out
+➜  ~/cmu-15-213-CSAPP3E-lab/6.Malloc_lab/malloclab-handout make      
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter   -c -o mdriver.o mdriver.c
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter   -c -o mm.o mm.c
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter   -c -o memlib.o memlib.c
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter   -c -o fsecs.o fsecs.c
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter   -c -o fcyc.o fcyc.c
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter   -c -o clock.o clock.c
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter   -c -o ftimer.o ftimer.c
+gcc -ggdb -Wall -Werror -O2 -m32 -std=gnu99 -Wno-unused-function -Wno-unused-parameter -o mdriver mdriver.o mm.o memlib.o fsecs.o fcyc.o clock.o ftimer.o
+```
+
+####Test Result
+
+```bash
+➜  ~/cmu-15-213-CSAPP3E-lab/6.Malloc_lab/malloclab-handout ./mdriver -v
+Team Name:Self-study
+Member 1 :Wufangjie Ma:mwfj0215@gmail.com
+Using default tracefiles in /home/mwfj/cmu-15-213-CSAPP3E-lab/6.Malloc_lab/malloclab-handout/traces/
+Measuring performance with gettimeofday().
+
+Results for mm malloc:
+trace  valid  util     ops      secs  Kops
+ 0       yes   99%    5694  0.000775  7350
+ 1       yes   99%    5848  0.000303 19281
+ 2       yes   99%    6648  0.000342 19444
+ 3       yes   99%    5380  0.000260 20661
+ 4       yes   98%   14400  0.000381 37805
+ 5       yes   93%    4800  0.000398 12069
+ 6       yes   91%    4800  0.000408 11773
+ 7       yes   95%   12000  0.000333 36047
+ 8       yes   88%   24000  0.000595 40363
+ 9       yes   79%   14401  0.000250 57512
+10       yes   75%   14401  0.000195 73965
+Total          92%  112372  0.004239 26508
+
+Perf index = 55 (util) + 40 (thru) = 95/100
+
+```
+
+
 
 ## Reference
 
