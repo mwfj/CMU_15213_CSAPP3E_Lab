@@ -2028,3 +2028,5 @@ Perf index = 55 (util) + 40 (thru) = 95/100
 [[8] CS:APP3e 深入理解计算机系统_3e MallocLab实验(In Chinese)](https://www.cnblogs.com/liqiuhao/p/8252373.html)
 
 [[9] sally20921/malloclab](https://github.com/sally20921/malloclab/blob/master/malloclab-handout/src/mm.c)
+
+[[10] trace files](https://github.com/lsw8075/malloc-lab/tree/master/traces)
