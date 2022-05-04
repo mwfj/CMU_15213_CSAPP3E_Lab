@@ -154,7 +154,7 @@ team_t team = {
 /** Equal to *(char **) SUCC_PTR(bp) */
 #define GET_SUCCESSOR(bp)       (GET_LIST_PTR(SUCC_PTR(bp)))
 
-/** Segregate Free List */
+/** Segregated Free List */
 #define SELECT_SEG_ENTRY(i)     (*(seg_free_listp + i))
 #define MAXSEGENTRY 16
 
@@ -177,10 +177,11 @@ __attribute__((always_inline)) static inline void *place(void* bp, size_t asize)
 
 /**
  *
- * Segregate Free List: The block size in each free list is from the smaller to bigger
+ * Segregated Free List: The block size in each free list is from the smaller to bigger
  * 
- *         Headers:Round Down Size       In each free list, blocksize:  smaller --> bigger
+ *         Headers:Round Down Size       In each free list, blocksize:  smaller ==> bigger
  * 
+ *                         Header
  * seg_free_listp     ==> +------+       +----+     +----+     +----+             +----+
  *                        | 2^0  |  ===> |    | --> |    | --> |    | --> ... --> |    | --> NULL
  *                        +------+       +----+     +----+     +----+             +----+
@@ -194,9 +195,9 @@ __attribute__((always_inline)) static inline void *place(void* bp, size_t asize)
  *                        | 2^3  |  ===> |    | --> |    | --> |    | --> ... --> |    | --> NULL
  *                        +------+       +----+     +----+     +----+             +----+
  * 
- *       ...                 ...          ...        ...        ...       ...      ...
- *       ...                 ...          ...        ...        ...       ...      ...
- *       ...                 ...          ...        ...        ...       ...      ...
+ *       ...                ...           ...        ...        ...       ...      ...
+ *       ...                ...           ...        ...        ...       ...      ...
+ *       ...                ...           ...        ...        ...       ...      ...
  * 
  * seg_free_listp +15 ==> +------+       +----+     +----+     +----+             +----+
  *                        | 2^15 |  ===> |    | --> |    | --> |    | --> ... --> |    | --> NULL
@@ -217,7 +218,7 @@ __attribute__((always_inline)) static inline void *place(void* bp, size_t asize)
  */
 int mm_init(void)
 {
-    /** Initialize the Segregate free list */
+    /** Initialize the Segregated free list */
     if((seg_free_listp = mem_sbrk(MAXSEGENTRY * sizeof(void*))) == (void*)(-1))
         return -1;
 
@@ -265,6 +266,7 @@ int mm_init(void)
 /* 
  * mm_malloc - Allocate a block by incrementing the brk pointer.
  *     Always allocate a block whose size is a multiple of the alignment.
+ * Also, we combine the process of finding fit with malloc in that function
  */
 void *mm_malloc(size_t size)
 {
@@ -296,21 +298,23 @@ void *mm_malloc(size_t size)
     int list_entry_num = 0; /** Keep the track the free list entry number */
     size_t search_size = asize; /** Keep track of the current size */
     
-    /** Search Segregate Free List to search the suitable free list entry */
+    /** 
+     *  Find the best fit for
+     *  searching the suitable free list entry and block in that free list
+    **/
     while(list_entry_num < MAXSEGENTRY){
         if(( (list_entry_num == MAXSEGENTRY - 1) || (search_size <= 1) ) &&
              (SELECT_SEG_ENTRY(list_entry_num) != NULL)){
             bp = SELECT_SEG_ENTRY(list_entry_num);
-            // printf("bp : %p\n", bp);
+
             /** Search the current free list to find the suitable free block */
             while((bp != NULL) && (GET_SIZE(HDRP(bp))) < asize)
                 bp = GET_SUCCESSOR(bp);
             
-            /** Found the block */
+            /** Found the fit free block */
             if(bp != NULL){
                 bp = place(bp,asize);
                 return bp;
-                // break;
             }
         }
         search_size = search_size >> 1;
@@ -367,39 +371,53 @@ void *mm_realloc(void *bp, size_t size)
 {   
     void *new_block = bp;
 
-    if (bp == NULL) { //the call is equivalent to mm_malloc(size)
+    /** If the bp pointer is NULL, just malloc a block with required size */
+    if (bp == NULL) { 
         if( (bp = mm_malloc(size)) == NULL){
             printf("Fail to call mm_malloc at line : %d\n", __LINE__);
             return NULL;
         }
         return bp;
     }
-    if (size == 0) { //the call is equivalent to mm_free(ptr)
+    /** If realloc size is zero, just free the current block*/
+    if (size == 0) { 
         mm_free(bp);
         return NULL;
     }
 
-    //to satisfy alignment
-    if (size <= DSIZE){
+    /** Add the size of Header/Footer for the required payload size */
+    if (size <= DSIZE)
         size = 2 * DSIZE;
-    }
-    else{
-        // size = ALIGN(size + DSIZE);
+    /**
+     * For requests over 8 bytes:
+     * The general rule is to add in the overhead bytes
+     * and then round up to the nearest multiple of 8
+     */
+    else
         size = DSIZE * ( (size + (DSIZE) + (DSIZE - 1)) / DSIZE );
-    }
 
-    //old block size is bigger
-    //I think just return the original block
+    /** Copy the old data from the old one to the new one */
     size_t old_size = (size_t)GET_SIZE(HDRP(bp));
-    if(old_size >= size){
+    if(old_size >= size)
         return bp;
-    }
+
+    /** 
+     * Otherwise, to check whether 
+     * the size of combining the current old block the next adjacency block
+     * can meet the requirment if the next adjacency is freed.
+     * in order to increase the usage of free block
+     */
+
+    /** Get the allocate condition for the next block */
     size_t next_alloc = GET_ALLOC(HDRP(NEXT_BLKP(bp)));
     size_t next_blk_size = GET_SIZE(HDRP(NEXT_BLKP(bp)));
     
 
-    //new block size is bigger and next block is not allocated
-    //use adjacent block to minimize external fragmentation     
+    /**
+     * When next block is free and
+     * the size of two block is greater than or equal the required size,
+     * then just combine this two block
+     */    
     if ((!next_alloc || !next_blk_size) && ((old_size + next_blk_size) >= size)){
 
         delete_node(NEXT_BLKP(bp));
@@ -407,18 +425,21 @@ void *mm_realloc(void *bp, size_t size)
         PUT(FTRP(bp), PACK(old_size + next_blk_size, 1));
         return bp;
     } 
-    //in this case where new block's size is bigger
-    //but we cannot use adjacent block, address will be different 
+    
+    /** Otherwise, allocate newly one */
     if((new_block = mm_malloc(size)) == NULL){
         /** Fail to allocate */ 
         printf("Fail to call mm_malloc at line : %d\n", __LINE__);
         return NULL;
     }
 
-    // memcpy(new_block, bp, GET_SIZE(HDRP(bp)));
+     /** Copy the contend of the old block */
     memcpy(new_block, bp, size);
+    /** Free the old block */
     mm_free(bp);
-
+    /** For Debug */
+    heapchecker(0, __LINE__);
+    /** Return new block */
     return new_block;
     
 }
@@ -515,8 +536,9 @@ static void* coalesce(void* bp){
     return bp;
 }
 
-/** Maintain the free list in last-in-first-out(LIFO) strategy by
- *  inserting and removing the newly free block
+/** 
+ *  For every insertion, it maintains the free list in the size order
+ *  from smaller size to the larger size.
  */
 __attribute__((always_inline)) static inline void insert_node(void* bp, size_t size){
 
@@ -666,6 +688,9 @@ __attribute__((always_inline)) static inline void *place(void *bp, size_t asize)
     /** Delete pointer from the free list */
     delete_node(bp);
     
+    /** The current block don't need to be splited
+     *  Use this block directly
+     */
     if(remaining_size <= 2 * DSIZE){
         /** 
          * Mark the old block pointer as allocated 
@@ -673,22 +698,46 @@ __attribute__((always_inline)) static inline void *place(void *bp, size_t asize)
         **/
         PUT(HDRP(bp), PACK(block_size, 1));
         PUT(FTRP(bp), PACK(block_size, 1));
-    }else if(asize >= 96){
+    }
+    /** The current block can be splitted
+     *  if the remain block meet the requirement of the minimum block size
+     *  after it allocates the space to the block we need 
+    **/
+    else if(asize >= 96){
+    /**
+     * 96 is empirical size. 
+     *
+     * This part of code inspired by this link: 
+     * https://github.com/sally20921/malloclab/blob/master/malloclab-handout/src/mm.c#:~:text=else%20if%20(-,asize%20%3E%3D%2096,-)%20%7B
+     * 
+     * In binary-bal.rep, binary2-bal.rep, if the free block follow the order of
+     * small - big(Freed) - small - big(Freed) - small ... the external fragmentation may occured.
+     * Thus, in here, to avoid such circumstance, 
+     * I'm trying to make the smaller blocks to be in a relatively forward position 
+     * and the larger blocks to be in a relatively backward position
+     * in order to minimize the external fragmentation:
+     * small - small - small - big(Freed) - big(Free)
+     * 
+     */
         PUT(HDRP(bp), PACK(remaining_size, 0));
         PUT(FTRP(bp), PACK(remaining_size, 0));
         // PUT(HDRP(bp), PACK(asize, 1));
         // PUT(FTRP(bp), PACK(asize, 1));
         PUT(HDRP(NEXT_BLKP(bp)), PACK(asize, 1));
         PUT(FTRP(NEXT_BLKP(bp)), PACK(asize, 1));
+        /** 
+         *  Insert it into the free list
+         *  And coalesce it with adjacency free blocks
+         */
         coalesce(bp);
-        // insert_node(bp, remaining_size);
         return NEXT_BLKP(bp);
-    }else{
+    }
+    /** Do the normal split */
+    else{
         /** Mark the old block pointer as allocated */
         PUT(HDRP(bp), PACK(asize, 1));
         PUT(FTRP(bp), PACK(asize, 1));
         /** Update the pointer to the newly free block after split */
-        // bp = NEXT_BLKP(bp);
         /** Update the header/footer of the newly free block */
         PUT(HDRP(NEXT_BLKP(bp)), PACK(remaining_size, 0));
         PUT(FTRP(NEXT_BLKP(bp)), PACK(remaining_size, 0));
@@ -778,9 +827,12 @@ static void checkheap(int verbose, int lineno){
             if (GET_ALLOC(HDRP(bp))) {
                 printf("An Allocated Block exist in the free list, addr: %p\n", (char*)bp);
             }
+            /** check correction of that block */
             checkblock(bp);
+            /** Go to the next block */
             bp = GET_SUCCESSOR(bp);
         }
+        /** Move to the next free list */
         list_entry_num ++;
     }
 
