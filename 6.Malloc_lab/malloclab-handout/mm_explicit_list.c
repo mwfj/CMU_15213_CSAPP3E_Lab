@@ -396,7 +396,7 @@ void *mm_realloc(void *bp, size_t size)
     /** Split the block */
     place(newbp, size);
     /** Copy the contend of the old block */
-    memcpy(newbp,bp,size);
+    memcpy(newbp,bp,MIN(size, old_size));
 
     /** Free the old block */
     mm_free(bp);
