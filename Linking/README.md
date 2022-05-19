@@ -584,6 +584,10 @@ __ __ __ __ | __ __ __ __ (each "__" represent 1 binary bit)
 
 <p align="center">This figure comes from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/13-linking.pdf">cmu-213 slide</a></p>
 
+<p align="center"><img src="./pic/process_memory_address_space_layout.jpeg" /></p>
+
+<p align="center">This figure comes from this artical <a href = "https://manybutfinite.com/post/anatomy-of-a-program-in-memory">Anatomy of a Program in Memory</a></p>
+
 + The `ELF header `describes the overall format of the file. It also includes the program's ***entry point***, which is the address of the first instruction to execute when the program runs.
 + The `.text`, `.rodata` and `.data` section are relocated to eventual run-time memory address
 + The `.init `section defines a small function, called `_init`, that will be called by program's initialization code.
@@ -686,6 +690,7 @@ Figure 7.19(b) shows the control flow for any subsequent invocations of `addvec`
 
 + **Procedure Linkage Table(PLT)** used to call external procedures/functions whose address isn't known in the time of linking, and is left to be **resolved by the dynamic linker at run time**.
 + **Global Offsets Table(GOT)** and is similarly used to resolve addresses. Both PLT and GOT and other relocation information is explained in greater length in [this article](http://www.technovelty.org/linux/plt-and-got-the-key-to-code-sharing-and-dynamic-libraries.html).
++ For memory address space layout, see [this stackoverflow answer](https://stackoverflow.com/questions/32746996/how-linux-process-address-space-is-stored#:~:text=After%20compiling%20this%20program%20with%20gcc%2C%20we%20get%20an%20executable%20file%20(ELF%20format)%20a.out.%20If%20we%20analyze%20the%20dependencies%20this%20very%20simple%20program%20have%20by%20running%20ldd%20we%20find%3A) and [Anatomy of a Program in Memory](https://manybutfinite.com/post/anatomy-of-a-program-in-memory/)
 
 #### [[extra thought]What is the difference between .got and .got.plt section?](https://stackoverflow.com/questions/11676472/what-is-the-difference-between-got-and-got-plt-section)
 
