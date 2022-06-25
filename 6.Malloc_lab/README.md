@@ -343,7 +343,7 @@ The Core-i7 uses a **four-level page** table hierarchy. Each process has its own
 
   + P1 portion of the address is used to index into the topmost page directory, and the translation proceeds from there, one level at a time, until the actual page of the page table is indexed by P4, yielding the desired page table entry.
 
-  ![virtual_mem_layout](./pic/virtual_mem_layout.JPG)
+  ![virtual_mem_layout](./pic/virtual_mem_layout.jpg)
 
 In summary, when we do the cache lookups,  the cache does the lookup using the the physical address, where it takes the index bits to identify set and uses the tag to see if there is a match. If there is, we have a cache hit, which returns the resulting word back to the CPU. Otherwise, there has a cache miss, so the cache request the data from the L2, L3, main memory or even disk.   
 
@@ -919,8 +919,6 @@ Originally, there is one block of size `2ᵐ` words. **To allocate a block** of 
 + Each **remaining half(known as buddy)** is placed on the appropriate free list.
 
 To **free** a block of size `2ᵏ`. we continue coalescing with the free buddies. When **we encounter an allocated buddy, we stop the coalescing**.
-
-
 
 + The **advantage** of buddy system is that
   + given the address and the size of a block, it is **easy to compute the address of its buddy**
@@ -2006,6 +2004,12 @@ Total          92%  112372  0.004239 26508
 Perf index = 55 (util) + 40 (thru) = 95/100
 
 ```
+
+
+
+### Red-Black Tree
+
+For the detail of the red-black tree, please see [this article](https://github.com/mwfj/Algorithm_practice/tree/master/Binary_Tree/red_black_tree) written by me or the book [*Introduction to Algorithms, Fourth Edition*](https://mitpress.mit.edu/books/introduction-algorithms-fourth-edition).
 
 
 
