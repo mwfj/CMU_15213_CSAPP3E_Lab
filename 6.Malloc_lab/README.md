@@ -1569,7 +1569,7 @@ Here is the structure of my segregated free list design:
 **/
 ```
 
-For each free list, the block size in each free list is from the smaller to bigger and also we search the block from left to right.
+For each free list, the block size is from the smaller to bigger and also we search the block from left to right.
 
 + **Note that** we exclude all `realloc*.rep` in here,  cause it is not the one-time allocated, though there have even more bigger allocated byte in these excluded files.
 
@@ -1594,9 +1594,9 @@ For the code perspective, some code logic is exactly same as what we did in expl
 
 + `mm_free()`
 
-+  `coalesce(void* *bp*)`
++  `coalesce(void* bp)`
 
-+  `extend_heap(size_t *words*)`.
++  `extend_heap(size_t words)`.
 
   
 
@@ -1654,7 +1654,7 @@ int mm_init(void)
 }
 ```
 
-For `void *mm_malloc(size_t *size*)`, we add the process of finding fit block in this function. Thus, there is no `find_fit` function in my program:
+For `void *mm_malloc(size_t size)`, we add the process of finding fit block in this function. Thus, there is no `find_fit` function in my program:
 
 ```c
 /* 
