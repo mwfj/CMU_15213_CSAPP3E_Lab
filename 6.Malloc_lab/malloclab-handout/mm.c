@@ -254,7 +254,7 @@ int mm_init(void)
      *  storing the regular block
      *  After several tests, it can bring the highest score when the initial block size is 64 bytes.
      */
-    if (extend_heap((1 << 6) / DSIZE) == NULL){
+    if (extend_heap((1 << 5) / WSIZE) == NULL){
         printf("Fail to extend heap at line %d", __LINE__);
         return -1;
     }

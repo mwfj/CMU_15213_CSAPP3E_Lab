@@ -239,7 +239,7 @@ int mm_init(void)
      *  storing the regular block
      *  After several tests, it can bring the highest score when the initial block size is 64 bytes.
      */
-    if (extend_heap((1 << 6) / DSIZE) == NULL)
+    if (extend_heap((1 << 5) / WSIZE) == NULL)
         return -1;
     /** For Debug */
     heapchecker(0, __LINE__);
