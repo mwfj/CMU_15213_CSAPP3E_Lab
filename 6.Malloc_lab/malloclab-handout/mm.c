@@ -469,6 +469,8 @@ static void* extend_heap(size_t words){
 
     /** Initialize free block header/footer and the epilogue header */
     PUT(HDRP(bp), PACK(size, 0)); /** Free Block Header */
+    GET_PREDECESSOR(bp) = NULL; /** Predecessor */
+    GET_SUCCESSOR(bp) = NULL; /** Successor */
     PUT(FTRP(bp), PACK(size, 0)); /** Free Footer Header */
     PUT(HDRP(NEXT_BLKP(bp)), PACK(0,1)); /** New Epilogue Header */
 
