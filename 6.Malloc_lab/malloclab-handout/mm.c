@@ -532,7 +532,10 @@ static void* coalesce(void* bp){
         /** Update the footer of footer block */
         PUT(FTRP(NEXT_BLKP(bp)), PACK(size, 0));
         bp = PREV_BLKP(bp);
+
     }
+    GET_PREDECESSOR(bp) = NULL;
+    GET_SUCCESSOR(bp) = NULL;
     /** Insert the newly coalesce block into free list */
     insert_node(bp, size);
     return bp;
@@ -722,6 +725,8 @@ __attribute__((always_inline)) static inline void *place(void *bp, size_t asize)
      * 
      */
         PUT(HDRP(bp), PACK(remaining_size, 0));
+        GET_PREDECESSOR(bp) = NULL;
+        GET_SUCCESSOR(bp) = NULL;
         PUT(FTRP(bp), PACK(remaining_size, 0));
         // PUT(HDRP(bp), PACK(asize, 1));
         // PUT(FTRP(bp), PACK(asize, 1));
@@ -742,6 +747,8 @@ __attribute__((always_inline)) static inline void *place(void *bp, size_t asize)
         /** Update the pointer to the newly free block after split */
         /** Update the header/footer of the newly free block */
         PUT(HDRP(NEXT_BLKP(bp)), PACK(remaining_size, 0));
+        GET_PREDECESSOR(NEXT_BLKP(bp)) = NULL;
+        GET_SUCCESSOR(NEXT_BLKP(bp)) = NULL;
         PUT(FTRP(NEXT_BLKP(bp)), PACK(remaining_size, 0));
         /** 
          *  Insert it into the free list
