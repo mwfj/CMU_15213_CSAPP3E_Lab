@@ -2034,3 +2034,22 @@ malloc lab finished
 [[9] sally20921/malloclab](https://github.com/sally20921/malloclab/blob/master/malloclab-handout/src/mm.c)
 
 [[10] trace files](https://github.com/lsw8075/malloc-lab/tree/master/traces)
+
+[[11] rb tree reference link1](https://github.com/csehydrogen/malloclab/blob/master/mm.c)
+
+[[12] rb tree reference link2](https://github.com/pgoodman/csc369/blob/master/malloclab/grade/handin/mm-tree.c)
+
+[[13] rb tree reference link3](https://github.com/DeleteMemoryyy/Ubuntu/blob/9614f42f2386e3e484ed40e6771d40aae4ea4b57/ICS/Lab7-MallocLab/malloclab-handout/mm.c)
+
+[[14] rb tree reference link4](https://github.com/liuq19/CSAPP-Labs/blob/930758fb625c732141e9768e0fe8667af7546e86/malloclab/mm.c)
+
+[[15] rb tree reference link5](https://github.com/hyunjinjeong/snu-cse-courses-material/blob/a904318c9a314a39d5796fd6ac0635034f773638/System%20Programming%2C%20Spring%202015/labs/3.%20Malloc/mm.c)
+
+[[16] rb tree reference link6](https://github.com/Halbmond/Introduction-to-Computer-Systems/blob/7ef36614753af2bd6906137ff5692b75dfc78b81/labs/malloclab/malloclab-handout/mm.c)
+
+[[17] aa tree reference link](https://github.com/yangzhixuan/malloclab/blob/6ff227c25457cd2c4ca2ced16aa8fd53e9412517/mm-aa.c)
+
+[[18] BST reference link](https://github.com/xmanswer/Computer-Systems-Labs/blob/71df19bf49a4f13740416864c5d455beb15bde4a/lab6/malloclab-handout/mm.c)
+
+
+
