@@ -46,11 +46,106 @@ This elegant mapping of files allows the Linux kernel to export a simple, low-le
 
 An application announces its intention to access an I/O by asking the kernel to open the corresponding file.
 
+The `open` function converts a `filename` to a file descriptor and returns the descriptor number, the descriptor returned always the smallest descriptor that is not currently open in the process, where `fd = open(pathname, flags, mode)` opens the file identified by pathname, returning a file descriptor used to refer to the open file in subsequent calls. (If the `pathname` is symbolic link, it is dereferenced)
+
 The kernel returns ***file descriptor***, that identifies the file in all subsequent operations on the file. 
 
 + The kernel keeps track of all information about the open file. 
 + The application only keeps track of the descriptor
 
-Each process created by a Linux shell begins life
+```c
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<fcntl.h>
 
-fd = open(pathname, flags, mode) opens the file identified by pathname, returning a file descriptor used to refer to the open file in subsequent calls.
+int open(char *filename, int flags, mode_t mode); // return new descriptor if OK, -1 otherwise
+```
+
+Each process created by a Linux shell begins life with three open files:
+
++ standard input (descriptor 0) (STDIN_ FILENO in `<unistd.h>`)
++ standard output (descriptor 1) (STDOUT_FILENO in `<unistd.h>`)
++ standard error (descriptor 2) (STDERR_FILENO in `<unistd.h>`)
+
+#### Flags
+
+The `flags` argument can also be bit-wise  **ORed**(|) in flags with one or more bits masks that provide additional instructions
+
+The table below divided into the following groups:
+
++ ***File access mode flags***: There are the flags like O_RDONLY, O_WRONLY, O_RDWR flags, where they can be retrieved using `fcntl()` F_GETFL operation.
+
++ ***File creation flags:*** These are the flags shown in the second part of the table below, where they control various aspects of the behavior of the `open()` call, as well as options for subsequent I/O operations. These flags cannot be retrieved or changed
++ ***Open file status flags:*** There are the remaining flags in the table below, where they can be retrieved and modified using the `fcntl()` F_GETFL and F_SETFL operations.
+
+<p align="center"> <img src="./pic/flag_bit_in_open.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Values of the flags argument of open() <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 4</p>
+
+#### Mode Argument
+
+The mode(`st_mode `in `stat `structure) argument specifies the access permission bit of new files. As part of its context, each process has a `umask` that is set by calling the unmask function. The first 3 of these bits are special bits known as the **set-user-ID**, **set-group-ID**, and **sticky bits**(labeled U, G, and T commonly)
+
+The remaining 9 bits form the mask defining the permission that are granted to various categories of users accessing the file. The file permission maks divideds the world into three categories:
+
++ ***Owner***(also known as ***user***): The permissions granted the owner of the file;
++ ***Group***: The permission granted to user who are members of the file's group
++ ***Other***: The permission granted to everyone else
+
+Three permission may be granted to each user category:
+
++ ***Read***: The content of the file may be read
++ ***Write***: The content of the file may be changed
++ ***Execute***: The file may be executerd(i.e. it is a program or a script). In order to execute a script file, **both read and execute permission are required**.
+
+The permission and ownership of a file can be viewed using the command `ls -l`, as in the following example:
+
+<p align="center"> <img src="./pic/file_permission_in_ls_command.png" alt="cow" style="zoom:100%;"/> </p>
+
+The `<sys/stat.h>` header file defines constants that can be **ANDed (&)** with `st_mode `of the `stat `structure, in order to **check whether particular permission bits are set.** (These constants are also defined via the inclusion of `<fcntl.h>`, which prototypes the `open()` system call.)
+
+| Constant                            | Octal Value               | Permission Bit                                 | Description                                                  |
+| :---------------------------------- | :------------------------ | ---------------------------------------------- | :----------------------------------------------------------- |
+| S_ISUID <br />S_ISGID <br />S_ISVTX | 04000<br/>02000<br/>01000 | Set-user-ID<br />Set-group-ID<br />Sticky      | This is the set-user-ID on execute bit<br />This is the set-group-ID on execute bit<br />This is the *sticky* bit. |
+| S_IRUSR<br />S_IWUSR<br />S_IXUSR   | 0400<br/>0200<br/>0100    | User-read<br />User-write<br />User-execute    | User (owner) can read this ﬁle<br />User (owner) can write this ﬁle<br />User (owner) can execute this ﬁle |
+| S_IRGRP<br />S_IWGRP<br />S_IXGRP   | 040<br/>020<br/>010       | Group-read<br />Group-write<br />Group-execute | Members of the owner’s group can read this ﬁle<br />Members of the owner’s group can write this ﬁle<br />Members of the owner’s group can execute this ﬁle |
+| S_IROTH<br />S_IWOTH<br />S_IXOTH   | 04<br/>02<br/>01          | Other-read<br />Other-write<br />Other-execute | Others (anyone) can read this ﬁle<br />Others (anyone) can write this ﬁle<br />Others (anyone) can execute this ﬁle |
+
+In addition to the mode bit shown above, **three constants** are defined to equate to **masks for all three permissions for each of the categories owner, group, and other**: `S_IRWXU (0700)`, `S_IRWXG (070)`, and `S_IRWXO (07)`.
+
+When a process creates a new file by calling the open function with some mode argument, then the access permission bits of the file are set to `mode & ~umask`. For example, suppose we  are given the following  default values for `mode` and  `umask`:
+
+```c
+#define DEF_MODE  S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH 
+#define DEF_UMASK S_IWGRP|S_IWOTH
+```
+
+Then the following code fragment creates a new file in which the owner of the file has read and write permission, and all other users have read permissions:
+
+```c
+umask(DEF_UMAKE)
+fd = Open("foo.txt", O_CREAT|O_TRUNC|O_WRONLY, DEF_MODE);
+```
+
+When `open()` is used to create a new file, the *mode* bit-mask argument specifies the permissions to be placed on the file. If the `open()` call doesn't specify `O_CREAT`, mode can be ommitted
+
+```c
+/* Open existing file for reading */
+fd = open("startup", O_RDONLY);
+if (fd == -1)
+	errExit("open"); 
+/* 
+ * Open new or existing file for reading and writing, truncating to zero bytes; 
+ * file permissions read+write for owner, nothing for all others 
+ */ 
+fd = open("myfile", O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+
+if (fd == -1)
+  errExit("open"); /* Open new or existing file for writing; writes should always append to end of file */ 
+
+fd = open("w.log", O_WRONLY | O_CREAT | O_TRUNC | O_APPEND, S_IRUSR | S_IWUSR);
+
+if (fd == -1)
+  errExit("open");
+```
+
