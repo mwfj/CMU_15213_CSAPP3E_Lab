@@ -155,20 +155,6 @@ The `<sys/stat.h>` header file defines constants that can be **ANDed (&)** with 
 
 In addition to the mode bit shown above, **three constants** are defined to equate to **masks for all three permissions for each of the categories owner, group, and other**: `S_IRWXU (0700)`, `S_IRWXG (070)`, and `S_IRWXO (07)`.
 
-When a process creates a new file by calling the open function with some mode argument, then the access permission bits of the file are set to `mode & ~umask`. For example, suppose we  are given the following  default values for `mode` and  `umask`:
-
-```c
-#define DEF_MODE  S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH 
-#define DEF_UMASK S_IWGRP|S_IWOTH
-```
-
-Then the following code fragment creates a new file in which the owner of the file has read and write permission, and all other users have read permissions:
-
-```c
-umask(DEF_UMAKE)
-fd = Open("foo.txt", O_CREAT|O_TRUNC|O_WRONLY, DEF_MODE);
-```
-
 When `open()` is used to create a new file, the *mode* bit-mask argument specifies the permissions to be placed on the file. If the `open()` call doesn't specify `O_CREAT`, mode can be ommitted
 
 ```c
@@ -190,4 +176,33 @@ fd = open("w.log", O_WRONLY | O_CREAT | O_TRUNC | O_APPEND, S_IRUSR | S_IWUSR);
 if (fd == -1)
   errExit("open");
 ```
+
+#### `umake( or system call umask() )`
+
+The ***umask*** is a process attribute that specifies which **permission bits should always be *turned off* when new files or directories are created by the process**. Often, **a process just uses the umask it inherits from its parent shell**, with the (usually desirable) consequence that the **user can control the umask of programs** executed from the shell using the shell built-in command umask, which changes the umask of the shell process.
+
+The initialization files for most shells **set the default umask to the octal value** `022` (`----w--w-`). This value specifies that write permission should always be turned off for group and other.
+
+The `umask()` system call changes a process’s umask to the value specified in ***mask***.
+
+```c
+#include <sys/stat.h>
+mode_t umask(mode_t mask);
+```
+
+When a process creates a new file by calling the open function with some mode argument, then the access permission bits of the file are set to `mode & ~umask`. For example, suppose we  are given the following  default values for `mode` and  `umask`:
+
+```c
+#define DEF_MODE  S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH 
+#define DEF_UMASK S_IWGRP|S_IWOTH
+```
+
+Then the following code fragment creates a new file in which the owner of the file has read and write permission, and all other users have read permissions:
+
+```c
+umask(DEF_UMAKE)
+fd = Open("foo.txt", O_CREAT|O_TRUNC|O_WRONLY, DEF_MODE);
+```
+
+**A call to `umask()` is always successful, and returns the previous umask.**
 
