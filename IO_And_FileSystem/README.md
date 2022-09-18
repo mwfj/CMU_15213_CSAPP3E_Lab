@@ -86,7 +86,49 @@ The table below divided into the following groups:
 
 The mode(`st_mode `in `stat `structure) argument specifies the access permission bit of new files. As part of its context, each process has a `umask` that is set by calling the unmask function. The first 3 of these bits are special bits known as the **set-user-ID**, **set-group-ID**, and **sticky bits**(labeled U, G, and T commonly)
 
-The remaining 9 bits form the mask defining the permission that are granted to various categories of users accessing the file. The file permission maks divideds the world into three categories:
++ **set-user-ID program:** A set-user-ID program allows a process to **gain privileges it would not normally have**, by **setting the process's effective user ID** to the same value as the user ID(owner) of the executable file; When a set-user-ID program is run, **the kernel sets the effective user ID of the process to be the same the user ID** of the executable file;
+
++ **set-group-ID program:** A set-group-ID performs the analogous task for the process's effective group ID. (**effective group ID** and **effective userID** are used to determine the permission granted to a process, normally they are the same value); When a set-group-ID program is run, **the kernel sets the effective user ID of the process to be the same the group ID** of the executable file;
+
+  For the perspective of stikcy bit, set-group-ID mainly serve two purpose:
+
+  + controlling the group ownership of new files created in a directory mounted with the `nogrpid `option
+  + enabling mandatory locking on a file
+
++ **set-user-ID program and set-group-ID program** can also designed to change the effective IDs of a process to something other than `root`
+
++ **set-user-ID bit** and **set-group-ID bit** are set using the `chmod` command 
+
+  + `chmod u+s`: turn on set-user-ID permission bit;
+  + `chmod g+s`: turn on set-group-ID permission bit.
+
++ **sticky bit**: 
+
+  + *On older UNIX implementations*, the sticky bit was provided as a way of **making commonly used programs run faster**.
+
+    +  **If the sticky bit was set on a program file**, then the first time the program was executed, a copy of the program text was **saved in the swap area**—thus **it sticks in swap, and loads faster** on subsequent executions.
+
+  + *In modern UNIX implementations (including Linux)*:
+
+    + **For directories**, the sticky bit acts as the **restricted deletion flag**. Setting this bit on a directory means that an **unprivileged process** can **unlink** (`unlink()`,` rmdir()`) and **rename** (`rename()`) files in the directory only if it has write permission on the directory and owns either the file or the directory.
+
+      This makes it possible to create a directory that is **shared by many users**, who can each **create and delete their own files in the directory but can’t delete files owned by other users**. The sticky permission bit is commonly set on the `/tmp` directory for this reason.
+
+    + **A file’s sticky permission bit** is set via the chmod command (`chmod +t file`) or via the `chmod()` system call. If the sticky bit for a file is set, `ls –l` shows a lowercase or uppercase letter T in the other-execute permission field, depending on whether the other-execute permission bit is on or off, as in the following:
+
+      ```shell
+      $ touch tfile 
+      $ ls -l tfile
+      -rw-r--r-- 1 mtk  users   0 Jun 23 14:44 tfile
+      $ chmod +t tfile 
+      $ ls -l tfile
+      -rw-r--r-T 1 mtk  users   0 Jun 23 14:44 tfile
+      $ chmod o+x tfile 
+      $ ls -l tfile
+      -rw-r--r-t 1 mtk  users   0 Jun 23 14:44 tfile
+      ```
+
+The **remaining 9 bits** form the mask defining the permission that are granted to various categories of users accessing the file. The file permission maks divideds the world into three categories:
 
 + ***Owner***(also known as ***user***): The permissions granted the owner of the file;
 + ***Group***: The permission granted to user who are members of the file's group
