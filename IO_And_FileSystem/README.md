@@ -1,6 +1,6 @@
 # File System & System I/O
 
-## File
+## 1. File
 
 Input/Output(I/O) is the process of **copying data between main memory and external device** such as disk drives, terminals and networks.
 
@@ -13,10 +13,10 @@ Each Linux file has a type that indicates its role in the system:
 
 + A ***regular file*** contains arbitrary data. Application programs often distinguish between
 
-  + **text files**: each line is a sequence of characters. A Linux text file consist of a sequence of *text lines*, where each line is a sequence of characters terminated by a `newline character('\n')`. The newline character is the same as the ASCII line feed character(LF) and has numeric value of `0x0a`;
+  + **text files**: each line is a sequence of characters. A Linux text file consist of a sequence of *text lines*, where each line is a sequence of characters terminated by a `newline character('\n')` (end of line - EOF). The newline character is the same as the ASCII line feed character(line feed - LF) and has numeric value of `0x0a`; For Windows and Internet protocols, new line character should be: `\r\n(0xd0xa)`, where its line feed should be carriage return;
   + **binary files**: everything except text file
 
-  To kernel, there no difference between text and binary files/
+  To kernel, there no difference between text and binary files.
 
 + A ***directory*** is a file consisting of an array of links, where each links maps a filename to a file, which may be another directory;
 
@@ -42,7 +42,7 @@ All I/O device, such as networks, disks, and terminals, are modeled as files, an
 
 This elegant mapping of files allows the Linux kernel to export a simple, low-level application interface, known as Unix I/O, that enables all input and output to be performed in a uniform and consisent way:
 
-### Opening Files `open()`
+### 1.1 Opening Files: `open()`
 
 An application announces its intention to access an I/O by asking the kernel to open the corresponding file.
 
@@ -67,7 +67,7 @@ Each process created by a Linux shell begins life with three open files:
 + standard output (descriptor 1) (STDOUT_FILENO in `<unistd.h>`)
 + standard error (descriptor 2) (STDERR_FILENO in `<unistd.h>`)
 
-#### Flags
+#### 1.1.1 Flags
 
 The `flags` argument can also be bit-wise  **ORed**(|) in flags with one or more bits masks that provide additional instructions
 
@@ -82,7 +82,7 @@ The table below divided into the following groups:
 
 <p align="center">Values of the flags argument of open() <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 4</p>
 
-#### Mode Argument
+#### 1.1.2 Mode Argument
 
 The mode(`st_mode `in `stat `structure) argument specifies the access permission bit of new files. As part of its context, each process has a `umask` that is set by calling the unmask function. The first 3 of these bits are special bits known as the **set-user-ID**, **set-group-ID**, and **sticky bits**(labeled U, G, and T commonly)
 
@@ -177,7 +177,7 @@ if (fd == -1)
   errExit("open");
 ```
 
-#### `umake( or system call umask() )`
+#### 1.1.3 `umake( or system call umask() )`
 
 The ***umask*** is a process attribute that specifies which **permission bits should always be *turned off* when new files or directories are created by the process**. Often, **a process just uses the umask it inherits from its parent shell**, with the (usually desirable) consequence that the **user can control the umask of programs** executed from the shell using the shell built-in command umask, which changes the umask of the shell process.
 
@@ -205,4 +205,57 @@ fd = Open("foo.txt", O_CREAT|O_TRUNC|O_WRONLY, DEF_MODE);
 ```
 
 **A call to `umask()` is always successful, and returns the previous umask.**
+
+
+
+### 1.2 File Control Operations: `fcntl()`
+
+### 1.3 Reading File: `read()`
+
+The `read` function copies at most `n` bytes from the current file position of descriptor `fd` to memory location `buf`.  
+
+```c
+#include <unistd.h> 
+ssize_t read(int fd, void *buffer, size_t count);
+```
+
+Return value:
+
++  `-1` indicates an error;
++ `0 `indicates EOF;
++ Otherwise, the return value indicates the number of  bytes taht were actually transferred.
+
+The `count` argument specifies the **maximum number of byte to read**; the `buffer` argument supplies the address of the memory buffer into which the input data is to be placed. **This buffer must be at least `count `bytes long**.
+
+A call to `read()` may read **less than the requested number of bytes**. For a regular file, the probable reason for this is that we were **close to the end of the file**. When `read()` is applied to other types of files—such as `pipes, FIFOs, sockets, or terminals`—there are also various circumstances where it may **read fewer bytes than requested**.
+
+`read()` doesn't place a terminating **null byte** at the end of the string that `printf()` is being asked to print, where `read()` can be used to read any sequence of bytes from a file. In other words, there is no way that `read()` can tell the difference between text file or the binary form.
+
+If a terminating null byte is required at the end of the input buffer, we must put it there explicitly:
+
+```c
+char buffer[MAX_READ + 1]; 
+ssize_t numRead;
+numRead = read(STDIN_FILENO, buffer, MAX_READ); 
+if (numRead == -1) 
+  errExit("read");
+buffer[numRead] = '\0';
+printf("The input data was: %s\n", buffer);
+```
+
+The reason is that **the size of buffer must be at least one greater than the largest string we expect to read**.
+
+### 1.4 Writing File: `write()`
+
+
+
+### 1.5 Changing the File Offset: `lseek()`
+
+
+
+
+
+## 2. I/O Buffer
+
+## 3. File System
 
