@@ -247,13 +247,66 @@ The reason is that **the size of buffer must be at least one greater than the la
 
 ### 1.4 Writing File: `write()`
 
+The `write` function copies at most `n` bytes from memory location `buf` to the current file position of descriptor `fd`
 
+```c
+#include <unistd.h>
+ssize_t write(int fd, void *buffer, size_t count);
+```
+
+*buffer* is the address of the data to be written; *count* is the number of bytes to write from buffer; and *fd* is a file descriptor referring to the file to which data is to be written.
+
+Return Value:
+
++ The number of bytes actually written on success, it might be less than `count`
+  + For disk file, possible reasons for such a partical writee hat are disk was filled or the process resource limit on file size was reached.
+  + For network socket, the internel buffering constriants and long network delays can cause `read/write` to return short counts.
+  + Short count also occur when you call `read/write` on a Linux pipe
+
++ Note that: when performing I/ on a disk file, a successful return from `write()` doesn't guarantee that the data has been transferred to disk, because the kernel performs **buffering of disk I/O in order to reduce disk activiry** and expedite `write()` call.
 
 ### 1.5 Changing the File Offset: `lseek()`
 
+For each open file, the kernel records a file offset, sometimes also called the read-write offset or pointer. This is the location in the file at which the next `read()` or `write()` will commence. The file offset is expressed as an ordinal byte position relative to the start of the file. The first byte of the file is at offset 0.
 
+The `lseek()` system call **adjusts the offset of the open file** referred to by the file descriptor ***fd***, according to the values specified in ***offset*** and ***whence***.
 
+```c
+#include <unistd.h>
+off_t lseek(int fd, off_t offset, int whence);
+```
 
+The `offset` argument specifies  a value **in bytes**. The `whence` argument indicates the **base point** from which offset is to be interpreted, and is one of the following values:
+
++ SEET_SET: the file offset is set ***offset*** bytes from the beginning of the file.
++ SEEK_CUR: the file offset is adjusted by offset bytes relative the the current file offset
++ SEEK_END:  the file offset is set to **the size of theh file plus offset**
+
+If `whence `is SEEK_CUR or SEEK_END, offset may be negative or positive; for SEEK_SET, offset must be nonnegative.
+
+<p align="center"> <img src="./pic/args_of_whence_in_lseek.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Interpreting the whence arguement of lseek() <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 4</p>
+
+For example:
+
+```c
+lseek(fd, 0, SEEK_SET);     /* Start of file */
+lseek(fd, 0, SEEK_END);     /* Next byte after the end of the file */
+lseek(fd, -1, SEEK_END);    /* Last byte of file */
+lseek(fd, -10, SEEK_CUR);   /* Ten bytes prior to current location */
+lseek(fd, 10000, SEEK_END); /* 10001 bytes past last byte of file */
+```
+
+Return Value:
+
++ New file offset on success
++ `-1` on error
+
+Note: 
+
++ Calling `lseek()` simply adjusts the kernel’s record of the file offset associated with a file descriptor. **It does not cause any physical device access**.
++ Applying `lseek()` to a `pipe`, `FIFO`, `socket`, or `terminal `is **not permitted;** `lseek()` fails, with errno set to ESPIPE.
 
 ## 2. I/O Buffer
 
