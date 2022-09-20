@@ -206,9 +206,63 @@ fd = Open("foo.txt", O_CREAT|O_TRUNC|O_WRONLY, DEF_MODE);
 
 **A call to `umask()` is always successful, and returns the previous umask.**
 
-
-
 ### 1.2 File Control Operations: `fcntl()`
+
+The `fcntl()` system call performs a range of control operations on an open file descriptor:
+
+```c
+#include <fcntl.h>
+int fcntl(int fd, int cmd, ...)
+```
+
+The `cmd` argument can specify a wide range of operations.
+
+As indicated by the **ellipsis( ... )**, the third argument to `fcntl()` can be of different types, or it can be omitted. The kernel uses the value of the `cmd `argument to determine the data type (if any) to expect for this argument.
+
+One usage of `fcntl` is to **retrieve or modify the access mode and open file status flags** of an open file.
+
++ To **retrieve these setting**, we specify `cmd` as F_GETFL:
+
+```c
+int flags, accessMode;
+flags = fcntl(fd, F_GETFL);     /* Third argument is not required */
+if(flags == -1)
+  errExit("fcntl");
+if(flags & O_SYNC)              /* Check if the file was opened for synchronizes write */
+  printf("write are synchronized \n");
+
+accessMode = flags & O_ACCMODE; /* To check the access mode, we mask the flags value with O_ACCMODE */
+if( accessMode == O_WRONLY || accessMode == O_RDWR )
+  printf("file is writable \n");
+```
+
++ We can use the `fcntl()` F_SETFL command to **modify some of the open file status flags**. 
+
+  + The flags that can be modified are `O_APPEND`, `O_NONBLOCK`, `O_NOATIME`, `O_ASYNC` and `O_DIRECT`.
+  + Attempts to modify other flags are ignored.
+
++ Using `fcntl()` to modify open file status flags is particularly useful in the following cases:
+
+  + The file was **not opened by the calling program**, so that **it had no control over the flags** used in the `open()` call.
+  + **The file descriptor was obtained from a system call other than `open()`**, such as `pipe()` and `socket()`
+
++ To modify the open file status flags:
+
+  +  we use `fcntl()` to retrieve a copy of the existing flags, 
+  + then modify the bits we wish to change, 
+  + and finally make a further call to `fcntl()` to update the flags;
+
+  ```c
+  /* To enable the O_APPEND flag */
+  int flags;
+  
+  flags = fcntl(fd, F_GETFL);
+  if(flags == -1)
+    errExit("fcntl");
+  flags |= O_APPEND;
+  if(fcntl(fd, F_SETFL, flags) == -1)
+    errExit("fcntl")
+  ```
 
 ### 1.3 Reading File: `read()`
 
@@ -308,7 +362,32 @@ Note:
 + Calling `lseek()` simply adjusts the kernel’s record of the file offset associated with a file descriptor. **It does not cause any physical device access**.
 + Applying `lseek()` to a `pipe`, `FIFO`, `socket`, or `terminal `is **not permitted;** `lseek()` fails, with errno set to ESPIPE.
 
+
+
+***File hole*** refers to the space between the previous end of the file and the newly written bytes. From the programming point of view, the bytes in a hole exist, and **reading from the hole returns a buffer of bytes containing 0(null byte)**. **File holes don't, however, take up any disk space**. The file system doesn't allocate any dis block for a hole until data is written into it.
+
+**The main advantage of file holes** is that a sparsely populated file consumes **less disk space than would otherwise be required** if the null bytes actually needed to be allocated in disk blocks. Most native UNIX file systems support the concept of file holes, but many nonnative file systems (e.g., Microsoft’s VFAT) do not. **On a file system that doesn’t support holes, explicit null bytes are written to the file.**
+
+The exisence of holes means that a file's nominal size may be larger than the amount of disk storage it utilizes. Writing bytes into the middle of the file holw will decrease the amount of free disk space as the kernel allocates blocks to fill the hole, even though the file's size doesn't change.
+
+### 1.6 Operation Outside the Universal I/O Model: `ioctl()`
+
+The `ioctl()` system call is a general-purpose mechanism for performing file and device operations taht fall outside the universal I/O model.
+
+```c
+#include <sys/ioctl.h>
+int ioctl(int fd, int request, .../* argp */);
+```
+
++ `fd` : open file decriptor for the device or file
++ `request` is a device-dependent request code. An `ioctl()` **request** has encoded in it whether the argument is an `in `parameter or `out `parameter, and the size of the argument argp in bytes.
++ The third argument to `ioctl()`, which we label `argp` can be of any type. The value of the request argument enables `ioctl()` to determine what type of value to expect in `argp`. Typically, `argp` is a pointer to either an integer or a structure; in some case, it is unused.
+
+
+
 ## 2. I/O Buffer
 
-## 3. File System
+##  3. Nonblocking I/O
+
+## 4. File System
 
