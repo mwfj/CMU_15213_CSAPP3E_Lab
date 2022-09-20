@@ -1,6 +1,6 @@
 # File System & System I/O
 
-## 1. File
+## 1. File Basic
 
 Input/Output(I/O) is the process of **copying data between main memory and external device** such as disk drives, terminals and networks.
 
