@@ -86,6 +86,10 @@ The table below divided into the following groups:
 
 The mode(`st_mode `in `stat `structure) argument specifies the access permission bit of new files. As part of its context, each process has a `umask` that is set by calling the unmask function. The first 3 of these bits are special bits known as the **set-user-ID**, **set-group-ID**, and **sticky bits**(labeled U, G, and T commonly)
 
+<p align="center"> <img src="./pic/layout_of_st-mod_bit_mask.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">The layout of st_mode bit mask <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 4</p>
+
 + **set-user-ID program:** A set-user-ID program allows a process to **gain privileges it would not normally have**, by **setting the process's effective user ID** to the same value as the user ID(owner) of the executable file; When a set-user-ID program is run, **the kernel sets the effective user ID of the process to be the same the user ID** of the executable file;
 
 + **set-group-ID program:** A set-group-ID performs the analogous task for the process's effective group ID. (**effective group ID** and **effective userID** are used to determine the permission granted to a process, normally they are the same value); When a set-group-ID program is run, **the kernel sets the effective user ID of the process to be the same the group ID** of the executable file;
@@ -177,7 +181,7 @@ if (fd == -1)
   errExit("open");
 ```
 
-#### 1.1.3 `umake( or system call umask() )`
+#### 1.1.3 `umask`( or system call `umask()` )
 
 The ***umask*** is a process attribute that specifies which **permission bits should always be *turned off* when new files or directories are created by the process**. Often, **a process just uses the umask it inherits from its parent shell**, with the (usually desirable) consequence that the **user can control the umask of programs** executed from the shell using the shell built-in command umask, which changes the umask of the shell process.
 
@@ -386,6 +390,28 @@ int ioctl(int fd, int request, .../* argp */);
 
 
 ## 2. I/O Buffer
+
+When working with disk files, the `read()` and  `write()` system call don't directly initiate disk access, Instead, they simple **copy data** between a `user-space buffer` and a buffer in the **kernel** `buffer cache`.
+
+For example, the following call transfer 3 bytes of data from a buffer in user-space memory to a buffer in kernel space:
+
+`write(fd, "abc", 3);`
+
+**For the kernel write:**
+
+1. `write()` returns immediately
+2. At some later point, the kernel writes(flushes) its buffer to the disk.(Hence, we say that the system call is not `synchronize` with the disk operation). 
+3. If, in the interim, **another process attempts to read these bytes of the file, then the kernel automatically supplies the data from the buffer cache, rather  than from(the outdated contents of) the file.**
+
+**For the kernel read:** for sequential file access, the kernel typically performs `read-ahead` to try  to ensure that the next blocks of a file are read into theh buffer before the reading process requires them.
+
+1. **It reads data from the disk and stores it in a kernel buffer**.
+2. **Calls to `read()` fetch data from this buffer until it is exhausted**
+3. **the kernel reads the next segment of the file into the buffer cache**.
+
+The Linux kernel imposes **no fixed upper limit** on the size of the buffer cache. The kernel will allocate as many buffer cache pages as are required.
+
+If **available memory is scarce**, then the kernel **flushes some modified buffer cache page on disk**, in order to free those pages for reuse.
 
 ##  3. Nonblocking I/O
 
