@@ -401,7 +401,7 @@ For example, the following call transfer 3 bytes of data from a buffer in user-s
 
 1. `write()` returns immediately
 2. At some later point, the kernel writes(flushes) its buffer to the disk.(Hence, we say that the system call is not `synchronize` with the disk operation). 
-3. If, in the interim, **another process attempts to read these bytes of the file, then the kernel automatically supplies the data from the buffer cache, rather  than from(the outdated contents of) the file.**
+3. If, in the interim, **another process attempts to read these bytes of the file, then the kernel automatically supplies the data from the buffer cache, rather than from(the outdated contents of) the file.**
 
 **For the kernel read:** for sequential file access, the kernel typically performs `read-ahead` to try  to ensure that the next blocks of a file are read into theh buffer before the reading process requires them.
 
@@ -412,6 +412,31 @@ For example, the following call transfer 3 bytes of data from a buffer in user-s
 The Linux kernel imposes **no fixed upper limit** on the size of the buffer cache. The kernel will allocate as many buffer cache pages as are required.
 
 If **available memory is scarce**, then the kernel **flushes some modified buffer cache page on disk**, in order to free those pages for reuse.
+
+**In order to transfer large amounts of data from files, buffering them into large blocks can greatly improve I/O performance by reducing the number of times we call system calls.** 
+
+
+
+### File Stream
+
+A *file stream* is a sequence of bytes used to hold file data. Usually a file has only one file stream, namely the file's default data stream.
+
+The file stream provides access to an operating-system file through the stream I/O interface.
+
+However, on file systems that support multiple data streams, each file can have multiple file streams. One of these is the default data stream, which is ***unnamed***. The others are named alternate data streams. **When you open a file, you are actually opening a stream of the given file**.
+
+### `setbuf()`
+
+`setbuf()` function controls the form of buffering employed by the ***stdio*** library
+
+```c
+#include <stdio.h>
+int setvbuf(FLIE *stream, char *buf, int mode, size_t size);
+```
+
+
+
+
 
 ##  3. Nonblocking I/O
 
