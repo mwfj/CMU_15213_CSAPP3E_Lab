@@ -415,26 +415,47 @@ If **available memory is scarce**, then the kernel **flushes some modified buffe
 
 **In order to transfer large amounts of data from files, buffering them into large blocks can greatly improve I/O performance by reducing the number of times we call system calls.** 
 
-
-
 ### File Stream
 
-A *file stream* is a sequence of bytes used to hold file data. Usually a file has only one file stream, namely the file's default data stream.
+A *file stream* is a **sequence of bytes** used to hold file data. Usually a file has only one file stream, namely the file's default data stream.
 
-The file stream provides access to an operating-system file through the stream I/O interface.
+**The file stream provides access to an operating-system file through the stream I/O interface.**  File descriptors are represented as objects of type `int`, while streams are represented as `FILE *` objects <a href="#reference2">[2]</a> <a href="#reference3">[3]</a>.
+
+For historical reasons, the type of the C data structure that represents a stream is called `FILE` rather than “stream”. Since most of the library functions deal with objects of type `FILE *`, sometimes the term *file pointer* is also used to mean “stream”. This leads to unfortunate confusion over terminology in many books on C <a href="#reference2">[2]</a> <a href="#reference3">[3]</a>.
+
+The "streaming" **API functions** such as `fopen()`, `fscanf()`, etc -and the functions that use **the terminal** "streams" (`stdin` and `stdout`) such as `printf()` and `scanf()` - are implemented using the `FILE` structure as its API handle. **This API and the handle are implemented "on top of" the file descriptor API** <a href="#reference1">[1]</a>. In other words, A pointer of the file stream is the `FILE` struct (`typedef struct_IO_FILE FILE`)
 
 However, on file systems that support multiple data streams, each file can have multiple file streams. One of these is the default data stream, which is ***unnamed***. The others are named alternate data streams. **When you open a file, you are actually opening a stream of the given file**.
 
+The biggest **"operational" difference** between the API related to **file stream** and **file descriptor** is the **"streaming API" uses a buffer maintained inside the `FILE `structure**, while the **file descriptor API is not buffered** (at least not by the API calls; it can be by the device driver or lower levels) <a href="#reference1">[1]</a>
+
+The streaming APIs use the buffer to minimize interaction with the file system, which is relatively expensive to access<a href="#reference1">[1]</a>.
+
+**As a general rule, the file descriptor API may be slower for small I/O operations due to this buffering, but it is often faster for "big" accesses than the streaming API** <a href="#reference1">[1]</a>.
+
 ### `setbuf()`
 
-`setbuf()` function controls the form of buffering employed by the ***stdio*** library
+`setvbuf()` function controls the form of buffering employed by the ***stdio*** library.
 
 ```c
 #include <stdio.h>
 int setvbuf(FLIE *stream, char *buf, int mode, size_t size);
 ```
 
++ `stream` arguement identifies the file steam whose buffering is to be modified.
++ `buf` and `size` argument specify the buffer to  be used for `stream`, these arguments may be specified in two ways:
+  + If `buf ` is non-NULL, then it points to a **block of memory** of `size` bytes that is to be used as the buffer for `stream`
+  + If `buf` is NULL, then the `stdio` library automatically allocates a buffer for use with `stream`
++ `mode` argument specifies the type of buffering
+  + `_IONBF`: ***Don't buffer I/O.*** Each `stdio `library call results in an **immediate** `write()` or `read()` system call. The `buf `and `size `arguments are **ignored**, and can be specified as NULL and 0, respectively.
+  + `_IOLBF`: ***Employ line-buffered I/O.*** This flag is the **default for streams referring to *terminal devices*.** 
+    + For output streams, **data is buffered until a newline character is output** (unless the buffer fills first). 
+    + For input streams, data is read a line at a time.
+  + `_IOFBF`: ***Employ fully buffered I/O.*** Data is read or written (via calls to read() or write()) **in units equal to the size of the buffer**. This mode is **the default for streams referring to *disk files***.
 
+After the stream has been opened, the `setvbuf()` call **must be made before calling any other `stdio `function on the stream**. The `setvbuf()` call affects the behavior of all subsequent `stdio `operations on the specified stream.
+
+**Note that setvbuf() returns a nonzero value (not necessarily –1) on error.**
 
 
 
@@ -442,3 +463,10 @@ int setvbuf(FLIE *stream, char *buf, int mode, size_t size);
 
 ## 4. File System
 
+## Reference
+
+<a name="reference1"></a>[[1] Quora - What is the difference between the file descriptor and stream?](https://www.quora.com/What-is-the-difference-between-the-file-descriptor-and-stream)
+
+<a name="reference2"></a>[[2] The GNU C Library](https://www.gnu.org/software/libc/manual/html_mono/libc.html)
+
+<a name="reference3"></a>[[3] StackOverFlow - What is the difference between a stream and a file?](https://stackoverflow.com/questions/20937616/what-is-the-difference-between-a-stream-and-a-file)
