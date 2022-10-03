@@ -564,7 +564,9 @@ To write **1 million bytes to a newly created file** for a range of buffer size(
 
 **Note** also the **large differences** between the **elapsed and CPU times** for **writes** with `O_SYNC` <a href="#reference4">[4]</a>. This is a consequence of **the program being blocked while each buffer is actually transferred to disk**.
 
-![cpu_time_vs_elapse_time](https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/CpuTimeonSingleCpuMultiTaskingSystem.svg/450px-CpuTimeonSingleCpuMultiTaskingSystem.svg.png)
+<p align="center"> <img src="./pic/cpu_time_elapse_time.jpg" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">CPU Time VS Elapse Time  <a href="#reference4">[4]</a></p>
 
 
 
