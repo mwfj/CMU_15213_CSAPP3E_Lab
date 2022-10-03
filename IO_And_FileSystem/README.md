@@ -560,15 +560,35 @@ Aftern this `open()`  call, **every `write()` to the file automatically flushes 
 
 #### Performance impact
 
-To write **1 million bytes to a newly created file** for a range of buffer size(on `ext2` file system), `O_SYNC` increases elapsed time enormously (in 1-byte buffer cacse, by a factor of more than 1000). 
+To write **1 million bytes to a newly created file** for a range of buffer size(on `ext2` file system), `O_SYNC` **increases elapsed time enormously** (in 1-byte buffer cacse, by a factor of more than 1000). 
 
-**Note** also the **large differences** between the **elapsed and CPU times** for **writes** with `O_SYNC` <a href="#reference4">[4]</a>. This is a consequence of **the program being blocked while each buffer is actually transferred to disk**.
+**Note** also the **large differences** between the **elapsed and CPU times** <a href="#reference4">[4]</a> for **writes** with `O_SYNC`. This is a consequence of **the program being blocked while each buffer is actually transferred to disk**.
 
 <p align="center"> <img src="./pic/cpu_time_elapse_time.jpg" alt="cow" style="zoom:100%;"/> </p>
 
 <p align="center">CPU Time VS Elapse Time  <a href="#reference4">[4]</a></p>
 
+**Modern disk drives have large internal caches**, and by default, `O_SYNC `**merely causes data to be transferred to the cache**. If we **disable caching on the disk** (using the command hdparm –W0), then the performance impact of `O_SYNC `becomes even more extreme. 
 
++ In the 1-byte case, the elapsed time rises from 1030 seconds to around 16,000 seconds. 
++ In the 4096-byte case, the elapsed time rises from 0.34 seconds to 4 seconds.
+
+<p align="center"> <img src="./pic/O_SYNC_performance.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Impact of the O_SYNC flag on the speed of writing 1 million bytes <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 13</p>
+
+The `O_DSYNC `flag causes writes to be performed according to the requirements of synchronized I/O data integrity completion (like `fdatasync()`).
+
+The `O_RSYNC `flag is specified in conjunction with either `O_SYNC `or `O_DSYNC`, and **extends the write behaviors of these flags to read operations**.
+
++ **Specifying both `O_RSYNC` and `O_DSYNC `** when opening a file means that **all subsequent reads are completed** according to the requirements of **synchronized I/O data integrity** (i.e., prior to performing the read, all pending file writes are completed as though carried out with O_DSYNC).
++ **Specifying both `O_RSYNC `and `O_SYNC `** when opening a file means that **all subsequent reads are completed** according to the requirements of **synchronized I/O file integrity** (i.e., prior to performing the read, all pending file writes are completed as though carried out with O_SYNC).
+
+
+
+<p align="center"> <img src="./pic/summary_of_IO_Buffer.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Summary of I/O Buffering <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 13</p>
 
 ##  3. Nonblocking I/O
 
