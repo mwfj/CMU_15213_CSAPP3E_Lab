@@ -433,9 +433,9 @@ The streaming APIs use the buffer to minimize interaction with the file system, 
 
 **As a general rule, the file descriptor API may be slower for small I/O operations due to this buffering, but it is often faster for "big" accesses than the streaming API** <a href="#reference1">[1]</a>.
 
-### `setbuf()`
+###  `setbuf()`
 
-`setvbuf()` function controls the form of buffering employed by the ***stdio*** library.
+The `setvbuf()` function may be used on **any open stream to change its buffer**. In other words, `setvbuf()` function controls the form of buffering employed by the ***stdio*** library.
 
 ```c
 #include <stdio.h>
@@ -453,9 +453,118 @@ int setvbuf(FLIE *stream, char *buf, int mode, size_t size);
     + For input streams, data is read a line at a time.
   + `_IOFBF`: ***Employ fully buffered I/O.*** Data is read or written (via calls to read() or write()) **in units equal to the size of the buffer**. This mode is **the default for streams referring to *disk files***.
 
-After the stream has been opened, the `setvbuf()` call **must be made before calling any other `stdio `function on the stream**. The `setvbuf()` call affects the behavior of all subsequent `stdio `operations on the specified stream.
+After the stream has been opened, the `setvbuf()` call **must be made before calling any other `stdio ` function on the stream**. The `setvbuf()` call affects the behavior of all subsequent `stdio `operations on the specified stream.
 
-**Note that setvbuf() returns a nonzero value (not necessarily –1) on error.**
+**Note that `setvbuf()` returns a nonzero value (not necessarily –1) on error.**
+
+#### `setbuf()`
+
+The `setbuf()` function is layered on top of the `setvbuf()`, and performs a similar task.
+
+```c
+#include <stdio.h>
+void setbuf(FILE *stream, char *buf);
+```
+
+Other than the fact that it doesn't return a function result, `setbuf(fp, buf)` is equivalent to:
+ `setvbuf(fp, buf, (buf != NULL) ? _IOFBF : _IONFB，BUFSIZ);`
+
++ `buf` argument is specified either:
+  + **NULL**: for no buffering
+  + **As a pointer**: caller-allocated buffer of `BUFSIZE` bytes.
+  + `BUFSIZ` is defined in `<stdio.h>`. In the glibc implementation, this constant has the value `8192`, which is typical.
+
+#### `setbuffer()`
+
+The `setbuffer()` function is similar to `setbuf()`, but allow the caller to specify the size of `buf`.
+
+```c
+#define _BSD_SOURCE
+#include <stdio.h>
+void setbuffer(FILE *stream, char *buf, size_t size);
+```
+
+The call `setbuffer(fp, buf, size) ` is equvalent to: `void setbuffer(fp, buf, (buf != NULL) ? _IOFBF : _IONBF, size);`
+
+#### `fflush()`
+
+The `fflush()` **flushes the output buffer** for the specific ***stream***, where the stream flushed to a kernel buffer via `write()`.
+
+```c
+#include <stdio.h>
+int fflush(FILE *stream);
+```
+
++ If `stream` is NULL, `fflush()` flushes all `stdio` buffers;
++ When it applied to an **input stream**, any bufferd input to be discarded. (The buffer will be refilled when the program enxt tries to read from stream);
++ When the corresponding **stream is closed**, the buffer of `stdio` is automatically flushed.
+
+In many C library implementations, including `glibc`, if `stdin` and `stdout` **refer to a terminal**, then **an implicit `fflush(stdout)` is performed** whenever input is read from `stdin`. This has the effect of flushing any prompts written to  `stdout` that don't include a terminating newline character.
+
+
+
+### Controling Kernel Buffering of File I/O
+
+#### Synchronized I/O data integrity and synchronized I/O file integrity
+
+***Synchronized I/O completion*** is mean that an I/O operation that has **either been successfully tranferred[to the disk] or diagnosed as unsuccessful**.
+
+**SUSv3** defines two different types of synchronized I/O completion: 
+
+1. ***synchronized I/O data integrity completion***: This type of completion concern with ensuring that a **file data update transfers sufficient information** to allow **a later retrieval of that data proceed**.
+   + **For a read operation**, the requested file data has been transferred(from the disk) to the process. If there were **any pending write** operations affecting the requested data, **these are transferred to the disk before performing the read**.
+   + **For a write operation**, the date specified in the write request has been transferred from the process to the disk, and all file metadata required to retrieve that data has also been transferred, where just part of metadata attributes of the file need to be transferred. **(data& part of metadata need to be transferred)**
+2. ***synchronized file intergrity completion***: a **superset** of synchronized I/O data intergrity completion. During a file update, all updated file metadata is transferred to disk, even if it is not necessary for the corresponding operation.
+
+#### Corresponding system calls
+
+##### `fsync()` system call
+
+The `fsync()` causes **the buffered data and all meta data** associated with the **open file descriptor** `fd` to be **flushed to disk**. Calling `fsync()` **forces the file to the the synchronized I/O file integrity completion** state.
+
+```c
+#include <unistd.h>
+int fsync(int fd);
+```
+
++ An `fsync()` call **returns** only after the transfer to the disk device(or at least its cache) has **completed**.
+
+##### `fdatasync()` system call
+
+The `fdatasync()` system call operates similarly to `fsync()`, but only forces the file to the synchronized I/O data integrity completion state.
+
+```c
+#include <unistd.h>
+int fdatasync(int fg);
+```
+
++ Using `fdatasync()` potentially reduces the number of disk operations from the two(file data & file metadata attributes) required by `fsync() ` to one(file data), where some file metadata attributes don't need to be transferred for synchronized I/O data completion(as we discuss above).
+
+  Advantages:
+
+  + Reducing the number if disk I/O operations in order to improve I/O performance that are making multiple file updates
+    + File data and metadata normally reside on different part of the disk, where updating them **require repeated seek operation** backward and forward across the disk.
+  + Accurate maintenance of certain matadata(such as temestamps) is not essential.
+
+##### `sync()` system call
+
+The `sync()` system call caused **all kernal buffers containing updated file information**(i.e., data blocks, pointer blocks, metadata etc.) to be **flushed to disk.**
+
+In the Linux implementation, `sync()` returns only after all data has been transferred to the disk device(or at least to its cache).
+
+### `O_SYNC` flag: making all writes synchronous
+
+Specifying the `O_SYNC `flag when calling `open()` makes all subsequent output synchronous: `fd = open(pathname, O_WRONLY | O_SYNC);`
+
+Aftern this `open()`  call, **every `write()` to the file automatically flushes the file data and meta data to the disk**.
+
+#### Performance impact
+
+To write **1 million bytes to a newly created file** for a range of buffer size(on `ext2` file system), `O_SYNC` increases elapsed time enormously (in 1-byte buffer cacse, by a factor of more than 1000). 
+
+**Note** also the **large differences** between the **elapsed and CPU times** for **writes** with `O_SYNC` <a href="#reference4">[4]</a>. This is a consequence of **the program being blocked while each buffer is actually transferred to disk**.
+
+![cpu_time_vs_elapse_time](https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/CpuTimeonSingleCpuMultiTaskingSystem.svg/450px-CpuTimeonSingleCpuMultiTaskingSystem.svg.png)
 
 
 
@@ -470,3 +579,5 @@ After the stream has been opened, the `setvbuf()` call **must be made before cal
 <a name="reference2"></a>[[2] The GNU C Library](https://www.gnu.org/software/libc/manual/html_mono/libc.html)
 
 <a name="reference3"></a>[[3] StackOverFlow - What is the difference between a stream and a file?](https://stackoverflow.com/questions/20937616/what-is-the-difference-between-a-stream-and-a-file)
+
+<a name="reference4"></a>[[4] Wikipedia - CPU time](https://en.wikipedia.org/wiki/CPU_time)
