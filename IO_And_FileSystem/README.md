@@ -8,10 +8,12 @@ Input/Output(I/O) is the process of **copying data between main memory and exter
 + Output operation copies data from memory to a device.
 
 In linux, ***file*** is a sequence of m bytes: `B0, B1, ... , B_k, ..., B_(m-1)`.
+In most modern system, the **operating system does not know much about the structure of the file**, rather, **the responsibility of the file system is simply to store such data peresistently on disk and make sure that when you request the data again**.
 
 Each Linux file has a type that indicates its role in the system:
 
-+ A ***regular file*** contains arbitrary data. Application programs often distinguish between
++ A ***regular file*** contains arbitrary data.  For historical reasons, the **low-level name of a file** is often referred to as its `inode number`
+  Application programs often distinguish between
 
   + **text files**: each line is a sequence of characters. A Linux text file consist of a sequence of *text lines*, where each line is a sequence of characters terminated by a `newline character('\n')` (end of line - EOF). The newline character is the same as the ASCII line feed character(line feed - LF) and has numeric value of `0x0a`; For Windows and Internet protocols, new line character should be: `\r\n(0xd0xa)`, where its line feed should be carriage return;
   + **binary files**: everything except text file
@@ -19,6 +21,8 @@ Each Linux file has a type that indicates its role in the system:
   To kernel, there no difference between text and binary files.
 
 + A ***directory*** is a file consisting of an array of links, where each links maps a filename to a file, which may be another directory;
+  For the lower-level name of directory, it contains a list of (user-readable name, lower-level name) pairs. 
+  **Each entry in a directory refers either files or other directories.**
 
   Each directories contains at least two entries:
 
@@ -33,6 +37,16 @@ Each Linux file has a type that indicates its role in the system:
 
 + A ***socket*** is a file that is used to communicate with another process cross a network.
 
+
+
+A ***file descriptor (fd)*** is just a integer, private per process, and is used in UNIX system to access file; thus, once a file is opened, you can use the file descriptor to read and write the file. In this way, **file descriptor is a capability**.
+
+Another way to think file descriptor is as a pointer to an object of type file; once you have such object, you can call other "method" to access the file, like `read()` and `write()`.
+
+**File discriptors are managed by the operating system on a per-process basis.**
+
+
+
 All I/O device, such as networks, disks, and terminals, are modeled as files, and all input and output is performanced by reading and writing the appropriate files:
 
 + `/dev/sda2`(`/user` disk partition)
@@ -40,9 +54,13 @@ All I/O device, such as networks, disks, and terminals, are modeled as files, an
 + `/boot/vmlinuz-3.13.0-55-generic`(kernel image)
 + `/proc` (kernel data structures)
 
-This elegant mapping of files allows the Linux kernel to export a simple, low-level application interface, known as Unix I/O, that enables all input and output to be performed in a uniform and consisent way:
+This elegant mapping of files allows the Linux kernel to export a simple, low-level application interface, known as Unix I/O, that enables all input and output to be performed in a uniform and consisent way.
 
-### 1.1 Opening Files: `open()`
+
+
+## 2. The File System Interface
+
+### 2.1 Opening Files: `open()`
 
 An application announces its intention to access an I/O by asking the kernel to open the corresponding file.
 
@@ -67,7 +85,7 @@ Each process created by a Linux shell begins life with three open files:
 + standard output (descriptor 1) (STDOUT_FILENO in `<unistd.h>`)
 + standard error (descriptor 2) (STDERR_FILENO in `<unistd.h>`)
 
-#### 1.1.1 Flags
+#### 2.1.1 Flags
 
 The `flags` argument can also be bit-wise  **ORed**(|) in flags with one or more bits masks that provide additional instructions
 
@@ -82,7 +100,7 @@ The table below divided into the following groups:
 
 <p align="center">Values of the flags argument of open() <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 4</p>
 
-#### 1.1.2 Mode Argument
+#### 2.1.2 Mode Argument
 
 The mode(`st_mode `in `stat `structure) argument specifies the access permission bit of new files. As part of its context, each process has a `umask` that is set by calling the unmask function. The first 3 of these bits are special bits known as the **set-user-ID**, **set-group-ID**, and **sticky bits**(labeled U, G, and T commonly)
 
@@ -181,7 +199,7 @@ if (fd == -1)
   errExit("open");
 ```
 
-#### 1.1.3 `umask`( or system call `umask()` )
+### 2.2 `umask`( or system call `umask()` )
 
 The ***umask*** is a process attribute that specifies which **permission bits should always be *turned off* when new files or directories are created by the process**. Often, **a process just uses the umask it inherits from its parent shell**, with the (usually desirable) consequence that the **user can control the umask of programs** executed from the shell using the shell built-in command umask, which changes the umask of the shell process.
 
@@ -210,7 +228,7 @@ fd = Open("foo.txt", O_CREAT|O_TRUNC|O_WRONLY, DEF_MODE);
 
 **A call to `umask()` is always successful, and returns the previous umask.**
 
-### 1.2 File Control Operations: `fcntl()`
+### 2.3 File Control Operations: `fcntl()`
 
 The `fcntl()` system call performs a range of control operations on an open file descriptor:
 
@@ -268,9 +286,12 @@ if( accessMode == O_WRONLY || accessMode == O_RDWR )
     errExit("fcntl")
   ```
 
-### 1.3 Reading File: `read()`
+### 2.4 Reading File: `read()`
 
 The `read` function copies at most `n` bytes from the current file position of descriptor `fd` to memory location `buf`.  
+
++ If the data of the file is not in cache, the process enters the `sleep-wait state`, waiting for memory to map files on disk by `open()`. Specifically, when a process read a file and the data of the file is not resident in the memory, in that case, the process will go to the sleep-wait state.
++ Requesting the `read()` system call causes the CPU to switch from the user mode to the kernel mode
 
 ```c
 #include <unistd.h> 
@@ -303,7 +324,7 @@ printf("The input data was: %s\n", buffer);
 
 The reason is that **the size of buffer must be at least one greater than the largest string we expect to read**.
 
-### 1.4 Writing File: `write()`
+### 2.5 Writing File: `write()`
 
 The `write` function copies at most `n` bytes from memory location `buf` to the current file position of descriptor `fd`
 
@@ -323,7 +344,7 @@ Return Value:
 
 + Note that: when performing I/ on a disk file, a successful return from `write()` doesn't guarantee that the data has been transferred to disk, because the kernel performs **buffering of disk I/O in order to reduce disk activiry** and expedite `write()` call.
 
-### 1.5 Changing the File Offset: `lseek()`
+### 2.6 Changing the File Offset: `lseek()`
 
 For each open file, the kernel records a file offset, sometimes also called the read-write offset or pointer. This is the location in the file at which the next `read()` or `write()` will commence. The file offset is expressed as an ordinal byte position relative to the start of the file. The first byte of the file is at offset 0.
 
@@ -374,7 +395,7 @@ Note:
 
 The exisence of holes means that a file's nominal size may be larger than the amount of disk storage it utilizes. Writing bytes into the middle of the file holw will decrease the amount of free disk space as the kernel allocates blocks to fill the hole, even though the file's size doesn't change.
 
-### 1.6 Operation Outside the Universal I/O Model: `ioctl()`
+### 2.7 Operation Outside the Universal I/O Model: `ioctl()`
 
 The `ioctl()` system call is a general-purpose mechanism for performing file and device operations taht fall outside the universal I/O model.
 
@@ -389,7 +410,7 @@ int ioctl(int fd, int request, .../* argp */);
 
 
 
-## 2. I/O Buffer
+## 3. I/O Buffer
 
 When working with disk files, the `read()` and  `write()` system call don't directly initiate disk access, Instead, they simple **copy data** between a `user-space buffer` and a buffer in the **kernel** `buffer cache`.
 
@@ -415,7 +436,7 @@ If **available memory is scarce**, then the kernel **flushes some modified buffe
 
 **In order to transfer large amounts of data from files, buffering them into large blocks can greatly improve I/O performance by reducing the number of times we call system calls.** 
 
-### File Stream
+### 3.1 File Stream
 
 A *file stream* is a **sequence of bytes** used to hold file data. Usually a file has only one file stream, namely the file's default data stream.
 
@@ -433,7 +454,9 @@ The streaming APIs use the buffer to minimize interaction with the file system, 
 
 **As a general rule, the file descriptor API may be slower for small I/O operations due to this buffering, but it is often faster for "big" accesses than the streaming API** <a href="#reference1">[1]</a>.
 
-###  `setbuf()`
+### 3.2 The interfaces of set buffer
+
+#### 3.2.1 `setvbuf()`
 
 The `setvbuf()` function may be used on **any open stream to change its buffer**. In other words, `setvbuf()` function controls the form of buffering employed by the ***stdio*** library.
 
@@ -457,7 +480,7 @@ After the stream has been opened, the `setvbuf()` call **must be made before cal
 
 **Note that `setvbuf()` returns a nonzero value (not necessarily –1) on error.**
 
-#### `setbuf()`
+#### 3.2.2 `setbuf()`
 
 The `setbuf()` function is layered on top of the `setvbuf()`, and performs a similar task.
 
@@ -474,7 +497,7 @@ Other than the fact that it doesn't return a function result, `setbuf(fp, buf)` 
   + **As a pointer**: caller-allocated buffer of `BUFSIZE` bytes.
   + `BUFSIZ` is defined in `<stdio.h>`. In the glibc implementation, this constant has the value `8192`, which is typical.
 
-#### `setbuffer()`
+#### 3.2.3 `setbuffer()`
 
 The `setbuffer()` function is similar to `setbuf()`, but allow the caller to specify the size of `buf`.
 
@@ -486,7 +509,7 @@ void setbuffer(FILE *stream, char *buf, size_t size);
 
 The call `setbuffer(fp, buf, size) ` is equvalent to: `void setbuffer(fp, buf, (buf != NULL) ? _IOFBF : _IONBF, size);`
 
-#### `fflush()`
+#### 3.2.3 `fflush()`
 
 The `fflush()` **flushes the output buffer** for the specific ***stream***, where the stream flushed to a kernel buffer via `write()`.
 
@@ -503,7 +526,7 @@ In many C library implementations, including `glibc`, if `stdin` and `stdout` **
 
 
 
-### Controling Kernel Buffering of File I/O
+### 3.3 Controling Kernel Buffering of File I/O
 
 #### Synchronized I/O data integrity and synchronized I/O file integrity
 
@@ -518,7 +541,7 @@ In many C library implementations, including `glibc`, if `stdin` and `stdout` **
 
 #### Corresponding system calls
 
-##### `fsync()` system call
+####3.3.1 `fsync()` system call
 
 The `fsync()` causes **the buffered data and all meta data** associated with the **open file descriptor** `fd` to be **flushed to disk**. Calling `fsync()` **forces the file to the the synchronized I/O file integrity completion** state.
 
@@ -529,7 +552,7 @@ int fsync(int fd);
 
 + An `fsync()` call **returns** only after the transfer to the disk device(or at least its cache) has **completed**.
 
-##### `fdatasync()` system call
+#### 3.3.2 `fdatasync()` system call
 
 The `fdatasync()` system call operates similarly to `fsync()`, but only forces the file to the synchronized I/O data integrity completion state.
 
@@ -546,19 +569,21 @@ int fdatasync(int fg);
     + File data and metadata normally reside on different part of the disk, where updating them **require repeated seek operation** backward and forward across the disk.
   + Accurate maintenance of certain matadata(such as temestamps) is not essential.
 
-##### `sync()` system call
+
+
+#### 3.3.3 `sync()` system call
 
 The `sync()` system call caused **all kernal buffers containing updated file information**(i.e., data blocks, pointer blocks, metadata etc.) to be **flushed to disk.**
 
 In the Linux implementation, `sync()` returns only after all data has been transferred to the disk device(or at least to its cache).
 
-### `O_SYNC` flag: making all writes synchronous
+### 3.4 `O_SYNC` flag: making all writes synchronous
 
 Specifying the `O_SYNC `flag when calling `open()` makes all subsequent output synchronous: `fd = open(pathname, O_WRONLY | O_SYNC);`
 
 Aftern this `open()`  call, **every `write()` to the file automatically flushes the file data and meta data to the disk**.
 
-#### Performance impact
+#### 3.4.1 Performance impact
 
 To write **1 million bytes to a newly created file** for a range of buffer size(on `ext2` file system), `O_SYNC` **increases elapsed time enormously** (in 1-byte buffer cacse, by a factor of more than 1000). 
 
@@ -590,9 +615,139 @@ The `O_RSYNC `flag is specified in conjunction with either `O_SYNC `or `O_DSYNC`
 
 <p align="center">Summary of I/O Buffering <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 13</p>
 
-##  3. Nonblocking I/O
 
-## 4. File System
+
+### 3.5 `posix_fadvice()`: Advising the kernel about I/O partterns
+
+The `posix_fadvice()` system_call allows a process to inform the kernel about its likely pattern for accessing file data.
+
+The kernel may(but is not obliged to) use the information provided by `posix_fadvice()` to optimize its use of the buffer cache, thereby improving I/O performance for the process and for the system as a whole. Calling `posix_fadvice()` **has no effect on the semantics of a program**.
+
+```c
+#define _XOPEN_SOURCE 600
+#include <fcntl.h>
+
+int posix_fadvice(int fd, off_t offset, off_t len, int advice)
+```
+
++ `fd` : a file descriptor identifying the file about **whose access patterns we wish to inform the kernel**.
+
++ `offset` and `len`: identify **the region of the file** about which advice is being given
+
+  + `offset `specifies the starting offset of the region
+  + `len `specifies the size of the region in bytes, where `len` value of **0** means all bytes from `offset` through to **the end of the file**.
+
++ `advice` argument indicates the process's **expected pattern** of access of the file:
+
+  + `POSIX_FADV_NORMAL`: no special advice
+
+  + `POSIX_FADV_SEQUENTIAL`: read data sequentially from lower offsets to higher offsets. On Linux, this operation sets the file `read-ahead` window to the twice the default size
+
+  + `POSIX_FADV_RANDOM`: The process expects to access the specified file region in the near future.
+
+    That is, **the kernel performs read-ahead to populate the buffer cache with file data** in the range specified by `offset `and `len`, where the subsequent `read()` calls on the file **don't block on disk I/O**; instead, **they simply fetch data from the buffer cache**.
+
+    + The kernel provides **no guarantees about how long the data fetched from the file** will remain resident in the buffer cache.
+    + If other **processes or kernel activities place a sufficiently strong demand on memory**, then **the pages will eventually be reused**, where if **memory pressure is high**, then we should ensure that **the elapsed time between the `posix_fadvise()` call and the subsequent `read()` call(s) is short**.
+
+  + `POSIX_FADV_DONTNEED`: The process expects **not to access the specified file region** in the near future. This advises the kernel that **it can free the corresponding cache pages** (if there are any).
+    On Linux, this operation is performed in two steps.
+
+    1. if the underlying device is **not currently congested with a series of queued write operations**, the **kernel flushes any modified pages** in the specified region.
+    2. the kernel attempts to **free any cache pages** for the region:
+       + For **modified pages** in the region, this second step will succeed only if the device’s write queue was not congested.
+
+  + `POSIX_FADV_NOREUSE`: The process expects to access data in the specified file region once, and then not to reuse it. (This hint tells **the kernel that it can free the pages after they have been accessed once**.)
+    **On Linux, this operation currently has no effect.**
+
+
+
+### 3.6 Direct I/O(Or Raw I/O): Bypassing the Buffer Cache
+
+For most applications, **using direct I/O can considerably degrade performance**.
+
+Direct I/O is intended only for applications with specialized I/O requirements, such as **database systems**(perform their own cache and I/O optimizations)
+
+This is because the kernel applies a number of **optimizations to improve the performance of I/O done via the buffer cache**, including performing **sequential read-ahead**, **performing I/O in clusters of disk blocks**, and **allowing processes accessing the same file to share buffers in the cache**.
+
+To do Direct I/O(Or Raw I/O), we specify the `O_DIRECT `flag when opening the file or device with `open()`.
+
+#### Alignment restrictions for direct I/O
+
++ **The data buffer being transferred must be aligned on a memory boundary** that is a **multiple of the block size**.
++ The **file or device offset** at which data transfer commences **must be a multiple of the block size**.
++ The **length of the data to be transferred** must be a **multiple of the block size**.
+
+Failure to observe any of these restrictions results in the error `EINVAL`.
+
+### 3.7 `fileno` and `fdopen()`: Mixing library functions and System Calls on the same file for File I/O
+
+```c
+#include <stdio.h>
+
+ing fileno(FILE *stream); /* Returns file descriptor on success, or –1 on error */
+
+FILE *fdopen(int fd, const char *mode); /* Returns (new) file pointer on success, or NULL on error */
+```
+
+#### 3.7.1 `fileno()`
+
+Given a stream, `fileno()` returns the corresponding file descriptor. This file descriptor can be then used in the usual way with I/O system call such as `read()`, `write()`, `dup()` and `fcntl()`
+
+#### 3.7.2 `fdopen()`
+
+The `fdopen()` function is **the converse of** `fileno()`. 
+Given a file descriptor, **it creates a corresponding stream that uses this descriptor for its I/O**.
+The **mode** argument is the same as for `fopen()`;
+
+The `fdopen()` function is especially useful for **descriptors referring to files other than regular files**, such as socket and pipes. To use the `stdio ` library with these file types, we must use `fdopen()` to **create a corresponding file stream**.
+
+Please keep this in mind: 
+
++ **I/O system calls** transfer data **directly** to the kernel buffer cache, 
++ **The stdio library** **waits** until **the stream’s user-space buffer is full** before calling `write()` to transfer that buffer to the kernel buffer cache.
+
+For example: 
+
+```c
+printf("To man the world is twofold, "); 
+write(STDOUT_FILENO, "in accordance with his twofold attitude.\n", 41);
+```
+
+In the usual case, **the output of the `printf()` will typically appear after the output of the `write()`**, so that this code yields the following output:
+
+```txt
+in accordance with his twofold attitude. 
+To man the world is twofold,
+```
+
+**When intermingling I/O system calls and stdio functions, judicious use of `fflush()` may be required to avoid this problem.**
+
+## 5. File System
+
+### 5.1 Device Special Files(Devices)
+
+A special file corresponds to a device on the system. With the kernel, **each device type has a corresponding device driver, which handles all I/O requests for the device**.
+
+A ***device driver*** is a unit of kernel code that implements a set of operations that(normally) correspond to input and output actions on an associated piece of hardware. The API provided by device drivers is fixed, and includes operations corresponding to the system call `open()`, `close()`, `read()`, `write()`, `mmap()`, and `ioctl()`.
+
+Devices can be divided into two types:
+
++ ***Character Devices*** handle data on a character-by-character basis. Terminals and keyboards are examplels of character devices.
++ ***Block Devices*** handle a block at a time. The size of a block depends on the type of device, but is typically some multiple of **512 bytes**. Examples of block devices include disk and tap device.
+
+Device files appear within the file system, just like other files, usually under the `/dev` directory. The superuser can create a device file using the `mknod` command and the privilege program can do this by using `mknod()` system call.
+
+Each device file has a ***majoy ID number*** and a ***minor ID number***:
+
++ The major ID identifies the general class of device, and is used by **the kernel to lookup the appropriate driver** for this type of device.
++ The minor ID uniquely identifies a particular device within a general class
+
+A device's major and minor IDs are recorded in the i-node for the device file. Each device driver registers its association with a specific major device ID, and this association provides the connection between the device special file and the device driver.
+
+## 4. Nonblocking I/O (NIO)
+
+
 
 ## Reference
 
