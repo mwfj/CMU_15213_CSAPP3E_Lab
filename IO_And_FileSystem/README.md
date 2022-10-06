@@ -33,9 +33,11 @@ Each Linux file has a type that indicates its role in the system:
 
   <p align="center"> <img src="./pic/portion_of_linux_hierarchy.png" alt="cow" style="zoom:100%;"/> </p>
 
-  <p align="center">Portion of the Linux directory hierarchy <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 10</p>
+  <p align="center">Portion of the Linux directory hierarchy from <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 10</p>
 
 + A ***socket*** is a file that is used to communicate with another process cross a network.
+
+**Regular files and directories typically reside on hard disk devices.**
 
 
 
@@ -98,7 +100,7 @@ The table below divided into the following groups:
 
 <p align="center"> <img src="./pic/flag_bit_in_open.png" alt="cow" style="zoom:100%;"/> </p>
 
-<p align="center">Values of the flags argument of open() <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 4</p>
+<p align="center">Values of the flags argument of open() from <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 4</p>
 
 #### 2.1.2 Mode Argument
 
@@ -106,7 +108,7 @@ The mode(`st_mode `in `stat `structure) argument specifies the access permission
 
 <p align="center"> <img src="./pic/layout_of_st-mod_bit_mask.png" alt="cow" style="zoom:100%;"/> </p>
 
-<p align="center">The layout of st_mode bit mask <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 4</p>
+<p align="center">The layout of st_mode bit mask from <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 4</p>
 
 + **set-user-ID program:** A set-user-ID program allows a process to **gain privileges it would not normally have**, by **setting the process's effective user ID** to the same value as the user ID(owner) of the executable file; When a set-user-ID program is run, **the kernel sets the effective user ID of the process to be the same the user ID** of the executable file;
 
@@ -365,7 +367,7 @@ If `whence `is SEEK_CUR or SEEK_END, offset may be negative or positive; for SEE
 
 <p align="center"> <img src="./pic/args_of_whence_in_lseek.png" alt="cow" style="zoom:100%;"/> </p>
 
-<p align="center">Interpreting the whence arguement of lseek() <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 4</p>
+<p align="center">Interpreting the whence arguement of lseek() from <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 4</p>
 
 For example:
 
@@ -591,7 +593,7 @@ To write **1 million bytes to a newly created file** for a range of buffer size(
 
 <p align="center"> <img src="./pic/cpu_time_elapse_time.jpg" alt="cow" style="zoom:100%;"/> </p>
 
-<p align="center">CPU Time VS Elapse Time  <a href="#reference4">[4]</a></p>
+<p align="center">CPU Time VS Elapse Time <a href="#reference4">[4]</a></p>
 
 **Modern disk drives have large internal caches**, and by default, `O_SYNC `**merely causes data to be transferred to the cache**. If we **disable caching on the disk** (using the command hdparm –W0), then the performance impact of `O_SYNC `becomes even more extreme. 
 
@@ -600,7 +602,7 @@ To write **1 million bytes to a newly created file** for a range of buffer size(
 
 <p align="center"> <img src="./pic/O_SYNC_performance.png" alt="cow" style="zoom:100%;"/> </p>
 
-<p align="center">Impact of the O_SYNC flag on the speed of writing 1 million bytes <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 13</p>
+<p align="center">Impact of the O_SYNC flag on the speed of writing 1 million bytes from <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 13</p>
 
 The `O_DSYNC `flag causes writes to be performed according to the requirements of synchronized I/O data integrity completion (like `fdatasync()`).
 
@@ -613,7 +615,7 @@ The `O_RSYNC `flag is specified in conjunction with either `O_SYNC `or `O_DSYNC`
 
 <p align="center"> <img src="./pic/summary_of_IO_Buffer.png" alt="cow" style="zoom:100%;"/> </p>
 
-<p align="center">Summary of I/O Buffering <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 13</p>
+<p align="center">Summary of I/O Buffering from <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 13</p>
 
 
 
@@ -723,9 +725,9 @@ To man the world is twofold,
 
 **When intermingling I/O system calls and stdio functions, judicious use of `fflush()` may be required to avoid this problem.**
 
-## 5. File System
+## 4. File System
 
-### 5.1 Device Special Files(Devices)
+### 4.1 Device Special Files(Devices)
 
 A special file corresponds to a device on the system. With the kernel, **each device type has a corresponding device driver, which handles all I/O requests for the device**.
 
@@ -745,7 +747,70 @@ Each device file has a ***majoy ID number*** and a ***minor ID number***:
 
 A device's major and minor IDs are recorded in the i-node for the device file. Each device driver registers its association with a specific major device ID, and this association provides the connection between the device special file and the device driver.
 
-## 4. Nonblocking I/O (NIO)
+Each disk is divided into one or more(nonoverlapping) ***partitions***. **Each partition is treated by the kernel as a separate device** residing under `/dev` directory.
+For ***disk partition***, it my hold any type of infomation, but usually contains one of the following:
+
++ A ***file system*** holding regular file and directories
++ A ***data area*** accessed as a raw-mode device(some database management system use this technique)
++ A ***swap area*** used by the kernel for memory management
+  + Swap area is created using the `mkswap(8)` command
+  + A privileged(`CAP_SYS_ADMIN`) process can use the `swapon()` system call to notify the kernel that **a disk partition is to be used as a swap area**.
+    ( `swapon()`: disk partition -> swap area )
+  + The `swapoff()` system call performs the converse function: telling kernel to cease using a disk partition as a swap area.
+    ( `swapoff()`: swap area -> disk partition )
+  + The Linux-specific `/proc/swaps` file can be used to **display information about the currently enabled swap areas on the system**. 
+    This information includes:
+    + the size of each swap area
+    + the amount of the area that is in use.
+
+### 4.2 Overall structure of File System
+
+A file system is an organized collection of regular files and directories. A file system is created using the `mkfs` command.
+
+The **basic unit** for allocating space in a file system is a logical block, which is some multiple of cintiguous physical blocks on the disk device on which the files system resides.
+
+A file system contains the following parts:
+
++ ***Boot block:*** **This is always the first block in a file system.** The boot block is not used by the file system; rather, it contain **information used to boot the operating system. All file system have a boot block.**
+
++ ***Superblock(S):*** This is a single block, immediately following the boot block, which contain the information about this particular file system, including:
+
+  + the size of the i-node table: how many inode in the i-node table
+  + the size of  data block(data region)
+  + the size of logical blocks in this file system
+  + the size of the file system in logical blocks
+
+  **When mounting a file system, the operating system will read the superblock** first to initialize various parameters, and then attach the volume to the file system tree(we will discuss this later).
+
+  Different file system residing on the same physical device can be of different types and sizes, and have different parameter settings, where this is one of the reasons for splitting a disk into multiple partitions.
+
++ ***I-node table:*** Each file or directories in the file system has a **unique entry in the i-node table**. This entry, **inode**, records various infomation about the file, where this information is the key piece of **metadata** and **tracks** things like:
+
+  + which data block(in the data region) compries a file
+  + the size of the file
+  + its owner and access rights
+  + access and modify times ... 
+
+  The i-node table is sometimes also called the **i-list**.
+
++ ***Bitmap:*** A bitmap is a simple structure: each bit is used to indicate whether the corresponding obejct/block is **free(0)** or **in-use(1)**. 
+  Typically, data region and inode table would have their own bitmap respectively -- **data bitmap(d)** and **inode bitmap(i)**.
+
++ ***Data blocks:*** The great majority of space in a file system is used for the blocks of data that form the files and directories residing in the file system.
+
+<p align="center"> <img src="./pic/file_system_structure.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">The file system strucure from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
+Operating Systems: Three Easy Pieces</a>  chapter 40</p>
+
+<p align="center"> <img src="./pic/layout_of_disk_partition_and_file_system.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">The layout of disk partition and file system from <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 14</p>
+
+
+
+
+## 5. Nonblocking I/O (NIO)
 
 
 
