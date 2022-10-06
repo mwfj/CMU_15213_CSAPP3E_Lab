@@ -809,6 +809,53 @@ Operating Systems: Three Easy Pieces</a>  chapter 40</p>
 
 
 
+### 4.3 I-nodes
+
+A file system's ***i-node table*** contains one ***i-node*** (short for *index node*) for each file residing in the file system, where the name of i-node given by historical reason from UNIX[RT74] or earlier system, used because these nodes were originally arranged in an array, and the array *indexed* into when accessing a particular inode. Each node is implicitly referred to by a number called  *i-node number*( or simply *i-number*), where the i-node number of a file is the first field displayed by the `ls -li` command. In **vsfs**(and other simple file systems), given an i-number, you should directly be able to calculate where on the disk the corresponding inode is located.
+
+The information maintained in an i-node include the followiing:
+
++ File type(*e.g.*, regular file, directory, symbolic link, character device)
++ Owner (also referred to as the user ID or UID) for the file
++ Group (also referred to as the group ID or GID) for the file.
++ Access permission for three categories of user:
+  + owner (protection infomation)
+  + group
+  + other
++ Three timestamps: 
+  + time of last access to the file (shown by `ls -lu`)
+  + the of last modification of the file(shown by `ls -l`)
+  + time of last status change (last change to i-node information, shown by `ls -lc`)
++ Number of hard links to the file
++ Size of the file in bytes
++ Number of blocks actually allocated to the file, measured in units of 512-byte blocks.
++ Pointer to the data blocks of the file
+
+<p align="center"> <img src="./pic/the_detail_of_inode_table.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">The detail of inode table from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
+Operating Systems: Three Easy Pieces</a>  chapter 40</p>
+
+For example, to read inode number 32:
+
+1. the file system would first calculate the offset into the inode regoin ( `32 * sizeof(inode)` or `8192` )
+2. add it to the start address of the inode table on disk (`inodeStartAddress = 12 KB`)
+3. arrive upon the correct byte address of the desired block of inodes: `20 KB`
+4. Due to the way reach the data from disks are not byte addressable, but rather consist of a large number of addressable sector, usually 512 bytes.
+   To fetch the block of inode that contains i-node 32, the file system would issue a read to sector `(20 * 1024)/512` or `40`, to fetch the desired inode block.
+
++ More general, the sector address `iaddr` of the inode block can be calculated as follows:
+  + `blk = (inumber * sizeof(inode_t)) / blockSize;`
+  + `sector = ((blk * blockSize) + inodeStartAddr) / sectorSize;`
+
+#### 4.3.1 i-node and data pointers in `ext2` file system
+
+`ext2` ***the Second Extended File system***, the most widely used file system on Linux <a href="#reference5">[5]</a>
+
+Like most UNIX file systems, the `ext2` file **doesn't store the data block of a file contiguously or even in sequential order**(though it does attempt to store them close to one another). To locate the file data blocks, **the kernel maintains a set of pointers in the i-node.** Removing the need to store the blocks of a file contiguously allows the file system to use space in an effiecienty way. In particular, **it reduces the incidence of fregmentation of free disk space** -- the wastage created by the exitence of numberous pieces of noncontiguous free space, all of which are too small to use.
+
+
+
 
 ## 5. Nonblocking I/O (NIO)
 
@@ -823,3 +870,5 @@ Operating Systems: Three Easy Pieces</a>  chapter 40</p>
 <a name="reference3"></a>[[3] StackOverFlow - What is the difference between a stream and a file?](https://stackoverflow.com/questions/20937616/what-is-the-difference-between-a-stream-and-a-file)
 
 <a name="reference4"></a>[[4] Wikipedia - CPU time](https://en.wikipedia.org/wiki/CPU_time)
+
+<a name="reference5"></a>[[5] Ext2fs Home Page](https://e2fsprogs.sourceforge.net/ext2.html)
