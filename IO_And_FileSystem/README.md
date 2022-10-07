@@ -848,14 +848,103 @@ For example, to read inode number 32:
   + `blk = (inumber * sizeof(inode_t)) / blockSize;`
   + `sector = ((blk * blockSize) + inodeStartAddr) / sectorSize;`
 
-#### 4.3.1 i-node and data pointers in `ext2` file system
+
+
+#### 4.3.1 The Multi-Level Index
+
+To support bigger files, we can use ***indirect pointer***. Instead of pointing to a block that contains user data, it points to a block that contains more pointers, each of which point to user data. Thus, an inode may have some fixed number of direct pointers(*e.g.*, 12), and a single indirect pointer.
+
+If a file grows large enough, an indirect block is allocated(from data-block region of the disk), and inode's slot for an indirect pointer is set to pointer it. Assuming 4-KB block and 4-byte disk addresses, that adds another 1024 pointers; the file can grow to be `(12 + 1024) * 4k` or `4144 KB`
+
+Not surprisingly, in such an approach, you might want to support event larger files. To do so, just add another level of pointers to the inode: **the double indirect pointer**. This pointer refers to a block that contains pointers to **indirect blocks**, each of which contain pointers to data block. A double indirect pointer thus adds the posibility to grow files with an additional `1024 * 1024` or `1-million` 4KB blocks, in other words supporting files that are over 4GB in size,
+
+Overall, this imbalanced tree is referred as the  ***Multi-level index*** approach to file blocks. The reason of the existence for such imblanced tree is that *most file are small*, and the this imblanced tree reflects such a reality.
+Thus, with a small number of direct pointers (12 is a typical number), an inode can directly point to 48 KB of data, needing one(or more) indirect blocks for larger files.
+
+#### 4.3.2 i-node and data pointers in `ext2` file system
 
 `ext2` ***the Second Extended File system***, the most widely used file system on Linux <a href="#reference5">[5]</a>
 
 Like most UNIX file systems, the `ext2` file **doesn't store the data block of a file contiguously or even in sequential order**(though it does attempt to store them close to one another). To locate the file data blocks, **the kernel maintains a set of pointers in the i-node.** Removing the need to store the blocks of a file contiguously allows the file system to use space in an effiecienty way. In particular, **it reduces the incidence of fregmentation of free disk space** -- the wastage created by the exitence of numberous pieces of noncontiguous free space, all of which are too small to use.
 
+Under `ext2`, each i-node contains 15 pointers.
 
++ The **first 12 of these pointers** point to the locationo in the file system of the **first 12 blocks** of the file.
++ The next pointer(thirteenth) is a ***pointer to a block pointers*** that give th locations of the thirteenth and subsequent data blocks of the file.
+  The number of pointers in this block depends on the block size of the file system.
++ Each pointer requires 4 bytes, so there may be from 256 pointers(for a 1024-byte block size) to 1024 pointers(for a  4096-byte block size)
++ For even larger file, the forteenth pointer(number 13 in the diagram below) is a ***double indirect pointer*** - it points to blocks of pointers that in turn point to blocks of pointers that in turn point to data blocks of the file.
++ For a truly enormous file arise, there is a further level of indirection: the last pointer(number 14 in the diagram below in the i-node is a ***triple-indirect pointer***.
 
+<p align="center"> <img src="./pic/inode_structure_for_ext2.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Structure of file blocks for a file in an ext2 file system from <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 14</p>
+
+Advantage for the structure of `ext2` i-node:
+
++ It allows the **i-node structure to be a fixed size**, while at the same time allowing for **a file of an arbitrary size**;
++ It allows the file system to **store the blocks of a file noncontiguously**, while also allowing the data to be **accessed randomly** via `lseek()`;  The kenerl, just need to calculate which pointer(s) to follow;
++ For **small files**, which from the overwhelming majority of files on most systems, this scheme allows the file data blocks to be **accessed rapidly** via the direct pointers of the  i-node.
++ This design **allow the file hole exist**. Rather than allocate blocks of null bytes for the holes in a file, the file system can **just mark(with the value 0) appropriate pointers in the i-node** and in the indirect pointer blocks to indicate that they don't refer to actual disk blocks.
+
+####4.3.3 Read/Write a file for the i-node perspective
+
++ **Read a file from disk**: 
+
+  1. `open()` the file:
+     1. **Traverse the file** path begining at the root of the file system(in the root directory, which simply called `/`)
+     2. **Find i-node number of the target file** to get the corresponding inode. Usually, we find the i-number of the file or directory in its parent directory;
+        The root has no parent, and thus the file system must know the inode number of the root when it is mounted.
+        In most Unix file systems, **the root inode number is 2.**
+     3. Once the inode is read in, the file system can look inside of it to 
+     4. **find pointers to data block**, which contain the content of the root directory . 
+     5. The file system thus will use these on-disk pointers to read through the directory.
+     6. After find the corresponding entry, the file system will also have found the next level of the directory for that file path, which it will need next.
+     7. The next step is to **recursively traverse the pathname until the desired inode is found**.
+     8. The final step is to read the inode of the target file/directory into the memory. The file system then does:
+        1. the file system do the permission check; 
+        2. allocates the file descriptor for the corresponding process if the target inode is newly created.
+        3. return the file descriptor to the user.
+  2. `read()` the file: once the file opened, the program issue a `read()` system call to read from the file:
+     + **the first read**(at offset 0 unless `lseek()` has been called) will:
+       1. **read the first block of the file**;
+       2. **consulting the inode to find the location of such a block;**
+       3. it may alsy **update the inode with a new *last-accessed time***.
+     + The further read will **update the in-memory open file table** for this file descriptor and **the file offset**;
+     + read the next block.
+  3. `close()` the file: when the file is closed, the file descriptor should be deallocated.
+
+  ![read_file_timeline](./pic/read_file_timeline.png)
+
+  <p align="center">File read of <strong>/foo/bar</strong> timeline from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
+  Operating Systems: Three Easy Pieces</a>  chapter 40</p>
+
++ **Write a file to disk**:
+
+  1. the file must be opened.
+  2. the application issue `write()` call to update the file with new content
+     + Unlike `read()`, writing to the file may also allocate a block
+     + When writing out a new file, each write not only has to write data to disk but has to first decide which blaock to allocate to the file and thus update other structures of the disk.
+     + Thus, each wrtie to a file logically generates **5 I/Os**:
+       + one read operation is to **read the data bitmap**(which is then updated to mark the newly-allocated block are used)
+       + two more read then **write the inode**(which is updated with the new block's location)
+       + one to **write the actual block itself**
+  3. close the file descriptor.
+
++ **Create a file**: to create a file, the file system must **not only allocate the inode, but also allocate space within the directory containing the new file**.
+
+  + The total amout of I/O traffic to do so is quite high:
+    + one read to the inode bitmap(to **find the free inode**)
+    + one write to the new inode itself(to **initialize** it)
+    + one write to the data of the directory(to **link the high-level name** of the file to its inode number)
+    + one read and write to the directory inode to update it
+
+  If the directory needs to grow to accommodate the new entry, additional I/Os(*i.e*, to the date bitmap, and the new directory block) will be needed too.
+
+  ![read_file_timeline](./pic/read_file_timeline.png)
+
+<p align="center">File creation of <strong>/foo/bar</strong> timeline from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
+Operating Systems: Three Easy Pieces</a>  chapter 40</p>
 
 ## 5. Nonblocking I/O (NIO)
 
