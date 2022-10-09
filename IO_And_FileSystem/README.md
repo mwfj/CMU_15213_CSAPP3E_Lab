@@ -946,6 +946,12 @@ Advantage for the structure of `ext2` i-node:
 <p align="center">File creation of <strong>/foo/bar</strong> timeline from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
 Operating Systems: Three Easy Pieces</a>  chapter 40</p>
 
+### The Fast File System(FFS)
+
+The idea was to design the file system strucutres and allocation policies to be "disk aware" and thus improv performance.
+
+The first step was to change the on-disk structure. FFS divides the disk into a number of ***cylinder groups***. 
+
 ## 5. Nonblocking I/O (NIO)
 
 
