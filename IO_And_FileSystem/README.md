@@ -811,7 +811,7 @@ Operating Systems: Three Easy Pieces</a>  chapter 40</p>
 
 ### 4.3 I-nodes
 
-A file system's ***i-node table*** contains one ***i-node*** (short for *index node*) for each file residing in the file system, where the name of i-node given by historical reason from UNIX[RT74] or earlier system, used because these nodes were originally arranged in an array, and the array *indexed* into when accessing a particular inode. Each node is implicitly referred to by a number called  *i-node number*( or simply *i-number*), where the i-node number of a file is the first field displayed by the `ls -li` command. In **vsfs**(and other simple file systems), given an i-number, you should directly be able to calculate where on the disk the corresponding inode is located.
+A file system's ***i-node table*** contains one ***i-node*** (short for *index node*) for each file residing in the file system, where the name of i-node given by historical reason from UNIX[RT74] or earlier system, used because these nodes were originally arranged in an array, and the array *indexed* into when accessing a particular inode. Each node is implicitly referred to by a number called  ***i-node number( or simply i-number)***, where the i-node number of a file is the first field displayed by the `ls -li` command. In **vsfs**(and other simple file systems), given an i-number, you should directly be able to calculate where on the disk the corresponding inode is located.
 
 The information maintained in an i-node include the followiing:
 
@@ -950,7 +950,49 @@ Operating Systems: Three Easy Pieces</a>  chapter 40</p>
 
 The idea was to design the file system strucutres and allocation policies to be "disk aware" and thus improv performance.
 
-The first step was to change the on-disk structure. FFS divides the disk into a number of ***cylinder groups***. 
+The first step was to change the on-disk structure. FFS divides the disk into a number of ***cylinder groups***.  A single **cylinder** is a set of tracks on different surface of a hard drive that are the same distance from the center of the drive. **FFS aggregates each N consecutive cylinders into group**, and thus **the entire disk can thus be viewed as a collection of cylinder group**.
+
+<p align="center"> <img src="./pic/cylinder_group.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Cylinder Goup from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
+Operating Systems: Three Easy Pieces</a>  chapter 41</p>
+
+Note that modern drives do not export enough information for the file system to truly understand whether a particular cylinder is in use and thus modern file system(such as Linux ext2, ext3, and ext4) instead organize the drive into **block group**, each of which is just a **consecutive portion of the disk's address space**, where these groups are the central mechanism that FFS uses to imporove performance whether you call cylinder group or block group. FFS can ensure that **accessing one after the other will not result in long seeks aross the disk**.
+
+<p align="center"> <img src="./pic/block_group.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Block Goup from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
+Operating Systems: Three Easy Pieces</a>  chapter 41</p>
+
+To use these groups to store file and directories, FFS needs to have the ability to place files and directories into a group, and track all necessary information about them therein. To do so, FFS includes all the stuctures you might expect a file system to have within each group (*e.g*, space for inode, data blocks *etc.*).
+
+<p align="center"> <img src="./pic/file_strucutre_in_FFS.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">File/Directory structure in FFS from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
+Operating Systems: Three Easy Pieces</a>  chapter 41</p>
+
+#### To allocate files and directories, the first thing should be
+
+1. the placement of directories: FFS find the cylinder group with:
+   + a **low number** of allocated directories(to balance directories across groups)
+   + a **high number** of free inodes(to subsequently be able to allocate a bunch of files).
+2. put the direcotry data and inode in that group.
+
+For file, FFS does two things:
+
+1. it make sure to **allocate the data block of a file in the same group** as its inode, and thus preventing long seeks between inode and data;
+2. it place all files that are in the same directory in thhe cylinder group of the directory they are in.
+
+Thus, if a user creats four files: `/a/b`, `/a/c`, `/a/d` and `/b/f`, FFS would try to place the first three near one another(same group) and the fourth far away(in some other group).
+
+Note that the FFS policy also does two positive things: 
+
+1. the data blocks of each file are near each file's inode
+2. files in the same firectory are near one another
+
+**Files in a directory are often accessed together**: imagine compiling a bunch of files and the linking them into a single executable. Because such namespace-based locality exists, FFS will often improve performance, making sure that seeks between realted file are nice and short. 
+
+
 
 ## 5. Nonblocking I/O (NIO)
 
