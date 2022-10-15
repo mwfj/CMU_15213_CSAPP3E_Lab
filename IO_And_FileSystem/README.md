@@ -992,8 +992,6 @@ Note that the FFS policy also does two positive things:
 
 **Files in a directory are often accessed together**: imagine compiling a bunch of files and the linking them into a single executable. Because such namespace-based locality exists, FFS will often improve performance, making sure that seeks between realted file are nice and short. 
 
-
-
 #### Large File Exception
 
 For  large files, FFS places the next "large" chunk of file after some number of blocks are allocated into the first block group(*e.g.* 12 blocks, or the number of direct pointers available within an inode). If the chunk size is large enough, the file system will spend most of its time transferring data from disk and just a (relatively) little time seeking between chunks of the block.
@@ -1004,7 +1002,7 @@ To solve the internal fragmentation issue, FFS introduce **sub-blocks**, which w
 
 To avoid the process inefficiency, FFS modify the ***libc*** library, where the library would **buffer writes and then issue them in 4KB chunks to the file system**, and thus avoiding the sub-block specialization entriely in most case.
 
-#### sequential read problem
+#### Sequential read problem
 
 FFS also might have **sequential read problem**, where FFS would first issue a read to block 0; by the time the read was complete, and FFS then issued a read to block 1, which it was too late. In other words, block 1 had rotated under the head and now the read to block 1 would incur a full rotation.
 
