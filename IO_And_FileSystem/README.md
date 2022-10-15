@@ -994,6 +994,25 @@ Note that the FFS policy also does two positive things:
 
 
 
+#### Large File Exception
+
+For  large files, FFS places the next "large" chunk of file after some number of blocks are allocated into the first block group(*e.g.* 12 blocks, or the number of direct pointers available within an inode). If the chunk size is large enough, the file system will spend most of its time transferring data from disk and just a (relatively) little time seeking between chunks of the block.
+
+To compute the chunk size, the calculation of FFS is based on the structure of inode itself, where the first twelve direct blocks were placed in the same group as the inode; each subsequent indirect blocks were placed the block it pointed to, was placed in a different group.
+
+To solve the internal fragmentation issue, FFS introduce **sub-blocks**, which were 512-byte little blocks that the file system could allocate to files. As the file grew, the file system will continue allocating  512-byte blocks to it until it acquires a full 4KB of data. After that point, FFS will find a 4KB block，*copy* the sub-block into it, and free the sub-block for future use.
+
+To avoid the process inefficiency, FFS modify the ***libc*** library, where the library would **buffer writes and then issue them in 4KB chunks to the file system**, and thus avoiding the sub-block specialization entriely in most case.
+
+#### sequential read problem
+
+FFS also might have **sequential read problem**, where FFS would first issue a read to block 0; by the time the read was complete, and FFS then issued a read to block 1, which it was too late. In other words, block 1 had rotated under the head and now the read to block 1 would incur a full rotation.
+
+To solve the sequential read problem, FFS was smart enough to **figure out for a particular disk *how many* blocks it should skip in doing layout** in order to avoid extra rotation; this technique was called **parameterization**, as FFS would figure ou the specific perfromance parameters of the disk and use those to decide on the exact staggered layout scheme.
+ For modern disks, they are smart enough. They **internally read the entire track in and buffer it in an internal disk cache**(often called a **track buffer** of this very reason). Then on subsequent reads to the track, the disk will just return the desired data from its cache. File system thus no longer worry about these incredibly low-level detail. Abstration and higher-level interfaces can be good thing, when design properly.
+
+
+
 ## 5. Nonblocking I/O (NIO)
 
 
