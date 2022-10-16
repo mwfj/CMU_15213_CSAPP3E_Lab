@@ -946,7 +946,7 @@ Advantage for the structure of `ext2` i-node:
 <p align="center">File creation of <strong>/foo/bar</strong> timeline from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
 Operating Systems: Three Easy Pieces</a>  chapter 40</p>
 
-### The Fast File System(FFS)
+### 4.4 The Fast File System(FFS)
 
 The idea was to design the file system strucutres and allocation policies to be "disk aware" and thus improv performance.
 
@@ -971,7 +971,7 @@ To use these groups to store file and directories, FFS needs to have the ability
 <p align="center">File/Directory structure in FFS from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
 Operating Systems: Three Easy Pieces</a>  chapter 41</p>
 
-#### To allocate files and directories, the first thing should be
+#### 4.4.1 To allocate files and directories, the first thing should be
 
 1. the placement of directories: FFS find the cylinder group with:
    + a **low number** of allocated directories(to balance directories across groups)
@@ -992,7 +992,7 @@ Note that the FFS policy also does two positive things:
 
 **Files in a directory are often accessed together**: imagine compiling a bunch of files and the linking them into a single executable. Because such namespace-based locality exists, FFS will often improve performance, making sure that seeks between realted file are nice and short. 
 
-#### Large File Exception
+#### 4.4.2 Large File Exception
 
 For  large files, FFS places the next "large" chunk of file after some number of blocks are allocated into the first block group(*e.g.* 12 blocks, or the number of direct pointers available within an inode). If the chunk size is large enough, the file system will spend most of its time transferring data from disk and just a (relatively) little time seeking between chunks of the block.
 
@@ -1002,7 +1002,7 @@ To solve the internal fragmentation issue, FFS introduce **sub-blocks**, which w
 
 To avoid the process inefficiency, FFS modify the ***libc*** library, where the library would **buffer writes and then issue them in 4KB chunks to the file system**, and thus avoiding the sub-block specialization entriely in most case.
 
-#### Sequential read problem
+#### 4.4.3 Sequential read problem
 
 FFS also might have **sequential read problem**, where FFS would first issue a read to block 0; by the time the read was complete, and FFS then issued a read to block 1, which it was too late. In other words, block 1 had rotated under the head and now the read to block 1 would incur a full rotation.
 
@@ -1011,7 +1011,97 @@ To solve the sequential read problem, FFS was smart enough to **figure out for a
 
 
 
-## 5. Nonblocking I/O (NIO)
+### 4.5 The Virtual File System(VFS)
+
+The *virtual file system*(VFS, sometimes also referred to as the *virtual file switch*) is a kernel feature that resolves the problem of difference between different file systems in Linux by creating an **abstraction layer for file-system operations**
+
++ The VFS defiens a generic interface for file-system operations. All programs that work with file specify their operation in terms of this generic intereface.
++ Each file system provides an implementation for the VFS interface.
+
+<p align="center"> <img src="./pic/virtual_file_system.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">The layout of virtual file system from <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 14</p>
+
+Under this scheme, programs need to understand only the VFS interface and can ignore details of individual file-system implementations.
+
+The VFS interface includes operations corresponding to all of the usual system calls for working with file systems and directories, such as `open()`, `read()`, `write()`, `lseek()`, `close()`, `truncate()`, `stat()`, `mount()`, `unmount()`, `mmap()`, `mkdir()`, `link()`, `unlink()`, `symlink()` and `rename()`.
+
+Natually, some  file systems --especially non-UNIX file systems-- don't suppor all of the VFS operations(*e.g.* Microsoft's FAT doesn't support the notion of symbolic links, created using `symlink()`). In such case, the underlying file system passes an error back to the VFS layer  indicating the lack of support, and the VFS in turn passes this error code back to the application.
+
+## 5. Crash Consistency: FSCK and Journaling <a href="#reference7">[7]</a>
+
+One major challenge faced by file system is how to update persisten data structure despite the presence of a **power loss** or **system crash**, which known as **crash-consistency problem**.
+
+There have two ways to solve such problem
+
++ **file system checker**(*a.k.a* **fsck**) taken by old file systems
++ **journaling**(a.k.a **write-ahead logging**): A tecnique which adds a little bit of overhead to each write but recovers more quickly from crashes or power losses.
+
+When we **append to the file**, we are adding a new data block to the data block section, and thus must update three on-disk structures:
+
++ **the inode**, which must point to the new block and record the new larger size due to the append;
++ **the new data block DB**;
++ **a new version of the data bitmap**, which indicates that the new data block has been allocated.
+
+Thus, in the memory of the system, we have to update these three blocks and must write to the disk. To achieve this transition, the file system must perform **three separate writes** to the disk: inode; bitmap; and data block(db). Note that such three writes usually don't happen immediately when the user issue a `write()` system call; rather, 
+
+1. the **dirty inode, bitmap and new data will sit in main memory**(in the **page cache** or **buffer cache**) first
+2. then, when the file system finally decides to write them to disk(after say 5 seconds or 30 seconds),  **the file system will issue the requisite write requests to the disk**.
+
+Unfortunately, a crash may occur and thus interfere with these updates to the disk. In particular, if a crash happens after one or two of these writes have taken place, but not all three, the file system could be left in a funny state.
+
+### 5.1 Crash Scenarios
+
++ **Just the *data block(Db*) is written to disk:** In this case, the data is on disk, but there is no inode that points to it and no bitmap that even says the block is allocated. Thus, **it is as if the write never occurred**. This case is **not a problem** at all from the perspective of file-system crash consistency.
+
++ **Just the updated *inode* is written to disk**: In this case, the indoe points to the disk address where **Db was about to be written, but Db has not yet been written there**.  Thus, if we trust that pointer, we will read **garbage** data from the disk(the old content)
+
+  Furthermore, the **file-system inconsistency** occurred. **The on-disk bitmap is telling us that newly written data blocks has not been allocated, but the inode is saying that it has.** 
+
++ **Just the updated *bitmap* is written to disk:** In this case, the bitmap indicated that the newly written data block is allocated, but there is no inode that points to it. Thus the file system is inconsistenct again; if left unresolved, this write would result in a **space  leak**, as newly written block would never be used by the file system.
+
++ **The inode and bitmap are written to disk, but not data block(Db):** In this case, **the file system metadata is completely consistent**: the inode has a pointer to the newly written block, the bitmap indicates that this block in use.
+
++ **The inode and datablock(Db) are written but not the bitmap:**  In this case, we have the inode pointing to the correct data on disk, but again have inconsistency between the inode and the old version of the bitmap.
+
++ **The bitmap and data block(Db) are written, but not inode:** In this case, we again have inconsistency between the inode and the data bitmap. However, even though the block was written and the data bitmapa it usage, we have no idea which file it belongs to, as no inode points to the file.
+
+### 5.2 The File System Checker(FSCK)
+
+`fsck` is a Unix tool for **finding such inconsistencies and repairing them**; similar tool to check and repair a disk partition exist on different systems, where the real goal is to **make sure the file system meta data is internally consistent**.
+
+Note that such an approach can't fix all problems; consider, for example, the file system looks consistent but the inode points to garbage data.
+
+Specifically, `fsck` runs before the file system is mounted and made available(`fsch` assume that no other file-system activity is on-going while it runs); once finished, the on-disk file system should be consistent and thus can be made accessible to users.
+
++ **Superblock:** `fsck` first check if the **superblock is greater than the number of blocks that have been allocated**. Usually the goal of these sanity check is to find a suspect(corrupt) superblock; in this case, the system(or adminstrator) may decide to use an alternate copy of the superblocks.
+
++ **Free blocks**: Next, `fsck` scans the inodes, indirect blocks, double indirect blocks *etc.*, to **build an understanding of which blocks are currently allocated within the file system**. It use this knowledge to produce a correct version of the allocation bitmaps; thus, if there is any inconsistency between bitmaps and inodes, it is resolved by **trusting the information within inodes**.
+
+  **The same type of check is performed for all the inodes**, making sure that all inode that look like they are in use are marked as such in the inode bitmaps.
+
++ **Inode state:** Each inode is **checked for corruption** or other problems. For example, `fsck` make sure that **each allocated inode has a valid type field**(*e.g.* regular file, directory, symbolic link, *etc.*). **If there are problems with the inode fields that are not easily fixed, the inode is considered suspect and cleared by `fsck`; the inode bitmap is correspondingly updated.**
+
++ **Inode links:** `fsck` also **verifies the link count of each allocated inode**, where the **link count indicates the number of different directories that contain a reference(*i.e.*, a link) to this particular file**. To verify the link count,
+
+  +  `fsck` scans through the entire directory tree, starting at the root directory, and builds its own link counts for every file and directory in the file system.
+  + If there is a **mismatch between the newly-calculated count and that found within an inode**, corrective action must be taken, usually by fixing the ocunt within the inode.
+  + If **an allocated inode is discovered but no directory refers to it**, it is moved to the ***lost + found*** directory.
+
++ **Duplicates:** `fsck` also check for **duplicate pointers**, *i.e.*, cases where two different inodes refer to the same block.
+
+  + If one inode is obviously bad, it may be cleared.
+  + Alternately, the pointerd-to block could be copied, thus giving each inode its own copy as desired.
+
++ **Bad blocks:** A check for bad block pointers is also performed while scanning through the list of all pointers. **A pointer is considered "bad" if it obviously points to something *outside* its valid range**;
+
+  + *e.g.*, it has an address that refers to a block greater than the partition size. In this case, `fsck` can't do anything too intelligent; it just removes(clears) the pointers from the inode or indirect block.
+
++ **Directory checks:** `fsck` does not understand the content of user files. However, **directoreis hold specifically formatted information created by the file system itself.** Thus, `fsck` performs additional integrity checks on the contents of each directory, **making sure that `"."` and `".."` are the first entries**, that each inode referred to in a directory entry is allocated, and ensuring that no directory is linked to more than once in the entire hierarchy.
+
+**Disadvantage** of `fsck`: **they are too slow.** With a very large disk volume, scanning the entire disk to find all the allocated blocks and read the entire directory tree make take many minutes or hours.
+
+## 6. Nonblocking I/O (NIO)
 
 
 
@@ -1026,3 +1116,7 @@ To solve the sequential read problem, FFS was smart enough to **figure out for a
 <a name="reference4"></a>[[4] Wikipedia - CPU time](https://en.wikipedia.org/wiki/CPU_time)
 
 <a name="reference5"></a>[[5] Ext2fs Home Page](https://e2fsprogs.sourceforge.net/ext2.html)
+
+<a name="reference6"></a>[[6] The Linux programming interface](https://man7.org/tlpi/)
+
+<a name="reference7"></a>[[7] Operating Systems: Three Easy Pieces](https://pages.cs.wisc.edu/~remzi/OSTEP/)
