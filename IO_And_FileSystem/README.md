@@ -1101,6 +1101,37 @@ Specifically, `fsck` runs before the file system is mounted and made available(`
 
 **Disadvantage** of `fsck`: **they are too slow.** With a very large disk volume, scanning the entire disk to find all the allocated blocks and read the entire directory tree make take many minutes or hours.
 
+
+
+### 5.3 Journaling(or Write-Ahead Logging)
+
+In file systems, we usually call write-ahead logging **journaling** for historical reasons. The basic idea of **journaling** is that:
+
++ When updating the disk, before overwriting the structures in place, first write down a little note(somewhere else on the disk, is a well-know location) describing what you are about to do.
++ Writing this node is the "write ahead" part, and we write it to a structure that we organize as a "log" 
+
+In other words, a journaling file system logs(journals) all metadata update to a special on-disk journal file before they are actually carried out. The updates are logged in groups of related metadata updates(transactions), where when the event of a system crash in the middle of a transaction, on system reboot, the log can be used to rapidly redo any incomplete updates and bring the file system back to a consistent state.
+
+Let's take `ext3` in Linux as an example. In general the `ext3` structure would be like:
+
+<p align="center"> <img src="./pic/ext3_file_structure.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">File structure in <strong>ext3</strong> from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
+Operating Systems: Three Easy Pieces</a>  chapter 41</p>
+
+#### 5.3.1 Data Journaling
+
+Before writing the adata to their final disk location, we are now first going to write them to the log(*a.k.a.* journal). This is what this will look like in the log:
+
+<p align="center"> <img src="./pic/initial_journaling_layout.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">The initial layout of journaling log from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
+Operating Systems: Three Easy Pieces</a>  chapter 41</p>
+
+
+
+
+
 ## 6. Nonblocking I/O (NIO)
 
 
