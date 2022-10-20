@@ -1128,9 +1128,37 @@ Before writing the adata to their final disk location, we are now first going to
 <p align="center">The initial layout of journaling log from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
 Operating Systems: Three Easy Pieces</a>  chapter 41</p>
 
++ The transaction begin**(TxB**) tells us about this update, including **infomration about the pending update to the file system**, as well as some kind of **transaction identifier(TID)**. 
++ The middle three blocks just contain the exact contents of the blocks themselves; this is known as **physical logging** as we are putting the exact physical contents of the update in the journal(an alternate idea, **logical logging**, puts a more comapct logical representation of the update in the journal)
++ The final block(**TxE**) is a **marker of the end of this transaction**, and will also contain the TID.
 
+Once this transaction is safely on disk, we are ready to **overwrite the old structures in the file system**; this process is called **checkpointing**. Thus, to **checkpoint** the file system, we issue the writes `I[v2]`, `B[v2]` and `Db` to their disk locations as the figure shown above; If these writes complete successfully, we have successfully checkpointed the file system and are basically done.
 
+Thus, the initial sequence of  operations:
 
+1. **Journal write:** Write the transaction, including:
+   + a transaction-begin block, 
+   + all pending data and metadata updates, 
+   + a transaction-end block, to the log; wait for these writes to complete.
+2. **Checkpoint:** Write the pending metadata and data updates to their final locations in the file system.
+
+However, only do the two steps above is not enough. The reason is that when the crash occurs, there may have a loss data problem. Specifically, the disk internally may perform scheduling and complete small pieces of the big write in any order. Thus, if we just finish updated some partial blocks when the accident occurred(like power loss), the whole update process would not be fully recorded. However, when the system try to "replay" this write sequence, the data operation it does actually is incompleted, and thus some data will be lost during this recovery process happened.
+
+To solve the data loss problem, the file system issues the **transactional write** in two steps, where **atomicity guarantee** provided by disk is an important aspect of this process:
+
+1. it writes all blocks except the `TxE` block to the journal, issuing these writes all at once.<a href="#reference7">[7]</a>
+
+<p align="center"> <img src="./pic/journal_write_block.png" alt="cow" style="zoom:100%;"/> </p>
+
+2. When these writes complete, the file system issues the write of the `TxE` block, thus leaving the journal in  this final safe state: <a href="#reference7">[7]</a>
+
+<p align="center"> <img src="./pic/journal_write_txb_after_write_blocks_done.png" alt="cow" style="zoom:100%;"/> </p>
+
+In such case, write will either happen or not(and never be half-writting); thus, to make sure the write to `TxE` is atomic, one should make it single 512-byte block. Therefore, the journaling protocol layout should be like:
+
+1. **Journal write:** Write the contents of the transaction block(including `TxB` metadata, and data) to the log; wait for these writes to complete;
+2. **Journal commit:** Write the transaction commit block(containing `TxE`) to the log; wait for write to complete; transaction is said to be **committed**;
+3. **Checkpoint:** Write the contents of the updates(metadata and data) to their final on-disk locations in the file system.
 
 ## 6. Nonblocking I/O (NIO)
 
