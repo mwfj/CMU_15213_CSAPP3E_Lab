@@ -1160,6 +1160,21 @@ In such case, write will either happen or not(and never be half-writting); thus,
 2. **Journal commit:** Write the transaction commit block(containing `TxE`) to the log; wait for write to complete; transaction is said to be **committed**;
 3. **Checkpoint:** Write the contents of the updates(metadata and data) to their final on-disk locations in the file system.
 
+### 5.4 Recovery
+
+If the crash happen before the transaction is written safely to the log:
+
++ the pending update is simply skipped
+
++ If the crash happens after the transaction has committed to the log, but before the checkpoint is complete, the file system can **recover** the updates as follows:
+
+  1. When the system boots, the file system recovery process wil scan the log
+  2. **Redo Log**: Look for transaction that have committed to the disk, and thus these transactions are **replayed**(in order), where the file system again attemptting to write out the blocks in the transaction to their final on-disk locations.
+
+  By recovering the committed transactions in the journal, the file system ensures that the on-disk structure are consistent, and thus proceed by mounting the file system and readying itself  for new requests.
+
+  In the wrost case, some of updates are simply performed again during the recovery. Because recovery is rare operation(only taking place after an unexpected system crash), a  few redundant writes are noting to worry about.
+
 ## 6. Nonblocking I/O (NIO)
 
 
