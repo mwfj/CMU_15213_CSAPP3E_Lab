@@ -1101,8 +1101,6 @@ Specifically, `fsck` runs before the file system is mounted and made available(`
 
 **Disadvantage** of `fsck`: **they are too slow.** With a very large disk volume, scanning the entire disk to find all the allocated blocks and read the entire directory tree make take many minutes or hours.
 
-
-
 ### 5.3 Journaling(or Write-Ahead Logging)
 
 In file systems, we usually call write-ahead logging **journaling** for historical reasons. The basic idea of **journaling** is that:
@@ -1160,7 +1158,7 @@ In such case, write will either happen or not(and never be half-writting); thus,
 2. **Journal commit:** Write the transaction commit block(containing `TxE`) to the log; wait for write to complete; transaction is said to be **committed**;
 3. **Checkpoint:** Write the contents of the updates(metadata and data) to their final on-disk locations in the file system.
 
-### 5.4 Recovery
+#### 5.3.1.1 Recovery
 
 If the crash happen before the transaction is written safely to the log:
 
@@ -1174,6 +1172,64 @@ If the crash happen before the transaction is written safely to the log:
   By recovering the committed transactions in the journal, the file system ensures that the on-disk structure are consistent, and thus proceed by mounting the file system and readying itself  for new requests.
 
   In the wrost case, some of updates are simply performed again during the recovery. Because recovery is rare operation(only taking place after an unexpected system crash), a  few redundant writes are noting to worry about.
+
+#### 5.3.1.2 Batch log update
+
+When we create two files at the same time, we logically commit all of the infomation of these two files(inode, bitmap, data block *etc.*) to journal for each of two file creation, which could cause the problem of ***excessive write traffic***. In this case  some file systems do not commit each update to disk one at a time(*e.g.* LINUX `ext3`); rather, **one can buffer all updates into a global transaction**. 
+
+Specifically:
+
+1. the file system marks the in-memory inode bitmap, inodes or the other information releated to these files as dirty when multiple file creation happened.
+2. the file system adds those informations to the list of blocks that form the current transaction.
+3. When it is finally time to write these blocks to disk, this single global transaction is committed containing all of the updates described above.
+
+Thus, when it is finally time to write to disk, the file system first carefully writes out the details of the transaction to the journal(*a.k.a.* write-ahead log); after the transaction is completed, the file system checkpoints those blocks to their final locations on disk.
+
+However, the log is of a finite size. If keep adding transactions to it, it will soon fill.
+
+**Two problems arise when the log becomes full**:
+
+1. The larger the log, the longer recovery will take, as the recovery must replay all the transactions within the log(in order) to recovery;
+2. When the log is full(or nearly full), no futher transaction can be committed to the disk, thus marking the file system "less than useful"
+
+To address these problems, **journaling file system treat the log as a circular data structure**, re-using it over and over again; this is why the journal is somtimes referred to as a **circualr log**. To do so, once a transaction has been checkpointed, the file system should free the space it was occupying within the journal, allowing the log space to be reused.
+
+In the journal superblock(not the same as the superblock of the main file system), the journaling system records enough information to know which transaction have not yet been checkpointer, and thus reduces recovery time as well as enable re-use of the log in a circular fashion.
+
+<p align="center"> <img src="./pic/journal_superblock.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">The superblock of the journal structure from <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 14</p>
+
+The data  journaling protocol layout should be like:
+
+1. **Journal write:** Write the contents of the transaction block(including `TxB` metadata, and data) to the log; wait for these writes to complete;
+2. **Journal commit:** Write the transaction commit block(containing `TxE`) to the log; wait for write to complete; transaction is said to be **committed**;
+3. **Checkpoint:** Write the contents of the updates(**metadata and data**) to their final on-disk locations in the file system.
+4. **Free:** Some time later, **mark the transaction free in the journal by updating the journal superblock**.
+
+The problem of data journaling protocol: the file system is writting each data block to the disk ***twice***: Journal write and writting to disk.
+
+### 5.3.2 Metadata Journaling
+
+You can think of ***metadata journaling*** as a simpler version of the data journaling, where it **just write the metadata of the file to the journal**, rather than writing both user data and metadata to the journal(just like data journal did). 
+
+In most systems, **metadata journaling(akin to ordered journaling of `ext3`) is more popular than full data journaling.**
+
+**The data block(Db)**, previously written to the log, **would instead be written to the file system proper, avoiding the extra write**; given that most I/O traffic to the disk is data, not writing data twicw substantially reduces the I/O load of journaling.
+
+Generally, file systems **write data blocks(of regular files) to the disk first** before related metadata is written to disk.
+
+Specifically, the protocol is as follows:
+
+1. **Data write:** Write data to final locations; wait for completion(the wait is optional)
+2. **Journal metadata write:** **Write the begin block and metadata to the log;** wait for writes to complete.
+3. **Journal commit:** Write the **transaction commit block**(containing `TxE`) to the log; wait for the write to complete; the transaction(including data) is now committed.
+4. **Checkpoint metadata:** Write  theh content of the **metadata update** to their final locations within the file system.
+5. **Free:** Later, **mark the transaction free in journal superblock**.
+
+By forcing the data write first, a file system can guarantee that a pointer will **never point to garbage**.
+
+**Note that forcing the data write to complete(Step 1) before issuing writes to the journal(Step 2) is not required for correctness**, as indicated in the protocol above. Specifically, it would be fine to concurrently issue writes to data, the transaction-begin block, and journaled metadataa; the only real requirement is that **Step 1 and 2 complete before the issuing of the journal commit block(Step 3)**.
 
 ## 6. Nonblocking I/O (NIO)
 
