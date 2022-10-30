@@ -1,4 +1,4 @@
-# File System & System I/O
+File System & System I/O
 
 ## 1. File Basic
 
@@ -1209,6 +1209,10 @@ The data  journaling protocol layout should be like:
 
 The problem of data journaling protocol: the file system is writting each data block to the disk ***twice***: Journal write and writting to disk.
 
+<p align="center"> <img src="./pic/data_journal_timeline.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Data Journaling Timeline from <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 14</p>
+
 ### 5.3.2 Metadata Journaling
 
 You can think of ***metadata journaling*** as a simpler version of the data journaling, where it **just write the metadata of the file to the journal**, rather than writing both user data and metadata to the journal(just like data journal did). 
@@ -1229,11 +1233,95 @@ Specifically, the protocol is as follows:
 
 By forcing the data write first, a file system can guarantee that a pointer will **never point to garbage**.
 
+<p align="center"> <img src="./pic/meta_journal_timeline.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Metadata Journaling Timeline from <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 14</p>
+
 **Note that forcing the data write to complete(Step 1) before issuing writes to the journal(Step 2) is not required for correctness**, as indicated in the protocol above. Specifically, it would be fine to concurrently issue writes to data, the transaction-begin block, and journaled metadataa; the only real requirement is that **Step 1 and 2 complete before the issuing of the journal commit block(Step 3)**.
 
-## 6. Nonblocking I/O (NIO)
+## 5. Mounting and Unmounting File Systems
+
+On Linux, as on other UNIX systems, all files from all file systems reside under a single directory tree. At the base of this tree is the root directory, `/`(slash). Other file systems are ***mounted* under the root directory** and appear as subtrees within the overall hierarchy.
+
+The superuser uses a command of the following from  to mount a file system:
+
+```shell
+mount device directory # mount a system
+```
+
+Note that: to change mount location: `unmount` -> `mount again with specific directory`
+
+To list the currently mounted file systems, we can use the command `mount`, with no argument
+
+```shell
+$ mount
+/dev/sda6 on / type ext4 (rw)
+proc on /proc type proc (rw)
+sysfs on /sys type sysfs (rw)
+devpts on /dev/pts type devpts (rw,mode=0620,gid=5) /dev/sda8 on /home type ext3 (rw,acl,user_xattr)
+/dev/sda1 on /windows/C type vfat (rw,noexec,nosuid,nodev) /dev/sda9 on /home/mtk/test type reiserfs (rw)
+```
 
 
+
+<p align="center"> <img src="./pic/file_system_mount_structure.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">The mount point in the file system from <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 14</p>
+
+The `mount()` and `unmount()` system calls allow a privileged(`CAP_SYS_ADMIN`) process to mount and unmount file system.
+
+Before looking at the mount-related system calls, it is useful to know about **three files** that contain information about the file system that are currently mounted or can be mounted:
+
++ A list of the currently mounted file systems can be read fromo the Linux-specific `/proc/mounts` file, where `/proc/mounts` is an interface to kernel data structures.
++ The `mount(8)` and `unmount(8)` commands automatically maintain the file `/etx/mtab`, which includes file system-specific options given to `mount(8)`, but not shown in `/proc/mounts`. However, due to `mount(8)` and `unmount(8)` system calls don't update `/etc/mtab`, this file may be **inaccurate** if some application that **mounts or unmounts devices fails to update it**.
++ The `/etc/fstab` file, maintained manually by the system administrator, contains **descriptions of all of the available file systems** on a system, and is used by `mount(8)`,`unmount(8)`, and `fsck(8)` commands.
+
+ `/proc/mounts`,  `/etx/mtab` and `/etc/fstab` files share a common format, described in the `fstab(5)` manual page.
+
+The `getfsent(3)` and `getmntent(3)` manual pages document functions that can be used to read records from these files.
+
+Here is an example of a line from the `/proc/monuts` file:
+
+```shell
+/dev/sda9 /boot ext3 rw 0 0
+```
+
+This command contains six fields:
+
+1. The name of the mountend device.
+2. The mount point for the device.
+3. The file-system type.
+4. **Mount flags**, where `rw` indicates that the file system wae mounted read-write
+5. A number used to control the operation of file-system backups by `dump(8)`.
+   - This field and the next are used only in the `/etc/fstab` file
+   - For `/proc/mounts` and `/etx/mtab`, these fields are always 0
+6. A number used to control the order which `fsck(8)` **checks file system at system boot time**.
+
+
+
+### 5.1 `mount()` : mounting a file system
+
+The `mount()` system call mounts the file system contained on the device specified by `source` under the directory(the **mount point**) specified by `target`
+
+```c
+#include <sys/mount.h>
+int mount(const char* source, const char *target, const char *fstype, unsigned long mountflags, const void *data);
+// Returns 0 on success, or -1 on error
+```
+
++ `source` and `target` are used for the first two arguments because `mount()` can perform other tasks than mouting a disk file system under a directory.
+
++ `fstype` argument is a string identifying the type of file system contained on the device, such as `ext4` or `btrfs`.
+
++ `mountflags` argument is a bit mask constructed by ORing(`|`) zero or more of flags shown in the table below
+
+  <p align="center"> <img src="./pic/mount_flag_table.png" alt="cow" style="zoom:100%;"/> </p>
+
+  <p align="center">The mount flag table from <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 14</p>
+
++ `data`: **a pointer to a buffer** of information whose interpretation depends on the file system.
+  + For most file-system  types, this argument is a string consistent of comma-separated option settings.
+  + A full list of these options can be found in the `mount(8)` page.
 
 ## Reference
 
