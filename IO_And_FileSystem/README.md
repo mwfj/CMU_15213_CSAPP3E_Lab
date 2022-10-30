@@ -1323,6 +1323,150 @@ int mount(const char* source, const char *target, const char *fstype, unsigned l
   + For most file-system  types, this argument is a string consistent of comma-separated option settings.
   + A full list of these options can be found in the `mount(8)` page.
 
+#### 5.1.1 Example:
+
+1. creating a directory to be used as a mount point and mounting a file system:
+
+```shell
+$ su # Need privilege to mount a file system 
+Password:
+mkdir /testfs
+./t_mount -t ext2 -o bsdgroups /dev/sda12 /testfs
+cat /proc/mounts | grep sda12 # Verify the setup 
+/dev/sda12 /testfs ext3 rw 0 0 # Doesn’t show bsdgroups 
+grep sda12 /etc/mtab
+```
+
+Looks like the program doesn't update `/etx/mtab`
+
+2. remounting the system read-only:
+
+```shell
+./t_mount -f Rr /dev/sda12 /testfs
+cat /proc/mounts | grep sda12 # Verify change 
+# string ro displayed from /proc/mounts indicates that this is a read-only mount
+/dev/sda12 /testfs ext3 ro 0 0 
+```
+
+3. move the mount point to a new location within the directory hierarchy:
+
+```shell
+# mkdir /demo
+# ./t_mount -f m /testfs /demo
+# cat /proc/mounts | grep sda12 Verify change /dev/sda12 /demo ext3 ro 0
+```
+
+##### Code
+
+```C
+#include <sys/mount.h>
+#include "tlpi_hdr.h"
+static void
+usageError(const char *progName, const char *msg) {
+    if (msg != NULL)
+        fprintf(stderr, "%s", msg);
+fprintf(stderr, "Usage: %s [options] source target\n\n", progName);
+fprintf(stderr, "Available options:\n");
+#define fpe(str) fprintf(stderr, " " str) /* Shorter! */
+fpe("-t fstype	[e.g., 'ext2' or 'reiserfs']\n");
+fpe("-o data 		[file system-dependent options,\n");
+fpe("						 e.g., 'bsdgroups' for ext2]\n");
+fpe("-f mountflags can include any of:\n");
+#define fpe2(str) fprintf(stderr, " " str)
+    fpe2("b - MS_BIND					create a bind mount\n");
+    fpe2("d - MS_DIRSYNC			synchronous directory updates\n");
+    fpe2("l - MS_MANDLOCK			permit mandatory locking\n");
+    fpe2("m - MS_MOVE					atomically move subtree\n");
+    fpe2("A - MS_NOATIME			don't update atime (last access time)\n"); 
+    fpe2("V - MS_NODEV				don't permit device access\n");
+    fpe2("D - MS_NODIRATIME		don't update atime on directories\n");
+    fpe2("E - MS_NOEXEC				don't allow executables\n");
+    fpe2("S - MS_NOSUID				disable set-user/group-ID programs\n");
+    fpe2("r - MS_RDONLY				read-only mount\n");
+    fpe2("c - MS_REC					recursive mount\n");	
+    fpe2("R - MS_REMOUNT			remount\n");
+    fpe2("s - MS_SYNCHRONOUS	make writes synchronous\n");
+    exit(EXIT_FAILURE);
+}
+int
+main(int argc, char *argv[])
+{
+    unsigned long flags;
+    char *data, *fstype;
+    int j, opt;
+    flags = 0;
+    data = NULL;
+    fstype = NULL;
+		while ((opt = getopt(argc, argv, "o:t:f:")) != -1) { 
+      switch (opt) {
+        case 'o':
+          data = optarg;
+          break;
+        case 't':
+          fstype = optarg;
+          break;
+        case 'f':
+          for(j=0; j < strlen(optarg); j++){
+            switch (optarg[j]){
+              case 'b' : flags |= MS_BIND; 				break;
+              case 'd' : flags |= MS_DIRSYNC;			break;
+              case 'l' : flags |= MS_MANDLOCK;		break;
+              case 'm' : flags |= MS_MOVE;				break;
+              case 'A' : flags |= MS_NOATIME;			break;
+              case 'V' : flags |= MS_NODEV;				break;
+              case 'E' : flags |= MS_NOEXEC;			break;
+              case 'S' : flags |= MS_NOSUID;			break;
+              case 'r' : flags |= MS_RDONLY;			break;
+              case 'c' : flags |= MS_REC;					break;
+              case 'R' : flags |= MS_REMOUNT;			break;
+              case 's' : flags |= MS_SYNCHRONOUS;	break;
+              dafault	 : usageError(argv[0], NULL);
+            }
+          }
+          break;
+        default:
+          usageError(argv[0], NULL);
+      }
+    }
+  if(argc != optind + 2)
+    usageError(argv[0], "Wrong number of arguments\n");
+  if(mount(argv[optind], argv[optind + 1], fstype, flags, data) == -1)
+    errExit("mount");
+  exit(EXIT_SUCCESS);
+}
+```
+
+
+
+### 5.3 `umount()` and `umount2()` : unmounting a file system
+
+The `umount()` system call unmounts a mounted file system.
+
+```c
+#include <sys/mount.h>
+int umount(const char *target);
+# Return 0 on success, or -1 on error
+```
+
++ `target`: it specifies the mount point of the file system to be unmounted.
+
+It is not possible to unmount a file system that is *busy*; that is, if there are open files on the file system, or a process's current working directory is somewhere in the file system. Calling `umount()` on a busy file system yields the error `EBUSY`.
+
+The `umount2()` system call is an extended version of `umount()`. It allows finer control over the unmount operation via the ***flags*** argument.
+
+```c
+#include <sys/mount.h>
+int unmount2(const char *target, int flags);
+```
+
++ This ***flags*** bit-mask argument consists of zero or more of the following value ORed together:
+  + `MNT_DETACH`: **Perform a lazy unmount.** The mount points is marked so that no process can make new accesses to it, but processes that are already using it can continue to do so. The file system is actually unmounted when all processes cease using the mount.
+  + `MNT_EXPIRE`: Mark the mount point as ***expired***.
+    + If an **initial `umount2()` call is made specifying this flags**, and the **mount point is not busy**, then the call fails with the error `EAGAIN`, but the mount point is marked to expire. A mount point remains expired as long as no process subsequently makes use of it.
+    + A second `umount2()` call specifying `MNT_EXPIRE` will **unmount an expired mount point**. This provides a mechanism to **umount a file system that hasn't been used for some period of time**. This flag can't be specified with `MNT_DETACH` or `MNT_FORCE`
+  + `MNT_FORCE`: Force an unmount even if the device is busy(NFS mounts only). Employing this option can cause data loss.
+  + `UMOUNT_NO_FOLLOW`: Don't deference *target* if it is a symbolic link, This flags is designed for use in certain **set-user-ID-root** programs that allow unprivileged user to perform unmounts, in order to avoid the security problems that could occur if *target* is a symbolic link that is changed to point to different location.
+
 ## Reference
 
 <a name="reference1"></a>[[1] Quora - What is the difference between the file descriptor and stream?](https://www.quora.com/What-is-the-difference-between-the-file-descriptor-and-stream)
