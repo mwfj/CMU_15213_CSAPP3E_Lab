@@ -1356,7 +1356,7 @@ cat /proc/mounts | grep sda12 # Verify change
 # cat /proc/mounts | grep sda12 Verify change /dev/sda12 /demo ext3 ro 0
 ```
 
-##### Code
+##### **Code**
 
 ```C
 #include <sys/mount.h>
@@ -1465,7 +1465,69 @@ int unmount2(const char *target, int flags);
     + If an **initial `umount2()` call is made specifying this flags**, and the **mount point is not busy**, then the call fails with the error `EAGAIN`, but the mount point is marked to expire. A mount point remains expired as long as no process subsequently makes use of it.
     + A second `umount2()` call specifying `MNT_EXPIRE` will **unmount an expired mount point**. This provides a mechanism to **umount a file system that hasn't been used for some period of time**. This flag can't be specified with `MNT_DETACH` or `MNT_FORCE`
   + `MNT_FORCE`: Force an unmount even if the device is busy(NFS mounts only). Employing this option can cause data loss.
-  + `UMOUNT_NO_FOLLOW`: Don't deference *target* if it is a symbolic link, This flags is designed for use in certain **set-user-ID-root** programs that allow unprivileged user to perform unmounts, in order to avoid the security problems that could occur if *target* is a symbolic link that is changed to point to different location.
+  + `UMOUNT_NO_FOLLOW`: **Don't deference *target* if it is a symbolic link**, This flags is designed for use in certain **set-user-ID-root** programs that allow unprivileged user to perform unmounts, in order to avoid the security problems that could occur if *target* is a symbolic link that is changed to point to different location.
+
+From Linux kernel 2.4 onward, **a file system can be mounted at multiple locations within the file system**. Because each of the mount points shows the same subtree, changes made via one mount point are visible through the other(s), as demonstrated by the following shell session:
+
+```shell
+$ su                       # Privilege is required to use mount(8)
+$ mkdir /testfs            # Create two directories for mount points
+$ mkdir /demo
+$ mount /dev/sda12 /testfs # Mount file system ar one mount point
+$ mount /dev			 /demo   # Mount file system at second mount point
+$ mount | grep sda12       # verify the setup
+/dev/sda12 on /testfs type ext3 (rw)
+/dev/sda12 on /demo type ext3 (rw)
+$ touch /testfs/myfile     # Make a change via first mount point
+$ ls /demo                 # View files at second mount point
+lost+found myfile
+```
+
+The output of the `ls` command shows that the change made via the first mount point(`/testfs`) was visible via the second mount point(`/demo`)
+
+Since kernel 2.4, Linux allows **multiple mounts to be stacked on a single mount point**. Each new mount hides the directory subtree previously visible at that mount point.
+
+When the mount at the top of the stack is unmounted, the previously hiddenn mount becomes visible once more:
+
+```shell
+$ su                                                  # Privilege is required to use mount(8) 
+Password:
+$ mount /dev/sda12 /testfs                            # Create first mount on /testfs 
+$ touch /testfs/myfile                                # Make a file in this subtree
+$ mount /dev/sda13 /testfs                            # Stack a second mount on /testfs
+$ mount | grep testfs                                 # Verify the setup 
+/dev/sda12 on /testfs type ext3 (rw) 
+/dev/sda13 on /testfs type reiserfs (rw)
+$ touch /testfs/newfile                                # Create a file in this subtree
+$ ls /testfs                                           # View files in this subtree
+newfile
+$ umount /testfs                                       # Pop a mount from the stack
+$ mount | grep testfs 
+/dev/sda12 on /testfs type ext3 (rw)                   # New only one mount on /testfs
+$ ls /testfs                                           # Previous mount is now visible
+lost+found myfile
+```
+
+One use of mounting stacking is to **stack a new mount on an existing mount point that is busy**. 
+
++ Process that hold file descriptor open, that are `chroot()`-jailed, or that have current working directories within the old mount point continue to operate under that mount, 
++ but processes making new access to the mount point use the new mount.
++ Combined with `MNT_DETACH` unmount, this can provide a smooth migration off a file system without needing to take the system into single-user mode.
+
+### 5.4 `chroot`-jail
+
+
+
+### 5.5 Bind Mounts
+
+A ***bind mount***(created using the `mount()` `MS_BIND` flag) **allows a directory or a file to be mounted at some other location** in the file-system hierarchy. This result in the directory or file being visible in both locations.
+
+A bind mount is somewhat like a hard link, but differs in two respects:
+
++ A bind mount can **cross file-system mount points**(and even `chroot`-jails)
++ It is possible to make a bind mount for a directory
+
+
 
 ## Reference
 
