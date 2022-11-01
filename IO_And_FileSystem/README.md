@@ -1516,7 +1516,37 @@ One use of mounting stacking is to **stack a new mount on an existing mount poin
 
 ### 5.4 `chroot`-jail
 
+A chroot jail is a way to isolate a process and its children from the rest of the system. It should only be used for processes that don't run as root, as root users can break out of the jail very easily. 
 
+The idea is that you create a directory tree where you copy or link in all the system files needed for a process to run. You then use the `chroot()` system call to change the root directory to be at the base of this new tree and start the process running in that chroot'd environment. Since it can't actually reference paths outside the modified root, it can't perform operations (read/write etc.) maliciously on those locations.<a href="#reference8">[8]</a>
+
+To use a chroot jail, use the following command (new_root must be an existing directory):
+
+```bash
+$ chroot new_root [command]
+```
+
+The new_root directory becomes the artificial root directory. `chroot `changes to `new_root `and runs the optional command. Without specifying a command as an argument, `chroot `changes to `new_root `and runs the value of the SHELL environment variable or `/bin/sh` if SHELL is not set.<a href="#reference9">[9]</a>
+
+On Linux, using a bind mounts is a great way to populate the chroot tree. Using that, you can pull in folders like `/lib` and `/usr/lib` while not pulling in `/usr`, for example. Just bind the directory trees you want to directories you create in the jail directory.<a href="#reference8">[8]</a>
+
+That means you can have a folder structure like:
+
+```txt
+-- foo
+    -- bar
+    -- baz
+-- bazz
+```
+
+If you `chroot foo` and do `ls /`, you'll see:
+
+```txt
+-- bar
+-- baz
+```
+
+The reason "jail" is a misnomer is `chroot` is not intended to *force* a program to stay in that simulated filesystem; a program that knows it's in a chroot "jail" can fairly easily escape, so you shouldn't use `chroot` as a security measure to prevent a program from modifying files outside your simulated filesystem<a href="#reference8">[8]</a>
 
 ### 5.5 Bind Mounts
 
@@ -1544,3 +1574,7 @@ A bind mount is somewhat like a hard link, but differs in two respects:
 <a name="reference6"></a>[[6] The Linux programming interface](https://man7.org/tlpi/)
 
 <a name="reference7"></a>[[7] Operating Systems: Three Easy Pieces](https://pages.cs.wisc.edu/~remzi/OSTEP/)
+
+<a name="reference8"></a>[[8] chroot "jail" - what is it and how do I use it?](https://unix.stackexchange.com/questions/105/chroot-jail-what-is-it-and-how-do-i-use-it)
+
+<a name="reference9"></a>[[9] Understanding chroot Jail](https://www.thegeekdiary.com/understanding-chroot-jail/)
