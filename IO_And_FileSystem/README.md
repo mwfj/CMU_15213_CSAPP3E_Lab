@@ -543,7 +543,7 @@ In many C library implementations, including `glibc`, if `stdin` and `stdout` **
 
 #### Corresponding system calls
 
-####3.3.1 `fsync()` system call
+#### 3.3.1 `fsync()` system call
 
 The `fsync()` causes **the buffered data and all meta data** associated with the **open file descriptor** `fd` to be **flushed to disk**. Calling `fsync()` **forces the file to the the synchronized I/O file integrity completion** state.
 
