@@ -1557,6 +1557,105 @@ A bind mount is somewhat like a hard link, but differs in two respects:
 + A bind mount can **cross file-system mount points**(and even `chroot`-jails)
 + It is possible to make a bind mount for a directory
 
+We can create a a bind mount from the shell using the `--bind` option to `mount(8)`.
+
+For example:
+
++ We bind mount a **directory** at another location and show that files created in one directory are visible at the other location:
+
+  ```shell
+  su                             # Privilege is required to use mount(8)
+  Password:
+  pwd
+  /testfs
+  mkdir d1                       # Create directory to be bound at another location
+  touch d1/x                     # Create file in the directory
+  mkdir d2                       # Create mount point to which d1 will be bound
+  mount --bind d1 d2             # Create bind mount: d1 visible via d2
+  ls d2                          # Verify that we can see contents of d1 via d2
+  x
+  touch d2/y                     # Create second file in the diretory d2
+  ls d1                          # Verify that this change is visible via d1
+  x y
+  ```
+
++ We bind mount a **file** at another location and demonstrate that changes to the file via one mount are visible via the other mount.
+
+  ```shell
+  cat > f1                                                   # Create file to be bound to another location
+  Change is always powerful. Let your hook be always cast
+  #Type Contorl-D
+  touch f2                                                   # This is the new mount point
+  mount --bind f1 f2                                         # Bind f1 as f2
+  mount | egrep '(d1|f1)'                                    # See how mount points look
+  /testfs/d1 on /testfs/d2 type none (rw,bind)
+  /testfs/f1 on /testfs/f2 type none (rw,bind)
+  cat >> f2 # Change f2
+  In the pool where you least expect it, will be a fish
+  cat f1                                                     # The change is visible via oringinal file f1
+  Change is always powerful. Let your hook be always cast
+  In the pool where you least expect it, will be a fish
+  rm f2                                                      # Can't do this because it is a mount pint
+  rm: cannot unlink `f2`: Device or resource busy
+  unmount f2                                                 # So unmount
+  rm f2                                                      # Now  we can remove f2
+  ```
+
++ If we create a bind mount for a directory using `MS_BIND`, then only that directory is mounted at the new location; 
+
+  if there are any submounts under the source directory, they are not replicated under the mount *target*.
+
+  Linux 2.4.11 added the `MS_REC` flag, which can be ORed with `MS_BIND` as part of the flags argument to `mount()` so that submounts are replicated under the mount part. This is referred to as a ***recursive bind mount***.
+
+  The `mount(8)` command privides the `--rbind` option to achieve the same effect from the shell.
+
+  ```shell
+  su
+  Password
+  mkdir topdir                              # This is our top-level mount point
+  mkdir src1                                # We'll mount this under topdir
+  touch src1/aaa
+  mount --bind src1 topdir                  # Create a normal bind mount
+  mkdir topdir/sub                          # Create directory for a submount under topdir
+  mkdir src2                                # We'll mount this under topdir/sub
+  touch src2/bbb
+  mount --bind src2 topdir/sub
+  find topdir
+  topdir
+  topdir/aaa
+  topdir/sub                                 # This is the submount
+  topdir/sub/bbb
+  ```
+  
+  + Now we create another bind mount(`dir1`) using `topdir` as the source. Since this new mount is nonrecursive, the submount is not replicated
+  
+    ```shell
+    mkdir dir1
+    mount --bind topdir dir1                 # Here we use a normal bind mount
+    find dir1
+    dir1
+    dir1/aaa
+    dir1/sub
+    ```
+  
+    The absence of `dir1/sub/bbb` in the output of `find` shows that the submount `top/sub` was not replicated
+  
+  + Now we create a recursive bind mount(`dir2`) using `topdir` as the source
+  
+    ```shell
+    mkdir dir1
+    mount --bind topdir dir2
+    find dir2
+    dir2
+    dir2/aaa
+    dir2/sub
+    dir2/sub/bbb
+    ```
+  
+    The presence of `dir2/sub/bbb` in the output of  `find` shows that the submount `top/sub` was replicated.
+  
+  
+
 
 
 ## Reference
