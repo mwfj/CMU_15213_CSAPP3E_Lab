@@ -1514,7 +1514,7 @@ One use of mounting stacking is to **stack a new mount on an existing mount poin
 + but processes making new access to the mount point use the new mount.
 + Combined with `MNT_DETACH` unmount, this can provide a smooth migration off a file system without needing to take the system into single-user mode.
 
-### 5.4 `chroot`-jail
+###5.4 `chroot`-jail
 
 A chroot jail is a way to isolate a process and its children from the rest of the system. It should only be used for processes that don't run as root, as root users can break out of the jail very easily. 
 
@@ -1653,8 +1653,42 @@ For example:
     ```
   
     The presence of `dir2/sub/bbb` in the output of  `find` shows that the submount `top/sub` was replicated.
-  
-  
+
+### 5.6 A virtual memory file system: `tmpfs`
+
+In Linux, it also supports the notion of *virtual file systems* that reside in memory. 
+
+The biggest advantage compared with file system on disk is that file operations in memory are much faster, since no disk access is involved.
+
+`tmpfs` is one of the popular memeory file system in Linux, where `tmpfs` differs from other memory-based file systems in that it is a *virtual memory file system*. This means that `tmpfs` uses not only RAM, but also the swap space, if RAM exhausted. However, If we unmount a `tmpfs` file system, or the  system crashes, then all data in the file system is lost; hence name `tmpfs`.
+
+`tmpfs` file systems also serve two special purpose:
+
++ An invisible `tmpfs` file system, mounted internally by the kernel, is used for implementing System V shared memory and shared anonymous memory mappings;
++ A `tmpfs` file system mounted at `/dev/shm` is used for the ***glibc*** implementation of POSIX shared memory and POSIX semaphores.
+
+To create a `tmpfs` file system, we use a  command of the following form:
+
+```shell
+mount -t tmpfs source target
+```
+
++ The `source `can be any name; its only significance is that it appears in `/proc/mounts` and is displayed by the `mount` and `df` command.
++ `target` is the **mount point** for the file system.
+
+Note that **it is not necessary to use `mkfs` to create a file system first**, because the kernel automatically builds a file system as part of the `mount()` system call.
+
+A example of the usage of `tmpfs`: we could employ mount stacking and create a `tmpfs` file system mounted on `/tmp` as follows:
+
+```shell
+mount -t tmpfs newtmp /tmp
+cat /proc/mounts | grep tmp
+newtmp /tmp tmpfs rw 0 0
+```
+
+A command such as above is sometimes **used to improce the performance of applications**(*e.g.* compilers) that **make heavy use of the `/tmp` direcotry for creating tmporary files**.
+
+By default, a `tmpfs` file system is permitted to grow to half the size of RAM, but the `size = nbytes mount` opetion can be used to set a different ceiling for the file-system size, either when the file system is created or during a later remount.(`tmpfs` file system consumes only as much memory and swap space as is curretnly required for the files it holds)
 
 
 
