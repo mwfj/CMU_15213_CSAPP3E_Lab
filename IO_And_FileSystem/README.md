@@ -946,7 +946,66 @@ Advantage for the structure of `ext2` i-node:
 <p align="center">File creation of <strong>/foo/bar</strong> timeline from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
 Operating Systems: Three Easy Pieces</a>  chapter 40</p>
 
-### 4.4 The Fast File System(FFS)
+
+### 4.4 Sharing files
+
+In Linux, it is possible to  have multiple descriptor referring to the same open file. These fils descriptors may be open in **the same process or in different processes**.
+
+To understand what is going on, we need to examine three data structure:
+
++ ***File descriptor table:*** **each process** has its own separate *descriptor table* whose entries are indexe by the process's open file descriptor. 
+  Each entry in this table records information about a single file descriptor, including:
+  + A set of flags controlling the operation of the file descriptor
+  + A reference to the open file description
+
++ ***Open file table:*** The set of open files is represented by a file table that is shared by all processes. **The kernel** maintains a system-wide table of all open file descriptors, where its entries are sometimes called *open file handles*.
+  An open file decription stores all inforamtion relating the open files, including:
+
+  + The **current file offset**(or **file position**). As updated by `read()` and  `write()`, or explicitly modified using `lseek()`;
+  + **status flag**: it specified when opening the file(*i.e.* the flag argument to `open()`);
+  + **the file access mode**(read-only, write-only, or  read-write, as specified in `open()`);
+  + setting relating to **singal-driven I/O**;
+  + a **reference count** to the **i-node** object for this file, where it represents the number of descriptor entries that currently point to the file.
+    - the kernel will not delete the file table entry until its reference count is zero.
+
++ **I-node  table:** Each file system has a table of ***i-nodes*** for all files residing in the file system.
+
+  + file type(*e.g.*, regular file, socket, or FIFO) and permissions;
+  + a pointer to a list of locks held on this file;
+  + various properties of the file, including its size and timestampes relating to different types of file operations
+
+  <p align="center"> <img src="./pic/kernel_data_structure_for_open_file.png" alt="cow" style="zoom:100%;"/> </p>
+
+  <p align="center">Relationship between file descriptor, open file descriptor, and i-nodes <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
+  Operating Systems: Three Easy Pieces</a>  chapter 5</p>
+
+  1. In process A, descriptors 1 and 20 both refer to the **same open file description**(labeled 23):
+     - this situation may arise as a result of a call to `dup()`, `dup2()`, or `fcntl()`
+     - If the file offset is changed via one file descriptor, this change is visible through the other file descriptor. 
+       This applies both when the **two file descriptors belong to the same process** and when t**hey belong to different processes**.
+     - Similar scope rules apply when retrievingn and changing th open file status flags(*e.g.*, `O_APPEND`, `O_NONBLOCK` and `O_ASYNC`) using the `fcntl()` `F_GETFL` and `F_SETFL` operations.
+     - By contrast, **the files descriptor flags(*i.e.*, the close-on-exec flag) are private to the process and file descriptor**, where modifying these flags does not affect other file descriptors in the same process or a different process.
+  2. Descriptor 2 of process A and descriptor 2 of process  B refer to **a single open file description**(73):
+     - This scenario could occur after a call to `fork()`(*i.e.*, process A is the parent of process B or vice versa)
+     - Or if one process passed an open descriptor to another process using a UNIX domain socket.
+  3. Finally, we see that descriptor 0 process A and descriptor 3 of process B referr to **different open file descriptions**, but that these descriptions refers to the **same i-node table entry**(1976). In other words, to the same file:
+     - This occurs because each process independently called `open()` for the same file.
+     - Or a single process opened the same file twice
+
+The difference between **on-disk i-node** and **in-memory i-node**:
+
++ The **on-disk i-node** records the persistent attributes of a file, such as:
+  + its type;
+  + permission;
+  + timestamps
++ When a file is accessed, **in-memory** copy of the i-node is created, and this version of the i-node records:
+  + a count of the open file description referring to the i-node
+  + the minor and major IDs of the device from which the i-node was copied.
++ The **in-memory** i-node also records various **ephemeral attributes** that are associated with a file while it is open, such as file locks.
+
+
+
+## 5. The Fast File System(FFS)
 
 The idea was to design the file system strucutres and allocation policies to be "disk aware" and thus improv performance.
 
@@ -970,8 +1029,7 @@ To use these groups to store file and directories, FFS needs to have the ability
 
 <p align="center">File/Directory structure in FFS from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
 Operating Systems: Three Easy Pieces</a>  chapter 41</p>
-
-#### 4.4.1 To allocate files and directories, the first thing should be
+**To allocate files and directories, the first thing should be:**
 
 1. the placement of directories: FFS find the cylinder group with:
    + a **low number** of allocated directories(to balance directories across groups)
@@ -992,7 +1050,7 @@ Note that the FFS policy also does two positive things:
 
 **Files in a directory are often accessed together**: imagine compiling a bunch of files and the linking them into a single executable. Because such namespace-based locality exists, FFS will often improve performance, making sure that seeks between realted file are nice and short. 
 
-#### 4.4.2 Large File Exception
+### 5.1 Large File Exception
 
 For  large files, FFS places the next "large" chunk of file after some number of blocks are allocated into the first block group(*e.g.* 12 blocks, or the number of direct pointers available within an inode). If the chunk size is large enough, the file system will spend most of its time transferring data from disk and just a (relatively) little time seeking between chunks of the block.
 
@@ -1002,7 +1060,9 @@ To solve the internal fragmentation issue, FFS introduce **sub-blocks**, which w
 
 To avoid the process inefficiency, FFS modify the ***libc*** library, where the library would **buffer writes and then issue them in 4KB chunks to the file system**, and thus avoiding the sub-block specialization entriely in most case.
 
-#### 4.4.3 Sequential read problem
+
+
+### 5.2 Sequential read problem
 
 FFS also might have **sequential read problem**, where FFS would first issue a read to block 0; by the time the read was complete, and FFS then issued a read to block 1, which it was too late. In other words, block 1 had rotated under the head and now the read to block 1 would incur a full rotation.
 
@@ -1011,7 +1071,7 @@ To solve the sequential read problem, FFS was smart enough to **figure out for a
 
 
 
-### 4.5 The Virtual File System(VFS)
+### 5.3 The Virtual File System(VFS)
 
 The *virtual file system*(VFS, sometimes also referred to as the *virtual file switch*) is a kernel feature that resolves the problem of difference between different file systems in Linux by creating an **abstraction layer for file-system operations**
 
@@ -1028,7 +1088,7 @@ The VFS interface includes operations corresponding to all of the usual system c
 
 Natually, some  file systems --especially non-UNIX file systems-- don't suppor all of the VFS operations(*e.g.* Microsoft's FAT doesn't support the notion of symbolic links, created using `symlink()`). In such case, the underlying file system passes an error back to the VFS layer  indicating the lack of support, and the VFS in turn passes this error code back to the application.
 
-## 5. Crash Consistency: FSCK and Journaling <a href="#reference7">[7]</a>
+## 6. Crash Consistency: FSCK and Journaling <a href="#reference7">[7]</a>
 
 One major challenge faced by file system is how to update persisten data structure despite the presence of a **power loss** or **system crash**, which known as **crash-consistency problem**.
 
@@ -1050,7 +1110,7 @@ Thus, in the memory of the system, we have to update these three blocks and must
 
 Unfortunately, a crash may occur and thus interfere with these updates to the disk. In particular, if a crash happens after one or two of these writes have taken place, but not all three, the file system could be left in a funny state.
 
-### 5.1 Crash Scenarios
+### 6.1 Crash Scenarios
 
 + **Just the *data block(Db*) is written to disk:** In this case, the data is on disk, but there is no inode that points to it and no bitmap that even says the block is allocated. Thus, **it is as if the write never occurred**. This case is **not a problem** at all from the perspective of file-system crash consistency.
 
@@ -1066,7 +1126,7 @@ Unfortunately, a crash may occur and thus interfere with these updates to the di
 
 + **The bitmap and data block(Db) are written, but not inode:** In this case, we again have inconsistency between the inode and the data bitmap. However, even though the block was written and the data bitmapa it usage, we have no idea which file it belongs to, as no inode points to the file.
 
-### 5.2 The File System Checker(FSCK)
+### 6.2 The File System Checker(FSCK)
 
 `fsck` is a Unix tool for **finding such inconsistencies and repairing them**; similar tool to check and repair a disk partition exist on different systems, where the real goal is to **make sure the file system meta data is internally consistent**.
 
@@ -1101,7 +1161,7 @@ Specifically, `fsck` runs before the file system is mounted and made available(`
 
 **Disadvantage** of `fsck`: **they are too slow.** With a very large disk volume, scanning the entire disk to find all the allocated blocks and read the entire directory tree make take many minutes or hours.
 
-### 5.3 Journaling(or Write-Ahead Logging)
+### 6.3 Journaling(or Write-Ahead Logging)
 
 In file systems, we usually call write-ahead logging **journaling** for historical reasons. The basic idea of **journaling** is that:
 
@@ -1117,7 +1177,7 @@ Let's take `ext3` in Linux as an example. In general the `ext3` structure would 
 <p align="center">File structure in <strong>ext3</strong> from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
 Operating Systems: Three Easy Pieces</a>  chapter 41</p>
 
-#### 5.3.1 Data Journaling
+#### 6.3.1 Data Journaling
 
 Before writing the adata to their final disk location, we are now first going to write them to the log(*a.k.a.* journal). This is what this will look like in the log:
 
@@ -1158,7 +1218,7 @@ In such case, write will either happen or not(and never be half-writting); thus,
 2. **Journal commit:** Write the transaction commit block(containing `TxE`) to the log; wait for write to complete; transaction is said to be **committed**;
 3. **Checkpoint:** Write the contents of the updates(metadata and data) to their final on-disk locations in the file system.
 
-#### 5.3.1.1 Recovery
+#### 6.3.1.1 Recovery
 
 If the crash happen before the transaction is written safely to the log:
 
@@ -1173,7 +1233,7 @@ If the crash happen before the transaction is written safely to the log:
 
   In the wrost case, some of updates are simply performed again during the recovery. Because recovery is rare operation(only taking place after an unexpected system crash), a  few redundant writes are noting to worry about.
 
-#### 5.3.1.2 Batch log update
+#### 6.3.1.2 Batch log update
 
 When we create two files at the same time, we logically commit all of the infomation of these two files(inode, bitmap, data block *etc.*) to journal for each of two file creation, which could cause the problem of ***excessive write traffic***. In this case  some file systems do not commit each update to disk one at a time(*e.g.* LINUX `ext3`); rather, **one can buffer all updates into a global transaction**. 
 
@@ -1213,7 +1273,7 @@ The problem of data journaling protocol: the file system is writting each data b
 
 <p align="center">Data Journaling Timeline from <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 14</p>
 
-### 5.3.2 Metadata Journaling
+### 6.3.2 Metadata Journaling
 
 You can think of ***metadata journaling*** as a simpler version of the data journaling, where it **just write the metadata of the file to the journal**, rather than writing both user data and metadata to the journal(just like data journal did). 
 
@@ -1239,7 +1299,7 @@ By forcing the data write first, a file system can guarantee that a pointer will
 
 **Note that forcing the data write to complete(Step 1) before issuing writes to the journal(Step 2) is not required for correctness**, as indicated in the protocol above. Specifically, it would be fine to concurrently issue writes to data, the transaction-begin block, and journaled metadataa; the only real requirement is that **Step 1 and 2 complete before the issuing of the journal commit block(Step 3)**.
 
-## 5. Mounting and Unmounting File Systems
+## 7. Mounting and Unmounting File Systems
 
 On Linux, as on other UNIX systems, all files from all file systems reside under a single directory tree. At the base of this tree is the root directory, `/`(slash). Other file systems are ***mounted* under the root directory** and appear as subtrees within the overall hierarchy.
 
@@ -1299,7 +1359,7 @@ This command contains six fields:
 
 
 
-### 5.1 `mount()` : mounting a file system
+### 7.1 `mount()` : mounting a file system
 
 The `mount()` system call mounts the file system contained on the device specified by `source` under the directory(the **mount point**) specified by `target`
 
@@ -1323,7 +1383,7 @@ int mount(const char* source, const char *target, const char *fstype, unsigned l
   + For most file-system  types, this argument is a string consistent of comma-separated option settings.
   + A full list of these options can be found in the `mount(8)` page.
 
-#### 5.1.1 Example:
+#### 7.1.1 Example:
 
 1. creating a directory to be used as a mount point and mounting a file system:
 
@@ -1438,7 +1498,7 @@ main(int argc, char *argv[])
 
 
 
-### 5.3 `umount()` and `umount2()` : unmounting a file system
+### 7.3 `umount()` and `umount2()` : unmounting a file system
 
 The `umount()` system call unmounts a mounted file system.
 
@@ -1514,7 +1574,7 @@ One use of mounting stacking is to **stack a new mount on an existing mount poin
 + but processes making new access to the mount point use the new mount.
 + Combined with `MNT_DETACH` unmount, this can provide a smooth migration off a file system without needing to take the system into single-user mode.
 
-###5.4 `chroot`-jail
+###7.4 `chroot`-jail
 
 A chroot jail is a way to isolate a process and its children from the rest of the system. It should only be used for processes that don't run as root, as root users can break out of the jail very easily. 
 
@@ -1548,7 +1608,7 @@ If you `chroot foo` and do `ls /`, you'll see:
 
 The reason "jail" is a misnomer is `chroot` is not intended to *force* a program to stay in that simulated filesystem; a program that knows it's in a chroot "jail" can fairly easily escape, so you shouldn't use `chroot` as a security measure to prevent a program from modifying files outside your simulated filesystem<a href="#reference8">[8]</a>
 
-### 5.5 Bind Mounts
+### 7.5 Bind Mounts
 
 A ***bind mount***(created using the `mount()` `MS_BIND` flag) **allows a directory or a file to be mounted at some other location** in the file-system hierarchy. This result in the directory or file being visible in both locations.
 
@@ -1654,7 +1714,7 @@ For example:
   
     The presence of `dir2/sub/bbb` in the output of  `find` shows that the submount `top/sub` was replicated.
 
-### 5.6 A virtual memory file system: `tmpfs`
+### 7.6 A virtual memory file system: `tmpfs`
 
 In Linux, it also supports the notion of *virtual file systems* that reside in memory. 
 
