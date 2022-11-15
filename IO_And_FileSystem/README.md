@@ -752,7 +752,7 @@ However, there are poorly documented restrictions on streams that interact badly
 1. **Input functions following output functions :** **An input function cannot follow an output  function** without an intervening call to `fflush()`, `fseek()`, `fsetpos()`, or `rewind`. The `fflush()` function empties the buffer associated with a stream. The latter three functions use the UNIX I/O `lseek()` function to **reset the current file position**.
 2. **Ouput functions following input functions :**  **An output function cannot follow an input function** without an intervening call to `fseek()`, `fsetpos()`, or `rewind`, unless the input function encounters an end-of-file.
 
-Due to such restrictions, the recommend is that do not use the standard I/O functions for input and output on network sockets.
+Due to such restrictions, the recommend is that do not use the standard I/O functions for input and output on network sockets, using the UNIX I/O instead.
 
 
 
