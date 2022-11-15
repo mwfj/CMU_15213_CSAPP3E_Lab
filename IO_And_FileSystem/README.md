@@ -442,9 +442,20 @@ If **available memory is scarce**, then the kernel **flushes some modified buffe
 
 A *file stream* is a **sequence of bytes** used to hold file data. Usually a file has only one file stream, namely the file's default data stream.
 
-**The file stream provides access to an operating-system file through the stream I/O interface.**  File descriptors are represented as objects of type `int`, while streams are represented as `FILE *` objects <a href="#reference2">[2]</a> <a href="#reference3">[3]</a>.
+**The file stream provides access to an operating-system file through the stream I/O interface.**  File descriptors are represented as objects of type `int`, while streams are represented as `FILE *` objects <a href="#reference2">[2]</a> <a href="#reference3">[3]</a>. 
 
-For historical reasons, the type of the C data structure that represents a stream is called `FILE` rather than “stream”. Since most of the library functions deal with objects of type `FILE *`, sometimes the term *file pointer* is also used to mean “stream”. This leads to unfortunate confusion over terminology in many books on C <a href="#reference2">[2]</a> <a href="#reference3">[3]</a>.
+The standard I/O library models an open file as stream. To the programmer, **a stream is a pointer to a structure of type `FILE`**. Every ANSI C program begins with three  open streams: `stdin`, `stdout` and `stderr`, which correspoind to standard input, standard output and standard error, respectively.
+
+Specifically, for historical reasons, the type of the C data structure that represents a stream is called `FILE` rather than “stream”. Since most of the library functions deal with objects of type `FILE *`, sometimes the term *file pointer* is also used to mean “stream”. This leads to unfortunate confusion over terminology in many books on C <a href="#reference2">[2]</a> <a href="#reference3">[3]</a>. Futhermore, a stream of type `FILE` is an **abstraction for a file descriptor and a *stream buffer***.
+
+```c
+#include <stdio.h>
+extern FILE *stdin;   /* Standard input  (descriptor 0) */
+extern FILE *stdout;  /* Standard output (descriptor 1) */
+extern FILE *stderr;  /* Standard error  (descriptor 2) */
+```
+
+**The purpose of the stream buffer is to minimize the number of expensive Linux I/O system calls.**
 
 The "streaming" **API functions** such as `fopen()`, `fscanf()`, etc -and the functions that use **the terminal** "streams" (`stdin` and `stdout`) such as `printf()` and `scanf()` - are implemented using the `FILE` structure as its API handle. **This API and the handle are implemented "on top of" the file descriptor API** <a href="#reference1">[1]</a>. In other words, A pointer of the file stream is the `FILE` struct (`typedef struct_IO_FILE FILE`)
 
@@ -725,6 +736,26 @@ To man the world is twofold,
 
 **When intermingling I/O system calls and stdio functions, judicious use of `fflush()` may be required to avoid this problem.**
 
+### 3.8 Additional note for I/O
+
+1. **Use the standard I/O functions whenever possible:** The standard I/O functions are the method of choice for I/O on disk and terminal devices.
+   Most C programmers use standard I/O exclusively throughout their careers, never bothering with the lowest-level UNIX I/O functions
+
+2. **Do not use `scanf` to read file:** Functions like `scanf` designed specifically for **reading text files**. A common error that students make is to use these function to read binary data, causing their program to fail in strange and unpredictable ways.
+
+   `sscanf()` and `sprintf()` is recommand to use.
+
+Standard I/O streams are ***full duplex*** in the sense that programs can perform input and output on the same stream.
+
+However, there are poorly documented restrictions on streams that interact badly with restriction on sockets:
+
+1. **Input functions following output functions :** **An input function cannot follow an output  function** without an intervening call to `fflush()`, `fseek()`, `fsetpos()`, or `rewind`. The `fflush()` function empties the buffer associated with a stream. The latter three functions use the UNIX I/O `lseek()` function to **reset the current file position**.
+2. **Ouput functions following input functions :**  **An output function cannot follow an input function** without an intervening call to `fseek()`, `fsetpos()`, or `rewind`, unless the input function encounters an end-of-file.
+
+Due to such restrictions, the recommend is that do not use the standard I/O functions for input and output on network sockets.
+
+
+
 ## 4. File System
 
 ### 4.1 Device Special Files(Devices)
@@ -945,8 +976,6 @@ Advantage for the structure of `ext2` i-node:
 
 <p align="center">File creation of <strong>/foo/bar</strong> timeline from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
 Operating Systems: Three Easy Pieces</a>  chapter 40</p>
-
-
 ### 4.4 Sharing files
 
 In Linux, it is possible to  have multiple descriptor referring to the same open file. These fils descriptors may be open in **the same process or in different processes**.
@@ -1002,6 +1031,60 @@ The difference between **on-disk i-node** and **in-memory i-node**:
   + a count of the open file description referring to the i-node
   + the minor and major IDs of the device from which the i-node was copied.
 + The **in-memory** i-node also records various **ephemeral attributes** that are associated with a file while it is open, such as file locks.
+
+### 4.5 I/O redirection
+
+Linux shells provide ***I/O redirection*** operation that allow users to accociate standard input and output with disk files.
+
+Specifically, using the(Bourne shell) I/O redirection syntax `2 > &1` informs the shell that we wish to have standard error(file desciptor 2) redirected to the same place to which standard output(descriptor 1) is being sent.
+
+Thus the following command would send both standard output and standard error to the file `result.log`:
+
+```bash
+./myscript > result.log 2>$1
+```
+
+The shell achieve the redirection of standard error by **duplicating file descriptor 2** so that it refers to the same open file description as file descriptor 1. This effect can be achieved using the `dup()` and  `dup2()` system calls. 
+
+Note that it is not sufficient for the shell simply to open the `result.log` file twice: one on descriptor 1 and once on decriptor 2.
+
+- One reason for this is that **the two file descriptors would not share a file offset pointer, and hence could end up overwriting each other's output**
+- Another reason is that the file may not be a disk file.
+
+#### `dup()`
+
+The `dup()` call takes `oldfd`, an open file descriptor, and return a new descriptor that **refers to the same open file descriptor**, where the new descriptor is guaranteed to be **the lowest unused file descriptor**: 
+
+```c
+#include <unistd.h>
+int dup(int oldfd); // return (new) file descriptor on success, or -1 on error
+```
+
+#### `dup2()`
+
+The `dup2()` system call makes a duplicate of the file descriptor given in `oldfd` using the descriptor number supplied in `newfd`. 
+
+```c
+#include <unistd.h>
+int dup2(int oldfd, int newfd); // return (new) file descriptor on success, or -1 on error
+```
+
+If the descriptor specified in `newfd` is already open, `dup2()` closes it first
+
+- Any error that occurs during this close is sliently ignored;
+- Safer programming practive is to explicitly `close()` `newfd` if it is open before the call to `dup2()`
+
+A successful `dup2()` call returns the number of the duplicate descriptor(*i.e.* the value passed in `newfd()`).
+
+- If `oldfd` is not a valid file descriptor, then `dup2()` fails with the error `EBADF` and `newfd` is not closed.
+- If `oldfd` is a valid file descriptor, and `oldfd` and `newfd` have the same value, then `dup2()` does nothing -- `newfd` is not closed, and `dup2()` returns the `newfd` as its function result
+
+A further interface that provides some extra flexibility for duplicating file descriptors is the `fcntl()` `F_DUPFD` operation:
+```c
+newfd = fcntl(oldfd, F_DUPFD, startfd);
+```
+
+This call makes a duplicate of `oldfd` by using the lowest unused file descriptor greater than or equal to `startfd`. This is useful if we want a guarantee that the new descriptor(`newfd`) falls in a  certain range of values. Calls to `dup()` and `dup2()` can always be recorded as calls to `close()` and `fcntl()`, although the former calls are more concise.
 
 
 
