@@ -1,5 +1,4 @@
 # Malloc Lab Report
-Updating ...
 
 ## Background
 
