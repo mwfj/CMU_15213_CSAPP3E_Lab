@@ -17,6 +17,55 @@ void serve_dynamic(int fd, char *filename, char *cgiargs);
 void clienterror(int fd, char *cause, char *errnum, 
 		 char *shortmsg, char *longmsg);
 
+/**
+ * The difference between struct sockaddr and struct sockaddr_storage:
+ * https://stackoverflow.com/questions/19528820/difference-between-sockaddr-and-sockaddr-storage
+ * https://www.ietf.org/rfc/rfc3493.txt#:~:text=IPv6%20%20February%202003-,3.10%20Portability%20Additions,-One%20simple%20addition
+ * https://stackoverflow.com/questions/42178179/will-casting-around-sockaddr-storage-and-sockaddr-in-break-strict-aliasing
+ * 
+ * struct sockaddr_storage: 
+ * 
+ *      The storage variant is meant to be "as big as the maximum possible size", 
+ *      and properly aligned too (so it can hold an IPv6 address, or an IPv4 address, 
+ *      or an ISO protocol address, or even an AF_UNIX pathname or whatever). 
+ * 
+ * 
+ * #define _SS_MAXSIZE    128  " Implementation specific max size "
+ * #define _SS_ALIGNSIZE  (sizeof (int64_t))
+ * 
+ * #define _SS_PAD1SIZE (_SS_ALIGNSIZE -
+ *                           (sizeof (uint8_t) + sizeof (sa_family_t))
+ * #define _SS_PAD2SIZE (_SS_MAXSIZE -
+ *                           (sizeof (uint8_t) + sizeof (sa_family_t) +
+ *                            _SS_PAD1SIZE + _SS_ALIGNSIZE))
+ * struct sockaddr_storage {
+ *    uint8_t      ss_len;        " address length "
+ *    sa_family_t  ss_family;     " address family " (sa_family_t = uint_16_t)
+ *    " Following fields are implementation specific "
+ *    char         __ss_pad1[_SS_PAD1SIZE];
+ *                  " 6 byte pad, this is to make implementation "
+ *                  " specific pad up to alignment field that "
+ *                  " follows explicit in the data structure "
+ *    int64_t      __ss_align;  " field to force desired structure "
+ *                  " storage alignment "
+ *    char         __ss_pad2[_SS_PAD2SIZE];
+ *                 " 112 byte pad to achieve desired size, "
+ *                 " _SS_MAXSIZE value minus size of ss_len, "
+ *                 " __ss_family, __ss_pad1, __ss_align fields is 112 "
+ * };
+ * 
+ * 
+ * The original struct sockaddr probably should have been this big, but wasn't. 
+ * So this is basically a workaround for a historical error.
+ * 
+ * struct sockaddr
+ * {
+ *   uint_16_t  sa_family;   (Protocol family)
+ *   char       sa_data[14]; (address_data)
+ * };
+ * 
+ */
+
 int main(int argc, char **argv) 
 {
     int listenfd, connfd;
@@ -34,9 +83,9 @@ int main(int argc, char **argv)
     while (1) {
 	clientlen = sizeof(clientaddr);
 	connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen); //line:netp:tiny:accept
-        Getnameinfo((SA *) &clientaddr, clientlen, hostname, MAXLINE, 
-                    port, MAXLINE, 0);
-        printf("Accepted connection from (%s, %s)\n", hostname, port);
+    Getnameinfo((SA *) &clientaddr, clientlen, hostname, MAXLINE, 
+                port, MAXLINE, 0);
+    printf("Accepted connection from (%s, %s)\n", hostname, port);
 	doit(connfd);                                             //line:netp:tiny:doit
 	Close(connfd);                                            //line:netp:tiny:close
     }
