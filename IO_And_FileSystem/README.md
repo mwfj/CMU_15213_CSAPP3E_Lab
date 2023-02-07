@@ -304,7 +304,7 @@ Return value:
 
 +  `-1` indicates an error;
 + `0 `indicates EOF;
-+ Otherwise, the return value indicates the number of  bytes taht were actually transferred.
++ Otherwise, the return value indicates the number of  bytes that were actually transferred.
 
 The `count` argument specifies the **maximum number of byte to read**; the `buffer` argument supplies the address of the memory buffer into which the input data is to be placed. **This buffer must be at least `count `bytes long**.
 
@@ -399,7 +399,7 @@ The exisence of holes means that a file's nominal size may be larger than the am
 
 ### 2.7 Operation Outside the Universal I/O Model: `ioctl()`
 
-The `ioctl()` system call is a general-purpose mechanism for performing file and device operations taht fall outside the universal I/O model.
+The `ioctl()` system call is a general-purpose mechanism for performing file and device operations that fall outside the universal I/O model.
 
 ```c
 #include <sys/ioctl.h>
