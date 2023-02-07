@@ -154,6 +154,7 @@ void read_requesthdrs(rio_t *rp)
 
     Rio_readlineb(rp, buf, MAXLINE);
     printf("%s", buf);
+    /* "\r\n" represents the empty text line */
     while(strcmp(buf, "\r\n")) {          //line:netp:readhdrs:checkterm
 	Rio_readlineb(rp, buf, MAXLINE);
 	printf("%s", buf);
