@@ -340,11 +340,11 @@ ssize_t write(int fd, void *buffer, size_t count);
 Return Value:
 
 + The number of bytes actually written on success, it might be less than `count`
-  + For disk file, possible reasons for such a partical writee hat are disk was filled or the process resource limit on file size was reached.
+  + For disk file, possible reasons for such a partical write that are disk was filled or the process resource limit on file size was reached.
   + For network socket, the internel buffering constriants and long network delays can cause `read/write` to return short counts.
   + Short count also occur when you call `read/write` on a Linux pipe
 
-+ Note that: when performing I/ on a disk file, a successful return from `write()` doesn't guarantee that the data has been transferred to disk, because the kernel performs **buffering of disk I/O in order to reduce disk activiry** and expedite `write()` call.
++ Note that: when performing I/O on a disk file, a successful return from `write()` doesn't guarantee that the data has been transferred to disk, because the kernel performs **buffering of disk I/O in order to reduce disk activiry** and expedite `write()` call.
 
 ### 2.6 Changing the File Offset: `lseek()`
 
