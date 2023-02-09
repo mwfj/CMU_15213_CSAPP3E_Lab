@@ -119,13 +119,15 @@ void doit(int fd)
 
     /* Parse URI from GET request */
     is_static = parse_uri(uri, filename, cgiargs);       //line:netp:doit:staticcheck
+    /* see the detail of macro in "man 2 stat" */ 
     if (stat(filename, &sbuf) < 0) {                     //line:netp:doit:beginnotfound
 	clienterror(fd, filename, "404", "Not found",
 		    "Tiny couldn't find this file");
 	return;
     }                                                    //line:netp:doit:endnotfound
 
-    if (is_static) { /* Serve static content */          
+    if (is_static) { /* Serve static content */  
+    /* see the detail of macro in "man 7 inode" */        
 	if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode)) { //line:netp:doit:readable
 	    clienterror(fd, filename, "403", "Forbidden",
 			"Tiny couldn't read the file");
@@ -220,6 +222,7 @@ void serve_static(int fd, char *filename, int filesize)
     srcp = Mmap(0, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0); //line:netp:servestatic:mmap
     Close(srcfd);                       //line:netp:servestatic:close
     Rio_writen(fd, srcp, filesize);     //line:netp:servestatic:write
+    /* The munmap() system call deletes the mappings for the specified address range */
     Munmap(srcp, filesize);             //line:netp:servestatic:munmap
 }
 
@@ -259,6 +262,10 @@ void serve_dynamic(int fd, char *filename, char *cgiargs)
 	/* Real server would set all CGI vars here */
 	setenv("QUERY_STRING", cgiargs, 1); //line:netp:servedynamic:setenv
 	Dup2(fd, STDOUT_FILENO);         /* Redirect stdout to client */ //line:netp:servedynamic:dup2
+    /**
+     * environ is a variable declared in unistd.h, and it keeps track of the environment variables during this running process.
+     * setenv() and putenv() modify environ, so when you pass it over execve(), the environment variables will be just as you'd expect.
+     */
 	Execve(filename, emptylist, environ); /* Run CGI program */ //line:netp:servedynamic:execve
     }
     Wait(NULL); /* Parent waits for and reaps child */ //line:netp:servedynamic:wait
