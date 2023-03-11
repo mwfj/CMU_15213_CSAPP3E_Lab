@@ -1138,4 +1138,27 @@ According to the structure of the binary search tree and the picture I draw. The
 
 ### Thus, the final answer of secret_phase is `20` or `22` 
 
+**All Bomb Resolved !!!**
+
+```shell
+(gdb) r solution.txt 
+Starting program: /home/mwfj/cmu-15-213-CSAPP3E-lab/2.BombLab/bomb-solution/bomb solution.txt
+Welcome to my fiendish little bomb. You have 6 phases with
+which to blow yourself up. Have a nice day!
+Phase 1 defused. How about the next one?
+That's number 2.  Keep going!
+Halfway there!
+So you got that one.  Try this one.
+Good work!  On to the next...
+Curses, you've found the secret phase!
+But finding it and solving it are quite different...
+Wow! You've defused the secret stage!
+Congratulations! You've defused the bomb!
+[Inferior 1 (process 19602) exited normally]
+(gdb) 
+
+```
+
+
+
 Bomb lab finished.
