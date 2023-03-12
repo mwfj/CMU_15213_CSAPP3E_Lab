@@ -171,7 +171,7 @@ Interrupts occur asynchronously as a result of signal from I/O devices that are 
 
 Process:
 
-1. Hardware Interrupt are asychronous in the sense that they are not caused by the execution of any particular instruction.Exception handlers for hardare interrupt are often called **interrupt handlers**.
+1. Hardware Interrupt are asychronous in the sense that they are not caused by the execution of any particular instruction.Exception handlers for hardware interrupt are often called **interrupt handlers**.
 2. The processor notices that the **interrupt pin has go high**, reads the exception number from system bus.
 3. The processor calls the appropriate  interrupt handler.
 4. When handler returns, it returns the control to the next instruction in the control flow.
