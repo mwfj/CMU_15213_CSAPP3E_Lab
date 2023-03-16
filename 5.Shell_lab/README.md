@@ -104,7 +104,7 @@ However, only these control flows are not enough, because it is hard to deal wit
 
 + At the **hardware level**, event detected by the **hardware trigger** abrupt control transfers to the exceptional handler.
 + At the **operating system level**, the kernel transfer control from one user process to another via **context switch**.
-+ At the **application level**, a prcess can send a signal to another process that abruptly transfer control  to a **signal handler** in the recipient.
++ At the **application level**, a process can send a signal to another process that abruptly transfer control  to a **signal handler** in the recipient.
 + An **individual program** can react to errors by **sidestepping the usual call/return stack discipline** and **making nonlocal jumps** to arbitrary locations in other functions.
 
 Applications request service from the operating systems(OS kernel) by using a form of ECF known as a **trap** or **system call**.
