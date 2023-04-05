@@ -1,5 +1,5 @@
-#include "csapp.h"
 #include "proxy.h"
+
 
 /* You won't lose style points for including this long line in your code */
 static const char *user_agent_hdr = "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:10.0.3) Gecko/20120305 Firefox/10.0.3\r\n";
@@ -20,6 +20,11 @@ main(int argc, char** argv)
 
     listenfd = Open_listenfd(argv[1]);
 
+    pthread_t tid;
+    init_thread();
+    /* Create assistent threads to help manage the thread pool*/
+    Pthread_create(&tid, NULL, adjust_thread, NULL);
+    setbuf(stdout, NULL);
     /* Do a infinite loop for listening the incoming resquest */
     while(1){
         client_len = sizeof(clientaddr);
@@ -28,10 +33,10 @@ main(int argc, char** argv)
         /* Convert a socket address structure to the corresponding host and service name string*/
         Getnameinfo((SA *)&clientaddr, client_len, hostname, MAXLINE, port, MAXLINE, 0);
         printf("Accepted connection from (%s, %s)\n", hostname, port);
-        process_request(connfd);
-        Close(connfd);
+        insert_wrapper(connfd);
     }
 
+    deinit_wrapper();
     return 0;
 }
 
@@ -216,10 +221,12 @@ process_request(int fd){
 
     printf("Proxy modified:\turl: %s, method: %s, version: %s, uri: %s, hostname: %s, port: %s\n", 
                     url, method, version, uri, hostname, port);
+                    
     /* change the request header */
     int res = change_request(&rio_received, clientRequest, uri, version, hostname);
     if(res == 0)
         return ;
+
     printf("client request:\n%s", clientRequest);
     /** 
      * establish new connection with the server and

@@ -1,5 +1,9 @@
+#pragma once
 #ifndef __PROXY_H__
 #define __PROXY_H__
+
+#include "csapp.h"
+#include "sbuf.h"
 
 /* Recommended max cache and object sizes */
 #define MAX_CACHE_SIZE 1049000
@@ -22,6 +26,6 @@ void process_request(int);
 void reply_client_error(int , char *, char *, char *, char *);
 void modify_http_version(int , char *, char *);
 void parse_uri(char* , char *, char *, char *);
-int change_request(rio_t *, char *, char *, char *, char *);
+int  change_request(rio_t *, char *, char *, char *, char *);
 
 #endif /* __PROXY_H__ */
