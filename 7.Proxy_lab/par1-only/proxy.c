@@ -12,6 +12,7 @@ main(int argc, char** argv)
         fprintf(stderr, "usage: %s <port_number> \n", argv[0]);
         exit(EXIT_FAILURE);
     }
+    if (Signal(SIGPIPE, SIG_IGN) == SIG_ERR) unix_error("mask signal pipe error");
     char hostname[MAXLINE], port[MAXLINE];
     int listenfd, connfd;
     struct sockaddr_storage clientaddr;
