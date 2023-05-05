@@ -1,8 +1,14 @@
+#pragma once
 #ifndef __PROXY_H__
 #define __PROXY_H__
 
 #include "csapp.h"
-#include "common.h"
+#include "sbuf.h"
+
+/* Recommended max cache and object sizes */
+#define MAX_CACHE_SIZE 1049000
+#define MAX_OBJECT_SIZE 102400
+#define MAXLINE 8192
 
 #define ERROR_CODE_BAD_REQUEST          "400"
 #define ERROR_CODE_NOT_IMPLEMENT        "501"

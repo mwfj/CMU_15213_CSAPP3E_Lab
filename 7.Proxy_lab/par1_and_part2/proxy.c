@@ -1,11 +1,8 @@
 #include "proxy.h"
-#include "reader-writer.h"
-#include "sbuf.h"
-#include "lrucache.h"
+
 
 /* You won't lose style points for including this long line in your code */
 static const char *user_agent_hdr = "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:10.0.3) Gecko/20120305 Firefox/10.0.3\r\n";
-
 
 int 
 main(int argc, char** argv)
@@ -29,8 +26,6 @@ main(int argc, char** argv)
     /* Create assistent threads to help manage the thread pool*/
     Pthread_create(&tid, NULL, adjust_thread, NULL);
     setbuf(stdout, NULL);
-    init_wr_locks();
-    initLRUCache();
     /* Do a infinite loop for listening the incoming resquest */
     while(1){
         client_len = sizeof(clientaddr);
@@ -43,7 +38,6 @@ main(int argc, char** argv)
     }
 
     deinit_wrapper();
-    deInitLRUCache();
     return 0;
 }
 
@@ -228,36 +222,13 @@ process_request(int fd){
 
     printf("Proxy modified:\turl: %s, method: %s, version: %s, uri: %s, hostname: %s, port: %s\n", 
                     url, method, version, uri, hostname, port);
-
+                    
     /* change the request header */
     int res = change_request(&rio_received, clientRequest, uri, version, hostname);
     if(res == 0)
         return ;
 
     printf("client request:\n%s", clientRequest);
-
-
-    cache_key_t *cache_key = make_the_key(hostname, port, uri);
-    // printf("cache key, host: %s, port: %s, path: %s\n", hostname, port, uri);
-
-    /* read the request from the cache */
-    char *cache_value = read_cache(cache_key);
-    
-    free(cache_key->host);
-    free(cache_key->port);
-    free(cache_key->path);
-    free(cache_key);
-    
-    /**
-     * if the request already stored in the cache, 
-     * then write the cache back to client 
-     **/
-    if(cache_value != NULL){
-        printf("cache matched!! cache_value: %s\n", cache_value);
-        Rio_writen(fd, cache_value, strlen(cache_value));
-        return ;
-    }
-
     /** 
      * establish new connection with the server and
      * forward the request to the server 
@@ -271,7 +242,5 @@ process_request(int fd){
     while( (n = Rio_readnb(&rio_forward, responseBuf, MAXLINE)) != 0 ){
         Rio_writen(fd, responseBuf, n);
     }
-    /* update the request to cache */
-    insert_cache(hostname, port, uri, responseBuf);
     Close(clientfd);
 }

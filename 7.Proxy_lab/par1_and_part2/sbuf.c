@@ -57,8 +57,7 @@ sbuf_remove(sbuf_t *sp){
 }
 
 /* Check the current sbuf capacity is empty or not */
-int 
-is_sbuf_empty(sbuf_t *sp){
+int is_sbuf_empty(sbuf_t *sp){
     int is_empty;
     P(&sp ->mutex);                      /* Lock the buffer */
     sem_getvalue(&sp->items, &is_empty); /* Get the number of current used data item */
@@ -67,8 +66,7 @@ is_sbuf_empty(sbuf_t *sp){
 }
 
 /* Check the current sbuf capacity is full or not */
-int 
-is_sbuf_full(sbuf_t *sp){
+int is_sbuf_full(sbuf_t *sp){
     int is_full;
     P(&sp->mutex);                      /* Lock the buffer */
     sem_getvalue(&sp->slots, &is_full); /* Get the number of  current slot item */
@@ -96,8 +94,7 @@ deinit_wrapper(){
  ****************************************************************************
  */
 
-void 
-create_worker_thread(int startPos, int endPos){
+void create_worker_thread(int startPos, int endPos){
     int i;
     for(i = startPos; i < endPos; i++){
         /* Create worker thread */
@@ -105,8 +102,7 @@ create_worker_thread(int startPos, int endPos){
     }
 }
 
-void 
-init_thread(void){
+void init_thread(void){
     /* Init sbuf block */
     sbuf_init(&sbuf, SBUFSIZE);
     current_nthreads = NTHREADS;

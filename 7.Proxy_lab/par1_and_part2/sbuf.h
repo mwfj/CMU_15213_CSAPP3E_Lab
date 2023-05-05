@@ -1,8 +1,12 @@
+#pragma once
 #ifndef __SBUF__H
 #define __SBUF__H
 
 #include "csapp.h"
-#include "common.h"
+
+#define NTHREADS        4
+#define SBUFSIZE        16
+#define THREAD_LIMIT    4096
 
 typedef struct
 {

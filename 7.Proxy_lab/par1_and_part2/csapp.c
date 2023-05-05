@@ -807,22 +807,22 @@ static ssize_t rio_read(rio_t *rp, char *usrbuf, size_t n)
     int cnt;
 
     while (rp->rio_cnt <= 0) {  /* Refill if buf is empty */
-	rp->rio_cnt = read(rp->rio_fd, rp->rio_buf, 
+	    rp->rio_cnt = read(rp->rio_fd, rp->rio_buf, 
 			   sizeof(rp->rio_buf));
-	if (rp->rio_cnt < 0) {
-	    if (errno != EINTR) /* Interrupted by sig handler return */
-		return -1;
-	}
-	else if (rp->rio_cnt == 0)  /* EOF */
-	    return 0;
-	else 
-	    rp->rio_bufptr = rp->rio_buf; /* Reset buffer ptr */
+        if (rp->rio_cnt < 0) {
+            if (errno != EINTR) /* Interrupted by sig handler return */
+            return -1;
+        }
+        else if (rp->rio_cnt == 0)  /* EOF */
+            return 0;
+        else 
+            rp->rio_bufptr = rp->rio_buf; /* Reset buffer ptr */
     }
 
     /* Copy min(n, rp->rio_cnt) bytes from internal buf to user buf */
     cnt = n;          
     if (rp->rio_cnt < n)   
-	cnt = rp->rio_cnt;
+	    cnt = rp->rio_cnt;
     memcpy(usrbuf, rp->rio_bufptr, cnt);
     rp->rio_bufptr += cnt;
     rp->rio_cnt -= cnt;
@@ -866,6 +866,8 @@ ssize_t rio_readnb(rio_t *rp, void *usrbuf, size_t n)
 
 /* 
  * rio_readlineb - Robustly read a text line (buffered)
+ * In this function, it copies the text line character by character
+ * and save it into the userbuf in memory
  */
 /* $begin rio_readlineb */
 ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen) 
@@ -879,12 +881,12 @@ ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen)
             if (c == '\n') {
                     n++;
                 break;
-            }
+                }
         } else if (rc == 0) {
             if (n == 1)
-                return 0; /* EOF, no data read */
+            return 0; /* EOF, no data read */
             else
-                break;    /* EOF, some data was read */
+            break;    /* EOF, some data was read */
         } else
             return -1;	  /* Error */
     }
@@ -896,19 +898,30 @@ ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen)
 /**********************************
  * Wrappers for robust I/O routines
  **********************************/
+/**
+ * unbufferd function: transfer date directly from file to memory
+ */
 ssize_t Rio_readn(int fd, void *ptr, size_t nbytes) 
 {
     ssize_t n;
   
-    if ((n = rio_readn(fd, ptr, nbytes)) < 0)
-	unix_error("Rio_readn error");
+    if ((n = rio_readn(fd, ptr, nbytes)) < 0){
+        if (errno != ECONNRESET)
+            unix_error("Rio_readn error");
+        else     
+	        fprintf(stderr, "error:Connection reset by peer\n");
+    }
     return n;
 }
 
 void Rio_writen(int fd, void *usrbuf, size_t n) 
 {
-    if (rio_writen(fd, usrbuf, n) != n)
-	unix_error("Rio_writen error");
+    if (rio_writen(fd, usrbuf, n) != n){
+        if (errno == EPIPE)
+            fprintf(stderr, "error:Connection reset by peer\n");
+        else
+            unix_error("Rio_writen error");
+    }
 }
 
 void Rio_readinitb(rio_t *rp, int fd)
@@ -920,8 +933,12 @@ ssize_t Rio_readnb(rio_t *rp, void *usrbuf, size_t n)
 {
     ssize_t rc;
 
-    if ((rc = rio_readnb(rp, usrbuf, n)) < 0)
-	unix_error("Rio_readnb error");
+    if ((rc = rio_readnb(rp, usrbuf, n)) < 0){
+        if (errno != ECONNRESET)
+            unix_error("Rio_readnb error");
+        else
+            fprintf(stderr, "error:Connection reset by peer\n");
+    }
     return rc;
 }
 
@@ -929,8 +946,12 @@ ssize_t Rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen)
 {
     ssize_t rc;
 
-    if ((rc = rio_readlineb(rp, usrbuf, maxlen)) < 0)
-	unix_error("Rio_readlineb error");
+    if ((rc = rio_readlineb(rp, usrbuf, maxlen)) < 0){
+        if (errno != ECONNRESET)
+            unix_error("Rio_readlineb error");
+        else
+            fprintf(stderr, "error:Connection reset by peer\n");
+    }
     return rc;
 } 
 
