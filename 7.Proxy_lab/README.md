@@ -401,6 +401,38 @@ struct addrinfo {
   + `AI_NUMBERICSERV`: By default, the service argument can be a **service name** or a **port name**. **This flag forces the service argument to be a port name.**
   + `AI_PASSIVE`: By default, `getaddrinfo` returns socket addresses that can be used by clients as active sockets in calls to `connect`. This flag instructs it to return socket addresses that can be **used by servers as listening sockets**, where, in this case, the `host` argument should be `NULL`
 
+  When `getaddrinfo` create an addreinfo structure in the output list, it fills in each field except for `ai_flags`. The `ai_addr` field points to a socket address structure, the `ai_addrlen` field gives the size of  the socket address structure, and the `ai_next` field points too the next addrinfo strucutre in the list. The other describe variout attributes  of the socket address.
+
+### `getnameinfo`
+
+The `getnameinfo` function is the inverse of `getaddrinfo`. **It converts a socket address structure to the corresponding host and service name strings**. It is the modern replacement for the obsolete `gethostbyaddr` and `getservbyport` functions, and unlike those functions, it is reentrant and protocol-independent.
+
+```c
+#include <sys/socket.h>
+#include <netdb.h>
+
+int getnameinfo(const struct sockaddr *sa, socklen_t salen, char *host, size_t hostlen,
+                char *service, size_t servlen, int flags);
+/* Returns: 0 if OK, nonzero error code on error */
+```
+
+The `getnameinfo` function converts the socket address structure `sa` to the corresponding host and service name strings and copies them to the `host` and `service` buffer. if `getnameinfo` returns a nonzero error code, the application can convert it to a string by calling `gai_strerror`
+
++ The `sa` argument points to a socket address structure of size `salen` bytes
++ `host` to a buffer of size `hostlen` bytes
++ `service` to a buffer of size `servlen ` bytes
+
+If we don't want the hostname, we can set host to `NULL` and hostlen to zero. The same holds for the service fields.
+
+However, one or the other must be set.
+
+The `flags` argument is a bit mask that modifies the default behavior.
+
++ `NI_NUMERICHOST`: by default, `getnameinfo` tries to return a domain name in `host`. Setting this flag will cause it to return a numeric address string instead.
++ `NI_NUMERICSERV`: by default, `getnameinfo` will look an `/etc/services` and if possible, return a service name instead of a port number. Setting this flag forces it to skip the lookup and simply return the port number.
+
+ 
+
 ## Solution
 
 
