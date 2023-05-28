@@ -21,7 +21,7 @@ The fundamental operation in the client-server model is the ***transaction***. A
 
 <p align="center"> <img src="./pic/client-server-transaction.png" alt="cow" style="zoom:100%;"/> </p>
 
-<p align="center">A client-server transaction, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+<p align="center">A client-server transaction, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/21-netprog1.pdf">cmu-213 slide</a></p>
 
 ### Networks
 
@@ -31,7 +31,7 @@ To a host, a network is just another I/O device that serves as a source and sink
 
 <p align="center"> <img src="./pic/hardware_organization_of_a_network_host.png" alt="cow" style="zoom:100%;"/> </p>
 
-<p align="center">Hardware organization of a Network Host, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+<p align="center">Hardware organization of a Network Host, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/21-netprog1.pdf">cmu-213 slide</a></p>
 
 + An ***adapter*** plugged into an expansion slot on the I/O bus provides the **physical interface** to the network. 
   + Data received from the network are copied from the adapter, across the I/O and memory buses into memory, typically by a DMA transfer.
@@ -46,7 +46,7 @@ At the lowest level is a ***LAN(local area network)*** that spans a building or 
 
   <p align="center"> <img src="./pic/ethernet_segment.png" alt="cow" style="zoom:100%;"/> </p>
 
-  <p align="center">Ethernet Segment, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+  <p align="center">Ethernet Segment, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/21-netprog1.pdf">cmu-213 slide</a></p>
 
   + Ethernet typically span small areas, such as a room or a floor, and each wire has the same maximum bit bandwidth, typically 100 Mb/s or 1 Gb/s.
 
@@ -68,11 +68,11 @@ At the lowest level is a ***LAN(local area network)*** that spans a building or 
 
     <p align="center"> <img src="./pic/bridge_ethernet_segment.png" alt="cow" style="zoom:100%;"/> </p>
 
-    <p align="center">Bridge Ethernet Segment, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+    <p align="center">Bridge Ethernet Segment, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/21-netprog1.pdf">cmu-213 slide</a></p>
 
     <p align="center"> <img src="./pic/conceptual_view_of_lan.png" alt="cow" style="zoom:100%;"/> </p>
 
-    <p align="center">Conceptual view of the LAN, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+    <p align="center">Conceptual view of the LAN, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/21-netprog1.pdf">cmu-213 slide</a></p>
 
 #### Higher Level: Internets
 
@@ -95,7 +95,7 @@ To solve the problem of incompatible networks, we use network same **network pro
 
 <p align="center"> <img src="./pic/process_travel_through_internet.png" alt="cow" style="zoom:100%;"/> </p>
 
-<p align="center">How data travel from one host to another on an internet, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+<p align="center">How data travel from one host to another on an internet, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/21-netprog1.pdf">cmu-213 slide</a></p>
 
 The eight basic steps:
 
@@ -121,7 +121,7 @@ The eight basic steps:
 
 <p align="center"> <img src="./pic/organization_of_an_internet_application.png" alt="cow" style="zoom:100%;"/> </p>
 
-<p align="center">Hardware and software organization of an Internet application, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+<p align="center">Hardware and software organization of an Internet application, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/21-netprog1.pdf">cmu-213 slide</a></p>
 
 From a programmer's perspective, we can think of the Internet as a worldwide collection of hosts with the following properties:
 
@@ -148,7 +148,7 @@ From a programmer's perspective, we can think of the Internet as a worldwide col
 
   <p align="center"> <img src="./pic/ip_address_structure.jpeg" alt="cow" style="zoom:100%;"/> </p>
 
-  <p align="center">IP(V4) Address space divided into classes, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+  <p align="center">IP(V4) Address space divided into classes, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/21-netprog1.pdf">cmu-213 slide</a></p>
 
 + Userful network byte-order conversion function(***'I' = 32 bits***, ***'S' = 16 bits***)
 
@@ -173,7 +173,7 @@ Use `getaddrinfo` and `getnameinfo` functions to convert between IP address and 
 
 <p align="center"> <img src="./pic/subset_of_the_internet_domain_name_hierarchy.png" alt="cow" style="zoom:100%;"/> </p>
 
-<p align="center">Subset of the Internet domain name hierarchy, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+<p align="center">Subset of the Internet domain name hierarchy, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/21-netprog1.pdf">cmu-213 slide</a></p>
 
 The Internet maintains a mapping between IP addresses and domain names in a huge **worldwide distributed database** called DNS.
 
@@ -234,7 +234,7 @@ A connection is uniquely identified by the socket addresses of its two end point
 
 <p align="center"> <img src="./pic/anatomy_of_an_internet_connection.png" alt="cow" style="zoom:100%;"/> </p>
 
-<p align="center">Anatomy of an Internet connection, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+<p align="center">Anatomy of an Internet connection, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/21-netprog1.pdf">cmu-213 slide</a></p>
 
 In general, the job of the kernel to differentiate the different connections coming into the machine and figure it out, which 
 
@@ -245,7 +245,7 @@ In general, the job of the kernel to differentiate the different connections com
 
 <p align="center"> <img src="./pic/using_port_to_identify_services2.jpeg" alt="cow" style="zoom:100%;"/> </p>
 
-<p align="center">Using ports to identify services, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+<p align="center">Using ports to identify services, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/21-netprog1.pdf">cmu-213 slide</a></p>
 
 ### The Socket Interface
 
@@ -263,7 +263,7 @@ The ***socket interface*** is a set of functions that are used in conjunction wi
 
   <p align="center"> <img src="./pic/brief_overview_of_socket_connection.png" alt="cow" style="zoom:100%;"/> </p>
 
-  <p align="center">Brief overview of socket connection, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+  <p align="center">Brief overview of socket connection, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/21-netprog1.pdf">cmu-213 slide</a></p>
 
 + The main distinction between regular file I/O and socket I/O is **how the application "opens" the socket descriptors**.
 
@@ -287,7 +287,7 @@ The ***socket interface*** is a set of functions that are used in conjunction wi
 
     <p align="center"> <img src="./pic/sa_family.png" alt="cow" style="zoom:100%;"/> </p>
 
-    <p align="center">Family Specific(sa_family), the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+    <p align="center">Family Specific(sa_family), the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/21-netprog1.pdf">cmu-213 slide</a></p>
 
   + Internet-specific socket address:
 
@@ -307,7 +307,7 @@ The ***socket interface*** is a set of functions that are used in conjunction wi
 
 <p align="center"> <img src="./pic/socket_interface.png" alt="cow" style="zoom:100%;"/> </p>
 
-<p align="center">Overview of network applications based on the socket interface, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+<p align="center">Overview of network applications based on the socket interface, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/22-netprog2.pdf">cmu-213 slide</a></p>
 
 ### Host and Service Conversion: `getaddrinfo`
 
@@ -356,7 +356,7 @@ Given `host` and `service`(the two components of a socket address), `getaddrinfo
 
 <p align="center"> <img src="./pic/data_structure_returned_by_getaddrinfo.png" alt="cow" style="zoom:100%;"/> </p>
 
-<p align="center">Data structure returned by <strong>getaddrinfo</strong>, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/17-vm-concepts.pdf">cmu-213 slide</a></p>
+<p align="center">Data structure returned by <strong>getaddrinfo</strong>, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/21-netprog1.pdf">cmu-213 slide</a></p>
 
 The `host` argument to `getaddrinfo` can be either a **domain name** or a **numeric addresses**(e.g. a dotted-decimal IP address).
 
@@ -428,10 +428,193 @@ However, one or the other must be set.
 
 The `flags` argument is a bit mask that modifies the default behavior.
 
-+ `NI_NUMERICHOST`: by default, `getnameinfo` tries to return a domain name in `host`. Setting this flag will cause it to return a numeric address string instead.
-+ `NI_NUMERICSERV`: by default, `getnameinfo` will look an `/etc/services` and if possible, return a service name instead of a port number. Setting this flag forces it to skip the lookup and simply return the port number.
++ `NI_NUMERICHOST`: by default, `getnameinfo` tries to return a domain name in `host`. Setting this flag will cause it to return **a numeric address string** instead.
++ `NI_NUMERICSERV`: by default, `getnameinfo` will look an `/etc/services` and if possible, return a service name instead of a port number. Setting this flag **forces it to skip the lookup and simply return the port number**.
 
- 
+ ### The `socket` function (both used in client and sever side)
+
+Clients and servers use the socket function to create a ***socket descriptor***.
+
+```c
+#include <sys/types.h>
+#include <sys/socket.h>
+
+int socket(int domain, int type, int protocol);
+/* Returns: nonnegative descriptor if OK, -1 on error */
+```
+
+If we wanted the socket to be the end point for a connection, then we could call `socket` with the following hardcode arguments:
+
+<p align="center"> <img src="./pic/socket_fun_usage.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">The usage of <strong>socket</strong>, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/22-netprog2.pdf">cmu-213 slide</a></p>
+
+**The `clientfd` descriptor returned by `socket` is only partially opened and cannot yet be used for reading and writing.**
+
+
+
+### The `connect` function (client side)
+
+A client establishes a connection with a server by calling the `connect` function.
+
+```c
+#include <sys/socket.h>
+int connect(int clientfd, const struct sockaddr *addr, socklen_t addrlen);
+/* Returns: 0 if ok, -1 on error */
+```
+
+The `connect` functions attempts establish a connection with server at socket address `addr`:
+
++ If successful, then `clientfd` is now ready for reading and writing.
++ Resulting connection is characterized by socket pair `(x:y addr.sin_addr:addr_sin_port)`
+  + `x` is client address
+  + `y` is **ephemeral port** that uniquely identifies client process on client host
+
+
+
+### The `bind ` function (server side)
+
+```c
+#include <sys/socket.h>
+int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+/* Returns: 0 if ok, -1 on error */
+```
+
+A server uses bind to ask the kernel to associate the server's socket address in `addr` with a socket descriptor `sockfd`
+
++ The `addrlen` argument is `sizeof(sockadr_in)`
++ The process can read bytes that arrive on the connection whose endpoint is `addr` by reading from descriptor `sockfd`
++ Similarly, writes to `sockfd` are transferred along connection whose endpoint is `addr`
+
+
+
+### The `listen` function (server side)
+
+By default, kernel assumes that descriptor from socket function is an ***active socket*** that will be on the client end of a connection.
+
+A server calls the `listen` function to tell the kernel that a descriptor will be used by a server rather than a client:
+
+```c
+#include <sys/socket.h>
+int listen(int sockfd, int backlog);
+/* Returns: 0 if ok, -1 on error */
+```
+
++ `listen` converts `sockfd` from an **active socket** to a ***listening socket*** that can accept connection requests from clients.
++ `backlog` is a hint about **the number of outstanding connection requests that the kernel should queue up** before starting to refuse requests. (Typically the value should be the largest value: `1024`)
+
+
+
+### The `accept` function (server side, received from connection request)
+
+Servers wait for connection requests from client to arrive on the listening descriptor `listenfd` by calling `accecpt`, then fills in the client's socket address in `addr` and returns a ***connected descriptor*** that can be used to communicate with the client using **Unix I/O** functions.
+
+```c
+#include <sys/socket.h>
+int accept(int listenfd, struct sockaddr *addr, int *addrlen);
+/* Returns: nonnegative connected descriptor if OK, -1 on error */
+```
+
+The distinction between a listening descriptor and a connected descriptor is that:
+
++ The **listening descriptor** serves as an **end point for client connection requests**. It is typically **created once** and **exists for the lifetime of the server**.
++ The **connect descriptor** is the **end point of the connection that is established between client and the server**. It is **created each time the server accepts a connection request** and **exists only as long as it takes the server to service a client**.
++ `accept` return a new file descriptor, where server will then use it as the connection point to this particular client.
+
+<p align="center"> <img src="./pic/listen_and_connect_fd.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">The roles of the listening and connected descriptors, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/22-netprog2.pdf">cmu-213 slide</a></p>
+
+In genernal, you want to be able to handle multiple clients at the same time, where a single interface can be serverd multiple client. That's why they all assign different file descriptor at the server end for that particular connection. So you can think as the listening file descriptor, it just listening the in-comming request for connection, but once it set up a session communicates back and forth, those are going through different file descriptor from the software running on the server.
+
+### Web Server Basic
+
+Clients and servers communiacte using ***The HyperText Transnfer Protocol(HTTP)***
+
++ Client and server establish TCP conection
++ Client requests content
++ Server responds with requested content
++ Client and server close connection(eventually)
+
+<p align="center"> <img src="./pic/http_request_flow.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Http request flow, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/22-netprog2.pdf">cmu-213 slide</a></p>
+
+#### Web Content
+
+Web servers return **content** to clients, where content is a sequence of bytes with an associated MIME([Multipurpose Internet Mail Extensions](http://www.iana.org/assignments/media-types/media-types.xhtml)) type
+
+<p align="center"> <img src="./pic/example_of_MIME_types.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Example of MIME types, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/22-netprog2.pdf">cmu-213 slide</a></p>
+
+**Web content is associated with a file that is managed by the server.**
+
+managed"by"the"server"
+
+Web servers provice content to clients in two different ways:
+
+1. **Fetch a disk file and return its contents to the client.** The  **disk file** is known as ***static content*** and the process of returning the file to the client is known as ***serving static content***. Static content stored in files and retrieved in response to an HTTP request
+   + Example: HTML files, images, audio clip
+   + Request identifiles which content file
+2. **Run an excutable file and return its output to client.** The output produced by the executable **at run time** is known as ***dynamic content***, and the process of running the program and  returning its output to the client is known as ***serving dynamic content***. Dynamic content produced on-the-fly in response to an HTTP request
+   + Example: content produced by a program executed by the server on behald of the client
+   + Request identifies file containing executable code
+
+#### URLs and how clients and servers use them
+
+Unique name for a file: URL(Universal Resource Locator)
+
++ Example URL: `http://www.cmu.edu:80/index.html`
+
+**Clients use prefix(`http://www.cmu.edu:80`) to infer:**
+
++ What kind(protocol) of server to contact(HTTP)
++ Where the server is (`www.cmu.edu`)
++ What port it is listening on(`80`)
+
+Servers user suffix(`/index.html`) to:
+
++ Determine if request if for **static or dynamic content**.
+  + No hard and fast rules for this
+  + One conversation: executables reside in `cgi-bin` directory
++ Find file on file system:
+  + Initial `"/"` in suffix denotes home directory for requested content.
+  + Minimal suffix is `"/"`, which server expands to configured default filename
+
+#### HTTP Requests
+
+HTTP request is a ***request line***, followed by zero or more ***request headers***
+
++ Request line: `<method> <uri> <version>`
+  + `<method>` is one of `GET`, `POST`, `OPTIONS`, `HEAD`, `PUT`, `DELETE`, or `TRACE`
+  + `<uri>` is typically URL for proxies, URL suffix for servers
+    + **A URL is a type of URI(Uniform Resource Identifier)**. See [rpc 2936 for more detail](https://www.w3.org/2002/11/dbooth-names/rfc2396-numbered_clean.htm)
+  + `<version>` is HTTP version of request(`HTTP/1.0` or `HTTP/1.1` or later)
++ Request headers: `<header name>: <header data>`
+  + provide additional information to the server
+
+#### HTTP Responses
+
+HTTP response is a ***response line*** followed by zero or more ***response header***, possibly followed by ***content***, with blank line (`"/r/n"`) separating headers from content.
+
++ Response line: `<version> <status code> <status msg>`
+  + `<version>` is HTTP version of the response
+  + `<status code>` is numeric status
+  + `<status msg>` is corresponding English text
+    + 200	ok					Request was handled without error
+    + 301    Moved            Provide alternate URL
+    + 404   Not found       Server couldn't find the file
++ Response header: `<header name>: <header data>`
+  + Provide additional information about response
+  + ***Content-Type***: MIME type of content in response body
+  + ***Content-Length***: Length of content in resonse body
+
+<p align="center"> <img src="./pic/http_transaction.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Example of HTTP transaction, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/22-netprog2.pdf">cmu-213 slide</a></p>
+
+
 
 ## Solution
 
