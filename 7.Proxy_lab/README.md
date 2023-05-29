@@ -618,7 +618,302 @@ HTTP response is a ***response line*** followed by zero or more ***response head
 
 ## Solution
 
+###  [Part1](./part1-only/) : basic proxy server
 
+In this part, we will implement a basic proxy server, where it redirects the request from the client and then forwards this request to the server.
+
+The overall framework should be the same as the tiny server(for the implement detail of the tiny server, please refer to the [CS:APP3e](http://csapp.cs.cmu.edu/3e/home.html) chapter 11). However, the difference between tiny server and our proxy server is that:
+
+1. proxy server modifies the http version to HTTP/1.1
+
+   ```c
+   void 
+   modify_http_version(int fd, char *method, char *v){
+       char current_version[] = "HTTP/1.0";
+   	if(strcasecmp(v, current_version) == 0){
+           printf("version is corret, no need to change\n");
+   		return;
+       }
+       
+       if((strlen(v) < 8) || strncmp(v, "HTTP", 4)){
+   		printf("error, wrong version format: %s\n", v);
+           reply_client_error(fd, method, ERROR_CODE_NOT_IMPLEMENT, 
+                               NOT_IMPLEMENT_SHORT_MSG, WRONG_VERSION_FORMAT);
+   	}
+       memset(v, 0, strlen(v));
+       strncpy(v, current_version, strlen(current_version));
+   }
+   ```
+
+2. proxy server parse the URI from the client request and compose the request with some http headers as the format of the standard http request in order to make server happy.
+
+   ```c
+   int
+   change_request(rio_t *rp, char *clientRequest, char *uri, char *version, char* hostname){
+       char buf[MAXLINE];
+       int n; /* the bytes has read */
+       
+       int has_user_agent = 0, has_connection = 0, has_proxy_connection = 0, has_host = 0;
+   
+       /**
+        * GET /home.html HTTP/1.0
+        * Host: localhost
+        * User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:10.0.3) Gecko/20120305 Firefox/10.0.3
+        * Connection: close
+        * Proxy-Connection: close
+        * 
+        */
+       sprintf(clientRequest, "GET %s %s\r\n", uri, version);
+       n = Rio_readlineb(rp, buf, MAXLINE);
+       printf("%s\n", buf);
+   
+       char *tmp;
+       while((strcmp(buf, "\r\n") != 0) && (n != 0)){
+           strcat(clientRequest, buf);
+           if( (tmp = strstr(buf, "User-Agent:")) != NULL )
+               has_user_agent = 1;
+           else if((tmp = strstr(buf, "Proxy-Connection:")) != NULL)
+               has_proxy_connection = 1;
+           else if((tmp = strstr(buf, "Connection:")) != NULL)
+               has_connection = 1;
+           else if((tmp = strstr(buf, "Host:")) != NULL)
+               has_host = 1;
+   
+           n = Rio_readlineb(rp, buf, MAXLINE);
+       }
+       if(n == 0)
+           return 0;
+       /* Change Request Header */
+       if(has_host == 0){
+           sprintf(buf, "Host: %s\r\n", hostname);
+           strcat(clientRequest, buf);
+       }
+       /* append User-Agent */
+       if(has_user_agent == 0){
+           strcat(clientRequest, user_agent_hdr);
+       }
+   
+       if(has_connection == 0){
+           sprintf(buf, "Connection: close\r\n");
+           strcat(clientRequest, buf);
+       }
+   
+       if(has_proxy_connection == 0){
+           sprintf(buf, "Proxy-Connection: close\r\n");
+           strcat(clientRequest, buf);
+       }
+   
+       strcat(clientRequest, "\r\n");
+       
+       return 1;
+   }
+   ```
+
+3. proxy server maintains two different file descriptors:
+
+   - one is **the connected fd with the client**, where it read the request from the client and write the result back to it.
+   - the other is **the connected fd with the server**, where it forwards the client request to the server and received the result from the server.
+   
+   ```c
+   void 
+   process_request(int fd){
+   
+       char buf[MAXLINE], method[MAXLINE], url[MAXLINE], uri[MAXLINE], version[MAXLINE];
+       char hostname[MAXLINE], port[MAXLINE];
+       char clientRequest[MAX_CACHE_SIZE];
+   
+       /* parse http request */
+       rio_t rio_received, rio_forward;
+       /* read request line and headers */
+       Rio_readinitb(&rio_received, fd);
+       if(!Rio_readlineb(&rio_received, buf, MAXLINE)){
+           printf("read line failed\n");
+           return ;
+       }
+       if(!strcmp(buf, "\r\n")){
+           printf("bad request\n");
+           reply_client_error(fd, method, ERROR_CODE_BAD_REQUEST, 
+                               BAD_REQUEST, BAD_REQUEST);
+           return;
+       }
+       printf("Receive request from the client: %s\n", buf);
+       /**
+        * @brief Read and parse the request line
+        *  
+        * HTTP Requests: method  URI        version 
+        * For example:   GET    /index.html HTTP/1.1
+        * 
+        */
+       sscanf(buf, "%s %s %s", method, url, version);
+       
+       printf("From client:\tmethod: %s, uri: %s, version: %s\n", method, url, version);
+   
+       /* Only supports for GET method */
+       if(strcasecmp(method, "GET")){
+           reply_client_error(fd, method, "501", 
+                               "Not Implemented", "Tiny Does not implement this method");
+           return ;
+       }
+   
+       /* Replace http version the HTTP/1.0 */
+       modify_http_version(fd, method, version);
+   
+       parse_uri(url, uri, hostname, port);
+   
+       printf("Proxy modified:\turl: %s, method: %s, version: %s, uri: %s, hostname: %s, port: %s\n", 
+                       url, method, version, uri, hostname, port);
+       /* change the request header */
+       int res = change_request(&rio_received, clientRequest, uri, version, hostname);
+       if(res == 0)
+           return ;
+       printf("client request:\n%s", clientRequest);
+       /** 
+        * establish new connection with the server and
+        * forward the request to the server 
+        **/
+       int clientfd = Open_clientfd(hostname, port);
+       Rio_readinitb(&rio_forward, clientfd);
+       Rio_writen(rio_forward.rio_fd, clientRequest, strlen(clientRequest));
+   
+       char responseBuf[MAXLINE];
+       int n;
+       while( (n = Rio_readnb(&rio_forward, responseBuf, MAXLINE)) != 0 ){
+           Rio_writen(fd, responseBuf, n);
+       }
+       Close(clientfd);
+   }
+   ```
+
+Note that: for the implementation detail rio, please refer to the book [CS:APP3e](http://csapp.cs.cmu.edu/3e/home.html) chapter 10.5
+
+### [Part 2](./part1_and_part2/) : support concurrent request by using multi-thread
+
+In this part, we add multi-thread into our proxy server, where, in the part1, all the clients forward request handled by a single process and the proxy server only can serve one client request each time.
+
+However, we introduces multi-thread into our proxy server, where after listen file descriptor received the connection request from the client, server will make a new connection file descriptor and let it handled by thread worker. 
+
+Specifically, we create a thread pool the handle the client request one by one and use a **"master thread worker"** to manage the  thread pool resource. In other words, when a connection file descritor comes in, master worker will assign a thread worker to handle the subsequent operation.
+
+<p align="center"> <img src="./pic/organization_of_a_prethread_concurrent_server.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Organization of a prethread concurrent server, the figure from <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e chapter 12</a></p>
+
+```c
+/**
+ ****************************************************************************
+ * 
+ * Thread function implementation
+ * 
+ ****************************************************************************
+ */
+
+void create_worker_thread(int startPos, int endPos){
+    int i;
+    for(i = startPos; i < endPos; i++){
+        /* Create worker thread */
+        Pthread_create(&thread_pool_ids[i], NULL, worker_thread, NULL);
+    }
+}
+
+void init_thread(void){
+    /* Init sbuf block */
+    sbuf_init(&sbuf, SBUFSIZE);
+    current_nthreads = NTHREADS;
+    /* Init worker threads */
+    create_worker_thread(0, current_nthreads);
+}
+
+void*
+adjust_thread(void* vargp){
+    sbuf_t *sp = &sbuf;
+    while(1){
+        /* If the current sbuf is full, double the thread worker number */
+        if(is_sbuf_full(sp)){
+            if(current_nthreads == THREAD_LIMIT){
+                fprintf(stderr, "too many workers, cannot expand the thread number");
+                continue;
+            }
+            /* Double thread number */
+            int new_nthread = 2 * current_nthreads;
+            create_worker_thread(current_nthreads, new_nthread);
+            current_nthreads = new_nthread;
+        }
+        /* Cut the thread number by half */
+        else if(is_sbuf_empty(sp)){
+            /* If the current thread reach the minimum worker number, the do nothing */
+            if(current_nthreads == NTHREADS) continue;
+            /* Otherwise, cut hale thread workers */
+            int new_nthread = (current_nthreads / 2);
+            /**
+             * keep [0, new_nthread];
+             * kill [new_nthread, current_threads];
+             */
+            int i;
+            for(i=new_nthread; i<current_nthreads; i++){
+                Pthread_cancel(thread_pool_ids[i]);
+            }
+            current_nthreads = new_nthread;
+        }
+        /* Otherwise, keep the current thread number */
+    }
+}
+
+void*
+worker_thread(void* vargp){
+    /* Independent the current worker thread */
+    Pthread_detach(Pthread_self());
+    while(1){
+        int connfd = sbuf_remove(&sbuf);
+        process_request(connfd);
+        Close(connfd);
+        /* worker thread can be cancel any time */
+        pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+    }
+
+}
+```
+
+Note that: for the implementation of [***sbuf***](./part1_and_part2/sbuf.c), please refer to the book: [CS:APP3e](http://csapp.cs.cmu.edu/3e/home.html) chapter 12)
+
+### [Part 3](./proxylab-handout/) : Add cache system
+
+In this section, we add a cache system for our proxy server.
+
+Specifically, the previous requst header from client and the response from server will be cached into the proxy server. Each time when a new client request comes in, the proxy server will check the cache first. If this request has been cached into the proxy server, then the proxy server will take the cache reponse and reply to the client directly. Otherwise, proxy server will forward this request to the server and the cache the response when the proxy received the server's response.
+
+Moreover, we use a [simplify LRU cache](./proxylab-handout/lrucache.c) to implement our cache system. That is to be said, we maintain the pointer array to keep our cache storage in the memory(the array size calculated by `MAX_CACHE_SIZE/MAX_OBJECT_SIZE`) and we use a ***double link list*** to chain the used cache together.
+
+```c
+typedef struct{
+    char *host;
+    char *port;
+    char *path;
+}cache_key_t;
+
+typedef struct CacheNode{
+    char *value;
+    cache_key_t *key;
+    struct CacheNode *prev;
+    struct CacheNode *next;
+    uint64_t timestamp;
+} cache_t; /* double link list */
+
+typedef struct {
+    int total_capacity;
+    int current_capacity;
+    cache_t *head;
+    cache_t *tail;
+    cache_t *cachemap[MAX_CACHE_CAPACITY]; /* store the key from the corresponding node */
+} LRUCache;
+```
+
++ Each time when we insert a new cache into the LRU, we will put it in front of the link list. 
++ In addition, when we update the value of the existed cache, we also put this cache into the front of the link list.
++ When cache capacity is full, we will automatically squeeze the end of the cache block chain (Least Recently Used Cache) out of the LRU cache.
+
+To prevent the race condition of the read/write cache from multi-thread, we used [***reader-writer model***](./proxylab-handout/reader-writer.c), where for each cache read/write, we will add reader/writer lock correspondly.
+
+For more implementation detail of reader-writer model, please refer to the book [CS:APP3e](http://csapp.cs.cmu.edu/3e/home.html) chapter 12.5.4.
 
 ## Lab Test Result
 
@@ -796,3 +1091,6 @@ cacheScore: 15/15
 totalScore: 70/70
 ```
 
+**We have acquired all the point in this lab !!!**
+
+Proxy Lab finished.
