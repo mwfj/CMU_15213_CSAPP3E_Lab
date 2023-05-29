@@ -1,6 +1,0 @@
-make --dry-run --always-make --keep-going --print-directory
-make: Entering directory `/Users/mwfj/Documents/Clemson_University/Course/2020_Fall_Online_Self_Study/CMU_15-213_Intro_to_Computer_Systems_CSAPP3E/lab/git/6.Malloc_lab'
-make: Leaving directory `/Users/mwfj/Documents/Clemson_University/Course/2020_Fall_Online_Self_Study/CMU_15-213_Intro_to_Computer_Systems_CSAPP3E/lab/git/6.Malloc_lab'
- 
-make: *** No targets specified and no makefile found.  Stop.
-
