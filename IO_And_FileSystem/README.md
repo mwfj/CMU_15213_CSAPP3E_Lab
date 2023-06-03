@@ -918,7 +918,9 @@ Advantage for the structure of `ext2` i-node:
 + For **small files**, which from the overwhelming majority of files on most systems, this scheme allows the file data blocks to be **accessed rapidly** via the direct pointers of the  i-node.
 + This design **allow the file hole exist**. Rather than allocate blocks of null bytes for the holes in a file, the file system can **just mark(with the value 0) appropriate pointers in the i-node** and in the indirect pointer blocks to indicate that they don't refer to actual disk blocks.
 
-####4.3.3 Read/Write a file for the i-node perspective
+
+
+#### 4.3.3 Read/Write a file for the i-node perspective
 
 + **Read a file from disk**: 
 
@@ -976,7 +978,9 @@ Advantage for the structure of `ext2` i-node:
 
 <p align="center">File creation of <strong>/foo/bar</strong> timeline from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
 Operating Systems: Three Easy Pieces</a>  chapter 40</p>
-### 4.4 Sharing files
+
+
+#### 4.4 Sharing files
 
 In Linux, it is possible to  have multiple descriptor referring to the same open file. These fils descriptors may be open in **the same process or in different processes**.
 
@@ -1657,7 +1661,7 @@ One use of mounting stacking is to **stack a new mount on an existing mount poin
 + but processes making new access to the mount point use the new mount.
 + Combined with `MNT_DETACH` unmount, this can provide a smooth migration off a file system without needing to take the system into single-user mode.
 
-###7.4 `chroot`-jail
+### 7.4 `chroot`-jail
 
 A chroot jail is a way to isolate a process and its children from the rest of the system. It should only be used for processes that don't run as root, as root users can break out of the jail very easily. 
 
