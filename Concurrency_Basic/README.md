@@ -45,11 +45,17 @@ There are major differences, in the context switch we perform between threads as
   Each thread has its own ***thread context***, including:
 
   + unique integer ***thread ID(TID)***
-  + stack
+  + stack(local variables and funcntion call linkage information)
   + stack pointer
   + program counter
   + general-purpose registers
   + condition codes.
+  + signal mask
+  + the `errno` variable
+  + floating-point environment(see `fenv(3)`)
+  + realtime scheduling policy and priority
+  + CPU affinity(Linux-specific)
+  + capabilities(Linux-specific)
 
   All the thread running in a process **share the entire virtual address space of that process**, including:
 
@@ -58,6 +64,18 @@ There are major differences, in the context switch we perform between threads as
   + heap
   + shared libraries
   + open files
+  + process ID and parent process ID
+  + process group ID and session ID
+  + controlling terminal
+  + process credentials(user and group IDs)
+  + open file descriptor
+  + file system related information: unmask, current working directory, and root directory
+  + Interval timers(`setitimer()`) and POSIX timers(`timer_create()`)
+  + System V semaphore undo(`semadj`) values
+  + resource limits
+  + CPU time consumed (as returned by `times()`)
+  + resource consumed (as returned by `getrusage()`)
+  + nice value (set by `setpriority)` and `nice()`)
 
 + like the aforementioned aboved, the thread context is much smaller than a process context
 
@@ -91,6 +109,10 @@ The state of a single thread is thus very similar to that of a process. It has a
 <p align="center"> <img src="./pic/concurrent_thread_execution.png" alt="cow" style="zoom:100%;"/> </p>
 
 <p align="center">concurrent thread execution from <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 12</p>
+
+
+
+### Pthread API
 
 
 
