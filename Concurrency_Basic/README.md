@@ -114,6 +114,108 @@ The state of a single thread is thus very similar to that of a process. It has a
 
 ### Pthread API
 
+The Pthread API defines a number of data types, here some of them in the table below:
+
+<p align="center"> <img src="./pic/pthread_data_types.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Four threads executing in a process from <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 29</p>
+
+#### errno
+
+The traditional method of returning status from system calls and some library functions is to return 0 on success or -1 on error, with `errno` being set to indicate the error. The functions in the Pthreads API do things differently. All Pthreads function return 0 on success or a posivitve number on failure. The failure value is one of the same values that can be placed in `errno` by traditional UNIX system calls.
+
+If a thread made a function call that returned an error in a global errno variable, then this would confuse other threads that might also be making function calls and checking errno. In other words, race conditions would result. Therefore, **in threaded programs, each thread has its own errno value.**
+
+#### Compiling Pthreads programs
+
+On Linux, programs that use the Pthread API must be compiled with the `cc -pthread` option, the effect of this option include the following:
+
++ The `_REENTRANT` preprocessor macro is defined, This causes the declarations of a few reentrant fucntion to be exposed.(We will describe reentrant function later)
++ The program is linked with the `libpthread` library(the equivalent of  `-pthread`)
+
+
+
+#### Thread Creation(`pthread_create`)
+
+When a program is started, the resulting process consists of a single thread, called ***initial*** or ***main*** thread.
+
+In addition, threads create other threads by calling the `pthread_create` function
+
+```c
+#include <pthread.h>
+int pthread_create(pthread_t *thread, const pthread_attr_t *attr, 
+                   void *(*start)(void *), void *arg);
+/* Return 0 on sucess, or positive error number on error */
+```
+
++ The new thread commences executions by calling **the function identified** by ***start*** with the argument ***arg***(*i.e., `start(arg)`*), where the thread that calls `pthread_create()` continues execution with the next statment that follows the call.
+
++ The `arg` argument is declared as `void *`, meaning that we can pass a pointer to any type of object to the ***start*** function. Typically, `arg` points to a global or heap variable, then `arg` can also be specified as a pointer to a structure containing the arguments as separate fields. With judicious casting, we can even specify `arg` as an ***int***.
+
+  The return value of  ***start*** is likewise of tyep `void *`, and it can be employed in the same way as the `arg` argument.
+
++ The `thread` argument points to a **buffer of type `pthread_t`** into which the unique identifier for this thread is copied before `pthread_create()` returns. This identifier can be used in later Pthreads calls to refer to the thread.
+
++ The `attr` argument is a pointer to a `pthread_attr_t` object that specifies various attributes for the new thread, where it includes information such as the location, size of the thread's stack and the thread's scheduling policy and priority.
+
+After a call to `pthread_create()`, a program has no guarantees about which thread will be next be scheduled to use the CPU(on multiprocessor system, both threads may simultaneously execute on different CPUs)
+
+
+
+#### Thread IDs
+
+Each thread within a process is uniquely identified by a thread ID. This ID is returned to the caller of `pthread_create()`, and a thread can obtain its own ID using `pthread_self()`.
+
+```c
+#include <pthread>
+pthread_t pthread_self(void)
+```
+
+Thread IDs are useful within applications for the following reasons:
+
++ Various Pthreads functions use thread IDs to identify the thread on which they are act.
++ In some applications, it can be useful to **tag dynamic data structures with the ID of a particular thread**. This can serve to identify the thread that created or "owns" a data structure, or can be usesd by one thread to identify a specific thread that should subsequently do something with that data structure.
+
+The `pthread_equal()` functions allows us check whether two thread IDs are the same.
+
+```c
+#include <pthread.h>
+int pthread_equal(pthread_t t1, pthread_t t2);
+/**Return nonzero value if t1 and t2 are equal, otherwise zero/
+```
+
+The `pthread_equal()` function is needed because the `pthread_t` data type must be treated as opaque data. On Linux, `pthread_t` happens to be defined as an ***unsigned long***, but on other implementations, it could be a pointer or a structure.
+
+**In the Linux threading implementations, thread IDs are unique across processes.**
+
+#### Thread Termination
+
+A thread terminates in one of the following ways:
+
++ The thread terminates *implicitly* when its top-level thread routine returns
+
++ The thread terminate *explicitly* by calling the `pthread_exit()` function. Calling `pthread_exit()` is equivalent to performing a ***return*** in the thread's start function, which the difference that `pthread_exit()` can be called from any function that has been called by the thread's start function.If the main function calls `pthread_exit()`, it waits for all other peer threads to terminate and then terminates the main thread and the entire process with a return value of `thread_return`
+
+  ```c
+  #include <pthread.h>
+  void pthread_exit(void *thread_return);
+  /* Never returns */
+  ```
+
+  The `thread_return` argument specifies the return value for the thread. The value pointed to by `thread_return` should not be located on the thread's stack, since the content of that stack become undefined on thread termination. The same statement applies to the value given to a `return` statement in the thread's start function.
+
++ Some peer thread calls the Linux `exit()` function, which terminates the process and all threads associate with this process.
+
++ Another peer thread terminates the current thread by calling the `pthread_cancel` function with the ID of the current thread.
+
+  ```c
+  #include <pthread.h>
+  int pthread_cancel(pthrea_t tid);
+  /* Returns: 0 if OK, nonzero on error */
+  ```
+
+  
+
 
 
 ### Shared Variables in Threaded Programs
