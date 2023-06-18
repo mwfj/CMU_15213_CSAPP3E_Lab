@@ -214,7 +214,82 @@ A thread terminates in one of the following ways:
   /* Returns: 0 if OK, nonzero on error */
   ```
 
-  
+#### Recaping Terminated Threads(`thread_join()`)
+
+The `pthread_join()` function wait for the thread identified by ***thread*** to terminated. (If that thread has already terminated, `pthread_join()`)
+
+```c
+#include <pthread.h>
+int pthread_join(pthread_t tid, void **thread_return);
+/* Returns 0 if OK, nonzero on error */
+```
+
++ The `pthread_join()` function blocks util thread tid terminates
++ Assign the generic `(void *)` pointer returned by the thread routine to the location pointed to by `thread_return`, and then ***recaps*** any memory resources held by the terminated thread.
++ If  `thread_return` is a non-NULL pointer, then it receives a copy of the terminated thread's return value- that is, the value was specified when the thread performance a ***return*** or called `pthread_exit()`
++ If a thread is no detached, then we must join with it using `pthread_join()`:
+  + If we fail to do this, then, when the thread terminates, it produces the thread equivalent of a zombie process.
+  + Aside from wasting system resources, if enough thread zombies accmulate, we won't be able to create additional threads.
++ The task that `pthread_join()` performs for threads is similar to that performed by `waitpid()` for processes, However, there are some notiable differences:
+  + Any thread in a process can use `pthread_join()` to join with any other thread in the process, no matter which thread spawn the current one
+  + There is no way of saying "join with any thread"(for processes, we can do this using the call `waitpid(-1, &status, options)`); nor is there a way to do a nonblocking join(analogous to the `waitpid()` ***WNOHANG*** flag)
+
+#### Detaching Threads
+
+At any point in time, a thread is either ***joinable*** or ***detached***.
+
++ A ***joinable thread*** can be reaped and killed by other threads, where its memory resource(such as stack) are not freed until it is reaped by another thread. When it reminates, another thread can obtain its return status using `pthread_join()`.
++ A ***detached thread*** cannot by reaped by other threads, where its memory resources are freed automatically by the system when it terminates.
+
+By default, a thread is ***joinable***. To mark the thread as ***detached***, we need to makeing a call to ***pthread_detach()*** specifying the thread's identifier in thread. In order to avoid memory leak, **each joinable thread should be either explicitly reaped by another thread or detached by a call to the `pthread_detached` function.**
+
+```c
+#include <pthread.h>
+int pthread_detach(pthread_t tid);
+/* Returns: 0 if ok, nonzero on error */
+```
+
+Once a thread has been detached, it is no longer possible to use `pthread_join()` to obtain its return status, and the thread can't be made joinable again.
+
+Detaching a thread doesn't make it immune to a call to `exit()` in another thread or a ***return*** in main thread. In such an event, **all threads in th process are immediately terminated, regardless of whether they are joinable or detached**. To put things another way, **`pthread_detached()` simply controls what happened after a thread terminates**, not how or when it terminates.
+
+Thread can detach themselves by calling `pthread_detach` with an argument of `pthread_self()`.
+
+#### Initialize Threads
+
+The `pthread_once` function allows you **initialize the state associated with a thread routine**.
+
+```c
+#include <pthread.h>
+pthread_once_t once_control = PTHREAD_ONCE_INIT;
+int pthread_once(pthread_once_t *once_control, void (*init_routine)(void))
+```
+
++ The `once_control` variable is a global or static variable that is always initialized to PTHREAD_ONCE_INIT.
++ The first time you call `pthread_once` with an argument of `control_once `, it invokes `init_routine`, which is a function with no input arguments that returns nothing. Subsequent calls to `pthread_once ` with the same `once_control` variable do nothing.
++ The `pthread_once` function is useful whenever you need to **dynamically initialize global variable that are shared by multiple threads**.
+
+#### Thread Attributes
+
+We mentioned earlier that the `pthread_create()` `attr` argument, whose type is `pthread_attr_t`, can be used to specify the attributes used in the creation of a new thread.
+
+We’ll just mention that these attributes include information such as the location and size of the thread’s stack, the thread’s scheduling policy and priority.
+
+Code in `threads/detached_attrib.c`
+
+```c
+pthread_t thr; pthread_attr_t attr; int s;
+
+s = pthread_attr_init(&attr); if (s != 0) errExitEN(s, "pthread_attr_init");
+
+/* Assigns default values */
+
+s = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED); if (s != 0) errExitEN(s,"pthread_attr_setdetachstate");
+
+s = pthread_create(&thr, &attr, threadFunc, (void *) 1); if (s != 0) errExitEN(s, "pthread_create");
+
+s = pthread_attr_destroy(&attr); if (s != 0) errExitEN(s, "pthread_attr_destroy");
+```
 
 
 
