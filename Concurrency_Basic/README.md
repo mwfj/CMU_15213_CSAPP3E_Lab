@@ -395,3 +395,176 @@ Ideally, the way to solve the race condition would be to have more powerful inst
 
 However, in the general case, almost all the hardward cannot support this operations. Instead, we can ask hardware for a few useful instructions upon which we can build a general set of what we call ***synchronization primitives***. By using these hardware synchronization primitives, in combination with some help from the operating system, we will be able to build multi-thread code that accesses critical section in a synchronized and controlled manner, and thus reliably produces the correct result despite the challenge nature of concurrent execution.
 
+### Locks
+
+A lock is just a variable, and thus to use one, you must declare a **lock variable** of some kind(such as mutex above). This lock variable holds the states of the lock at any instance in time and thus exactly one thread holds the lock and presumably is in a critical section.
+
++ Calling the routine `lock()` tries to acquire the lock; 
++ if no other thread holds the lock, the thread will acquire the lock and enter the critical section; this thread is sometines said to be the owner of the lock.
++ If another thread then calls `lock()` on that same lock variable, it will not return while the lock is held by another thread; In that  way, other threads are prevented from entering the critical section while the first thread that holds the lock is in there.
+
+In general, we view thread as entities created by the programmer but scheduled by the OS, in any fashion that the OS chooses. However, lock yield some of that control back to the programmer can guarantee that no more than a single thread can ever be active within that code. Thus, locks help transform the chaos that is traditional OS scheduling into a more controlled activity.
+
+
+
+#### Pthread Locks(***a.k.a mutex***)
+
+The name that the POSIX library uses for aa lock is a ***mutex***, as it is used to provide ***mutual exclusion*** between threads.
+
+Another shared variable issue between threads example here: The program incorrectly incrementing a global variable from two threads:
+
+```c
+#include <pthread.h> #include "tlpi_hdr.h"
+
+static int glob = 0;
+
+static void * 
+threadFunc(void *arg) {
+    /* Loop 'arg' times incrementing 'glob' */
+    int loops = *((int *) arg);
+    int loc, j;
+
+    for (j = 0; j < loops; j++) {
+      loc = glob; loc++; glob = loc;
+    }
+    return NULL;
+}
+
+int main(int argc, char *argv[]) {
+
+    pthread_t t1, t2; int loops, s;
+    loops = (argc > 1) ? getInt(argv[1], GN_GT_0, "num-loops") : 10000000;
+
+    s = pthread_create(&t1, NULL, threadFunc, &loops);
+
+    if (s != 0) errExitEN(s, "pthread_create");
+
+    s = pthread_create(&t2, NULL, threadFunc, &loops);
+
+    if (s != 0) errExitEN(s, "pthread_create");
+
+    s = pthread_join(t1, NULL); if (s != 0)
+
+    errExitEN(s, "pthread_join");
+  	s = pthread_join(t2, NULL); if (s != 0)
+    errExitEN(s, "pthread_join");
+    printf("glob = %d\n", glob); 
+  	exit(EXIT_SUCCESS);
+}
+```
+
+Just like the previous examples, this program creates two threads, each of which executes the same function. The function executes a loop that repeatedly increments a global variable, `glob`, by copying `glob `into the local variable `loc`, incrementing `loc`, and copying `loc `back to `glob`. (Since loc is an automatic variable allocated on the per-thread stack, each thread has its own copy of this variable.) The number of iterations of the loop is determined by the command-line argument supplied to the program, or by a default value, if no argument is supplied.
+
+<p align="center"> <img src="./pic/bad_synchronization_exp.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Another bad synchronization example from <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 30</p>
+
+Basically, the process of problem occurred should be:
+
+1. Thread 1 fetches the current value of `glob `into its local variable `loc`. Let’s assume that the current value of `glob `is 2000.
+
+2. The scheduler time slice for thread 1 expires, and thread 2 commences execution.
+
+3. Thread 2 performs multiple loops in which it fetches the current value of `glob `into its local variable `loc`, increments `loc`, and assigns the result to `glob`. In the first of these loops, the value fetched from glob will be 2000. Let’s suppose that by the time the time slice for thread 2 has expired, `glob `has been increased to 3000.
+
+4. Thread 1 receives another time slice and resumes execution where it left off. Having previously (step 1) copied the value of glob (2000) into its `loc`, it now increments loc and assigns the result (2001) to `glob`. At this point, the effect of the increment operations performed by thread 2 is lost.
+
+This nondeterministic behavior is a consequence of the vagaries of the kernel’s CPU scheduling decisions. In complex programs, this nondeterministic behavior means that such errors may occur only rarely, be hard to reproduce, and therefore be difficult to find.
+
+To avoid the problems that can occur when threads try to update a shared variable, we must use ***mutex***(short for mutual exclusion) to **ensure that only one thread at a time can access the variable**. More generally, mutex can be used to ensure atomic access to any share resource, but protecting shared variable is the most common use.
+
+A mutex has two states: ***locked*** and ***unlocked***. At any moment, at most one thread may hold the lock on a mutex. **Attempting to lock a mutex that is already locked either blocks or fails with an error, depending on the method used to place to lock.** 
+
+When a thread locks mutex, it becoming the owner of that mutex. Only the mutex owner can unlock the mutex. This property improves the structure of code that uses mutexes and also allow for some optimization in the implementation of muteness. Because of this ownership property, the terms ***acquire*** and ***release*** are sometimes used synonymously for lock and unlock.
+
+In general, we employ a different mutex for each shared resource(which may consist of multiple related variables), and each thread employs the following protocol for accessing a resource:
+
++ lock the mutex for the shared resource
++ access the shared resource
++ unlock the mutex
+
+If multiple thread try to execute this block of code(***a.k.a. critical section***), the fact that **only one thread can hold the mutex**(the other remain blocked) means that **only one thread at a time can enter the block**.
+
+<p align="center"> <img src="./pic/using_mutex_to_protect_critical_section.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Using mutex to protect a critical section from <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 30</p>
+
+To lock and unlock mutex, we use the `pthread_mutex_lock()` and  `pthread_mutex_unlock()`  functions.
+
+```c
+#include <pthread.h>
+int pthread_mutex_lock(pthread_mutex_t *mutex);
+int pthread_mutex_unlock(pthread_mutex_t *mutex);
+/* Both return 0 on success, or a positive error number on error */
+```
+
++ To lock a mutex, we specify the mutex in a call to `pthread_mutex_lock()`
+  + If the mutex is currently unlocked, this call locks the mutex and returnn immediately.
+  + If the mutex is currently locked by another thread, then `pthread_mutex_lock()` blocks until the mutex is unlocked, at which point it locks the mutex and returns.
+  + If the calling thread itself has already locked the mutex given to `pthread_mutex_lock()`, then, for the default type of mutex, one of two implementation-defined possibilities may result: the thread deadlocks, blocked trying to lock a mutex that it already owns, or the call fails, returning the error `EDEADLK`
++ The `pthread_mutex_unlock()` function unlock a mutex previous locked by the calling thread.
+  + It is an error to unlock a mutex that is not currently locked
+  + or to unlock a mutex that is blocked by another thread.
++ If more than one other thread is waiting to acquire the mutex unlocked by a call to `pthread_mutex_unlock()`, it is indeterminate which thread will succeed in acquiring it.
+
+
+
+**`pthread_mutex_trylock()`** and **`pthread_mutex_timedlock()`**
+
++ `pthread_mutex_trylock()` function is the same as `pthread_mutex_lock()`, except that if the mutex is currently locked, `pthread_mutex_trylock()` fails, returning the error `EBUSY`
++ The `pthread_mutex_timedlock()` function is the same as `pthread_mutex_lock()`, except that the caller can specify an additional argument, `abstime` that places a limit on time that the thread will sleep while waiting to acquire the mutex.
+  + If the time interval specified by its `abstime` argument expires without the caller becoming the owner of the mutex, `pthread_mutex_timedlock()` returns the error `ETIMEDOUOT`.
+
+#### Statically Allocated Mutexes
+
+A mutex can either be allocated as a static variable or be created dynamically at run time(for example, in a block of memory allocated via `malloc()`).
+
+A mutex is a variable of the type `pthread_mutex_t`. Before it can be used, a mutex must always be initialized. For a statically allocated mutex, we can do this by assigning it the value `PTHREAD_MUTEX_INITIALIZAER`:
+
+```c
+pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZAER;
+```
+
+
+
+#### Dynamically Initializing a Mutex
+
+For dynamically allocating a mutex, we must using function of `pthread_mutex_init()`
+
+```c
+#include <pthread.h>
+int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr);
+/* Returns 0 on success, or a positive error number on error */
+```
+
++ The `mutex` argument identifies the mutex to be initialized.
++ The `attr` argument is a pointer to a `phread_mutexattr_t` object that has previously been initialized to define the attributes of the mutex.
+  + If `attr` is specified as `NULL`, then the mutex is assigned various default attributes.
+
+SUSv3 specifies that initializing an already initialized mutex results in underfined behavior; we should not do this:
+
+Among the cases where we must use `pthread_mutex_init()` rather than a static initializer are the following:
+
++ The mutex was dynamically allocated on the heap
++ The mutex is an automatic variable on the stack
++ We want to initialize a statically allocated mutex with attributes other than the defaults.
+
+When an automatically or dynamically allocated mutex is no longer required, it should be destroyed using `pthread_mutex_destroy()`
+
+```c
+#include <pthread.h>
+int pthread_mutex_destroy(pthread_mutex_t *mutex);
+/* Returns 0 on success, or a positive error number on error */
+```
+
+**It is safe to destroy a mutex only when it is unlock, and no thread will subsequently try to lock it.**
+
++ If the mutex resides in a region of dynamically allocated memory, then it should be destroyed before freeing that memory region.
++ An automatically allocated mutex should be destroyed before its host function returns.
++ A mutex that has been destroyed with `pthread_mutex_destroy()` can subsequently be **reinitialized** by `pthread_mutex_init()`.
+
+To summary:
+
++ A single thread may not lock the same mutex twice
++ A thread may not unlock a mutex that it doesn't currently own
++ A thread may not unlock a mutex that is not currently locked.
