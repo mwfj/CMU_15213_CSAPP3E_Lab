@@ -405,6 +405,16 @@ A lock is just a variable, and thus to use one, you must declare a **lock variab
 
 In general, we view thread as entities created by the programmer but scheduled by the OS, in any fashion that the OS chooses. However, lock yield some of that control back to the programmer can guarantee that no more than a single thread can ever be active within that code. Thus, locks help transform the chaos that is traditional OS scheduling into a more controlled activity.
 
+There have three criteria for the lock:
+
+1. ***multual exclusion***
+2. ***fairness***: 
+   - Does each thread contending for the lockget a fair shot at acquiring it once it is free?
+   - Does any thread contending for the lock ***starve*** while doing so, thus never obtaining it?
+3. performance: by comparing these difference scenarios, we can better understand the performance impact of using various locking techniques.
+   1. For the case of no contention; When a single thread is running and grabs and releases the lock, what isi the overhead of doing so?
+   2. For the case of multiple threads are contending for the lock on a single CPU; in this case, are the performance concern?
+
 
 
 #### Pthread Locks(***a.k.a mutex***)
@@ -568,3 +578,315 @@ To summary:
 + A single thread may not lock the same mutex twice
 + A thread may not unlock a mutex that it doesn't currently own
 + A thread may not unlock a mutex that is not currently locked.
+
+
+
+### Spin Lock
+
+#### Lock Implementation: Controling Interrupt
+
+One of the earliest solutions used to provide mutual exclusion was **disable interrupts for critical sections**. This solution was invented for single-processor systems. The code would look like:
+
+```c
+void lock(){
+  DisableInterrupts();
+}
+void unlock(){
+  EnableInterrupts();
+}
+```
+
++ **The main positive of this approach is simplicity**.
+
++ **The negatives:**
+
+  1. This approach requires us to allow any calling thread to perform a ***privileged*** operation(turning interrupts on and off), and thus **trust** that this facility is not abused.
+
+     For example: 
+
+     - a greedy program could call `lock()` at the beginning of its execution and thus monopolize the processor.
+     - an errant of malicious program would call `lock()` and go into an endless loop. In this case, the OS never regains control of the system, and there is only one recourse: restart the system.
+
+  2. The approach does not work with multiprocessors.
+
+  3. turning off interrupts for extended period of time can lead to interrupts becoming lost, which can lead to serious system program. Specifically, if the CPU missed the fact that a disk device has finished a read request, the OS will lost the ability to wake up the process that is waiting for I/O read.
+
+  4. This approach can be inefficient.
+
+### A Failed Attempt: Just Using Loads/Stores
+
+In this approach, we will have to reply on CPU hardware and the instructions it provides us to build a proper lock.
+
+```c
+typedef struct __lock_t { int flag; } lock_t;
+void init(lock_t *mutex){
+  /* 0 -> lock is available, 1 -> held */
+  mutex->flag = 0;
+}
+void lock(lock_t *mutex){
+  while(mutex->flag == 1) /* TEST the flag */
+    ; /* spin-wait(do noting) */
+  mutex->flag = 1;; /* not SET it */
+}
+void unlock(lock_t *mutex){
+  mutex->flag = 0;
+}
+```
+
+The idea is simple: using a simple variable(`flag`) to indicate whether some thread has possession of a lock.
+
++ The first thread that enters the critical section will call `lock()`, which **tests whether the flag is equal to 1**, and then **set the flag to 1** to indicate that thread now **hold** the lock.
++ When finished with the critical section, the thread calls `unlock()` and clear the flags, thus indicating that the lock is no longer held.
++ If another thread happens to call `lock()` while the first thread is in the critical section, it will simply  **spin-wait** in the while loop for that thread to call `unlock()` and clear the flag.
++ Once the first thread does so, the waiting thread will fail out of the while loop, set the flag to 1 for itself, and proceed into the critical section.
+
+Unfortunately, the code has two problems:
+
++ one of correctness
+
+  We can easily product a case where **both threads set the flag to 1** and **both threads are thus able to enter the critical section**.
+
+<p align="center"> <img src="./pic/problem_of_load_and_store.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">The problem of load and set from <a href = "https://man7.org/tlpi/">The Linux programming interface</a>  chapter 30</p>
+
+- performance
+
+  the way a thread waits to acquire a lock that is already held: **it endlessly checks the value of ﬂag**, a technique known as ***spin-waiting***. **Spin-waiting wastes time waiting for another thread to release a lock.** The waste is exceptionally high on a uniprocessor, where the thread that the waiter is waiting for cannot even run (at least, until a context switch occurs)! Thus, as we move forward and develop more sophisticated solutions, we should also consider ways to avoid this kind of waste.
+
+#### Building Working Spin Locks with Test-And-Set
+
+***Test-And-Set*** known as the simplest bit of hardware support to understand.
+
+```c
+int TestAndSet(int * old_ptr, int new)
+{ 
+  int old = * old_ptr; // fetch old value at old_ptr 
+  * old_ptr = new; // store ’new’ into old_ptr 
+  return old; // return the old value 
+}
+```
+
+
+
+```c
+typedef struct __lock_t{
+  int flag;
+} lock_t;
+
+void init(lock_t *lock){
+  // 0: lock is available, 1: lock is held
+  lock->flag = 0;
+}
+
+void lock(lock_t *lock){
+  while(TestAndSet(&lock->flag, 1) == 1)
+    ; // spin-wait (do noting)
+}
+```
+
+Specifically, it returns the old value pointed to by the `old_ptr`, and simultaneoulsy updates said value to `new`. The reason it is called "test and set" is that **it enables you to "test" the old value(which is what returned) while simultaneously "setting" the memory location to a new value**;as it turns out, this slightly more powerful instruction is enough to build a simple **spin lock**.
+
+Case 1:
+
++ Imagine first the case where a thread calls `lock()` and no other thread currently holds the lock; thus, flag should be 0.
++ When the thread calls `TestAndSet`(flag, 1), the routine will return the old value of `flag`, which is 0; thus, the calling thread, which is ***testing*** the value of flag, will not got caught spinning in the while loop and will acquire the lock.
++ The thread will also atomically **set** the value to 1, thus indicating that the lock is now held.
++ When the thread is finished with its critical section, it calls `unlock()` to set the flag back to zero.
+
+Case 2:
+
++ Imagine when one thread already has the lock held(*i.e.*, flag is 1). In this case, this thread will call `lock()` and then calll `TestAndSet`(flag, 1) as well.
++ `TestAndSet()` will return the old value, which is 1(becauase the lock is held), while simultaneously setting it to 1 again.
++ As long as the lock held by another thread, `TestAndSet()` will repeatedly return 1, and thus this thread will spin and spin until the lock is finally released.
++ When the flag is finally set to 0 by some other thread, this thread will call `TestAndSet()` again, which will now return 0 while atomically setting the value to 1 and thus acquire the lock and enter the critical secton.
+
+**By making both the test (of the old lock value) and set (of the new value) a single atomic operation, we ensure that only one thread acquires the lock. And that’s how to build a working mutual exclusion primitive!**
+
+It is the simplest type of lock to build, and simply spins, using CPU cycles, until the lock becomes available. 
+
++ To work correctly on a **single processor**, it requires a ***preemptive scheduler*** (i.e., one that will interrupt a thread via a timer, in order to run a different thread, from time to time). 
++ Without preemption, spin locks don’t make much sense on a single CPU, as a thread spinning on a CPU will never relinquish it.
+
+#### Evaluating Spin Locks
+
++ **correctness**(does it provide mutual exclusion?): **Yes**. the spin lock only allows a single thread to enter the critical section at a time. 
++ **fairness**(how fair is a spin lock to waiting thread?): **No**, spin locks don’t provide any fairness guarantees. Simple spin locks (as discussed thus far) are **not fair** and **may lead to starvation**.
++ **performance**(What are the costs of using spin lock?): 
+  1. single processor: performance overheads can be quite painful;
+     - The scheduler might then **run every other thread** (imagine there are N − 1 others), **each of which tries to acquire the lock**.
+     - Each of those threads will spin for the duration of a time slice before giving up the CPU, a waste of CPU cycles.
+  2. multiply processores: Spinning to wait for a lock held on another processor doesn’t waste many cycles in this case, and thus can be effective.
+
+### Compare-And-Swap(CAS)
+
+Another hardware primitive that some systems provide is known as the ***compare-and-swap*** instruction (as it is called on SPARC, for example), or ***compare-and-exchange*** (as it called on x86).
+
+Compare-and-swap (CAS) is an atomic operation that allows for the comparison of a value in memory with an expected value and the conditional swapping of the value if the comparison is successful. The CAS operation is typically performed in a single atomic step, ensuring that no other concurrent operation can interfere with it.
+
+The basic idea is for ***compare-and-swap*** to test whether the value at the address specified by `ptr` is equal to `expected`;
+
++ if so, indicating that no other thread has modified the value in the meantime, and thus update the memory location pointed by `ptr` with the new value.
++ if not, do nothing, where it means that the value has been modified by another thread.
+
+In either case, **return the original value at that memory location**, thus allowing the code calling compare-and-swap to know whether it succeeded or not.
+
+```c
+int CompareAndSwap(int *ptr, int expected, int new){
+  int original = *ptr;
+  if(original == expected)
+    *ptr = new;
+  return original;
+}
+
+typedef struct __lock_t { 
+  int flag; 
+} lock_t;
+
+void init(lock_t * lock) { 
+  // 0: lock is available, 1: lock is held 
+  lock->flag = 0; 
+}
+
+void lock(lock_t *lock){
+  while(CompareAndSwap(&lock->flag, 0, 1) == 1)
+    ; //spin
+}
+
+void unlock(lock_t * lock) { 
+  lock->flag = 0; 
+}
+```
+
+The purpose of CAS is to achieve synchronization and ensure atomic updates without the need for locks or other explicit synchronization mechanisms. CAS is commonly used in lock-free and wait-free algorithms, where multiple threads can concurrently access shared data structures or perform atomic operations without blocking or waiting for locks.
+
+
+
+### Fetch-And-Add
+
+***Fetch-and-add*** is an atomic operation that reads the value from a memory location and atomically adds a specified value to that location. Fetch-and-add atomically increments a value while returning the old value at a particular address. The fetch-and-add operation ensures that **no other concurrent operation can interfere with the read and addition**, providing atomicity and synchronization.
+
+```c
+int FetchAndAdd(int *ptr){
+  int old = *ptr;
+  *ptr = old + 1;
+  return old;
+}
+```
+
+**Fetch-and-add is often used as a key operation in the implementation of a ticket lock.**
+
+**Ticket lock** operates based on the idea of **serving customers in a queue**, where **each customer takes a ticket with a unique number when they arrive**. The customer with the lowest ticket number is served first. Similarly, in a ticket lock, each thread/process requesting the lock takes a ticket and waits until its ticket number matches the current ticket being served. This ensures that threads/processes are served in a first-come-first-served manner.
+
+```c
+typedef struct __lock_t{
+  int ticket;
+  int turn;
+} lock_t;
+
+void lock_init(lock_t *lock){
+  lock -> ticket = 0;
+  lock -> turn   = 0;
+}
+
+void lock(lock_t *lock){
+  int myturn = FetAndAdd(&lock->ticket);
+  while(lock->turn != myturn)
+    ; // spin
+}
+
+void unlock(lock_t *lock){
+  lock->turn = (lock->turn) + 1;
+  // or FetAndAdd(&lock->turn)
+}
+```
+
+Note one important difference with this solution versus our previous attempts: **it ensures progress for all threads**. 
+
++ Once a thread is assigned its ticket value, it will be scheduled at some point in the future (once those in front of it have passed through the critical section and released the lock). 
++ In our previous attempts, no such guarantee existed; a thread spinning on test-and-set (for example) could spin forever even as other threads acquire and release the lock.
+
+
+
+### Yield Operation in Lock
+
+The idea is simple: when you are going to spin, instead give up the CPU to another thread.
+
+In this approach, we assume an operating system primitive `yield()` which a thread can call when it wants to **give up the CPU and let another thread run**. A thread can be in one of three states (***running***, ***ready***, or ***blocked***); **yield is simply a system call that moves the caller from the *running* state to the *ready* state**, and thus promotes another thread to running. Thus, the yielding thread essentially deschedules itself.
+
+If one thread acquires the lock and is preempted before releasing it, the other thread that calls `lock()`, ﬁnd the lock held, and yield the CPU. Each of thread that not held the lock will execute this run-and-yield pattern before the thread holding the lock gets to run again.
+
+Howver, this approach is still costly; **the cost of a context switch can be substantial**, and there is thus plenty of waste.
+
+### Using Queues: Sleeping instead of Spinning
+
+Unfortunately, all of the previous approach are using spinning wait, and **too much spining can be quite inefficient**.
+
+The scheduler determines which thread runs next; if the scheduler makes a bad choice, a thread runs that must either 
+
++ spin waiting for the lock (our ﬁrst approach)
++ yield the CPU immediately (our second approach). 
+
+Either way, there is potential for waste and no prevention of starvation.
+
+To solve this problem, only hardware involve is not enough, where it needs OS support, as well as a **queue to keep track of which threads are waiting to acquire the lock**.
+
+In Linux, it provides a ***futex(short for "fast userspace mutex")***, a in-kernel functionality. Each futex has associated with it a specific physical memory location, as well as a per-futex in-kernel queue. The key idea behind futex is that most of the time, the synchronization can be performed in userspace without involving the kernel. This reduces the overhead of context switches and system calls, making futex an efficient choice for low-contention scenarios.
+
+Specifically, two calls are available. 
+
++ The call to `futex_wait(address, expected)` 
+  + puts the calling thread to sleep, assuming the value at `address` is equal to `expected`.
+  + If `address != expected`, the call returns immediately.
++ The call to the routine `futex_wake(address)` wakes one thread that is waiting on the queue.
+
+The code snippet below is from `lowlevellock.h` in the nptl library(parrt of the gnu libc library)
+
+```c
+void mutex_lock(int *mutex){
+  int v;
+  /* Bit 31 was clear, we got the mutex(the fastpath) */
+  if(atomic_bit_test_set(mutex, 31) == 0)
+    return ;
+  atomic_increment(mutex);
+  while(1){
+    if(atomic_bit_test_set(mutex, 31) == 0){
+      atomic_decrement(mutex);
+      return ;
+    }
+    /*
+    	We have to waitFirst make sure the futex value
+    	we are monitoring is truly negative(locked)
+    */
+    v = *mutex;
+    if(v >= 0)
+      continue;
+    futex_wait(mutex, v);
+  }
+}
+
+void mutex_unlock(int *mutex){
+	/* 
+		Adding 0x80000000 to counter results in 0 if 
+		and only if there are not other interested threads 
+  */ 
+  if (atomic_add_zero (mutex, 0x80000000))
+		return;
+
+  /*
+    There are other threads waiting for this mutex, 
+    wake one of them up. 
+  */ 
+  futex_wake (mutex);
+}
+```
+
+Several points need to mention:
+
++ This code snippet uses a **single integer to track both whether the lock is held or not** (the high bit of the integer) and **the number of waiters on the lock** (all the other bits). 
+
+  Thus, if the lock is negative, it is held (because the high bit is set and that bit determines the sign of the integer).
+
++ When there is no contention for the lock; with only one thread acquiring and releasing a lock, very little work is done (the atomic bit test-and-set to lock and an atomic add to release the lock).
+
+The futex mechanism's effectiveness lies in its ability to handle low-contention scenarios efficiently, as most of the synchronization work is done in userspace without incurring the overhead of frequent system calls or context switches. When contention increases, the kernel's involvement helps ensure that the synchronization remains reliable and doesn't lead to livelocks or other issues.
