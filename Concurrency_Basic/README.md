@@ -890,3 +890,122 @@ Several points need to mention:
 + When there is no contention for the lock; with only one thread acquiring and releasing a lock, very little work is done (the atomic bit test-and-set to lock and an atomic add to release the lock).
 
 The futex mechanism's effectiveness lies in its ability to handle low-contention scenarios efficiently, as most of the synchronization work is done in userspace without incurring the overhead of frequent system calls or context switches. When contention increases, the kernel's involvement helps ensure that the synchronization remains reliable and doesn't lead to livelocks or other issues.
+
+
+
+### Condition Variables
+
+There are many cases where a thread wishes to check whether a condition is true before continuing its execution. For example, a parent thread might wish to check whether a child thread has completed before continuing (this is often called a `join()`).
+
+To wait for a condition to become true, a thread can make sure of what is konwn as a ***condition variable***. A ***condition  variables*** is an explicit queue that threads can put themselves on when some state of execution(*i.e*, some  condition) is not as desire (by ***waiting*** on the condition); Some other thread, when it changes said state, can then wake one(or more) of those waiting threads thus allow them to continue(by ***signal*** the condition).
+
+The idea goes back to Dijkstra’s use of “private semaphores”<a href="#reference1">[1]</a>; a similar idea was later named a “condition variable” by Hoare in his work on monitors <a href="#reference2">[2]</a>.
+
+**A mutex prevents multiple threads from accessing a shared variable at the same time. A condition variable allows one thread to inform other threads about changes in the state of a shared variable (or other shared resource) and allows the other threads to wait (block) for such notification.**
+
+**A condition variable is always used in conjunction with a mutex.** The mutex provides mutual exclusion for accessing the shared variable, while the condition variable is used to signal changes in the variable’s state.
+
+
+
+#### Pthread APIs
+
+##### Statically Allocated Condition Variables
+
+A condition variable has the type `pthread_cond_t`. As with a mutex, **a condition variable must initialized before use**.
+
+For statically allocated condition variable, this is done by assigning it the value `PTHREAD_COND_INITIALIZER`:
+
+```c
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+```
+
+##### Signaling and Waiting on Condition Variables
+
+The principle condition variable operations are ***signal*** and ***wait***. 
+
++ The signal operation(`pthread_cond_signal()` and `pthread_cond_broadcast()`) is a notification to one or more waiting threads that a shared variable's state has changed.
+
+  + The difference between `pthread_cond_signal()` and `pthread_cond_broadcast()` lies in what happens if multiple threads are blocked in `pthread_cond_wait()`
+
+    + With `pthread_cond_signal()`, we are simply guaranteed that at least one of the blocked thread is woken up;
+
+      `pthread_cond_signal()` should be used only if just one of the waiting threads needs to be woken up to handle the change in state of the shared variable, and it doesn’t matter which one of the waiting threads is woken up.
+
+      Specifially:
+
+      1. All waiting threads are awoken.
+
+      2. One thread is scheduled first. This thread checks the state of the shared variable(s) (under protection of the associated mutex) and sees that there is work to be done. The thread performs the required work, changes the state of the shared variable(s) to indicate that the work has been done, and unlocks the associated mutex.
+
+      3. Each of the remaining threads in turn locks the mutex and tests the state of the shared variable. However, because of the change made by the first thread, these threads see that there is no work to be done, and so unlock the mutex and go back to sleep (i.e., call pthread_cond_wait() once more).
+
+    + With `pthread_cond_broadcast()`, all blocked threads are woken up.
+
+      Using `pthread_cond_broadcast()` always yields correct results (since all threads should be programmed to handle redundant and spurious wake-ups), but `pthread_cond_signal()` can be more efficient.
+
+      `pthread_cond_broadcast()` handles the case where the waiting threads are designed to perform different tasks (in which case they probably have different predicates associated with the condition variable).
+
++ The wait operation(`pthread_cond_wait()`) is the means of blocking until such a notification is received.
+
+  + `pthread_cond_wait()` also takes a mutex as a parameter, where **it assumes that this mutex is locked when `wait()` is called**.
+  + The responsibility of `pthread_cond_wait()` is to release the lock and put the calling thread to sleep(atomatically); 
+  + When the thread wakes up(after some other thread has signaled it), it must **re-acquire the lock** before returning to the caller.
+
+```c
+#include <pthread.h>
+
+int pthread_cond_signal(pthread_cond_t *cond); 
+int pthread_cond_broadcast(pthread_cond_t *cond); 
+int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
+
+/* All return 0 on success, or a positive error number on error */
+```
+
+A condition variable holds no state information. It is simply a mechanism for communicating information about the application’s state. If no thread is waiting on the condition variable at the time that it is signaled, then the signal is lost. A thread that later waits on the condition variable will unblock only when the variable is signaled once more.
+
++ The `pthread_cond_timedwait()` function is the same as `pthread_cond_wait()`, except that the `abstime` argument **specifies an upper limit on the time** that the thread will sleep while waiting for the condition variable to be signaled.
+
+```c
+#include <pthread.h>
+
+int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, 
+                           const struct timespe *abstime);
+/* Return 0 on Success, or a positive error number on error */
+```
+
+
+
+##### Dynamically Allocated Condition Variables
+
+The `pthread_cond_init()` function is used to dynamically initialize a condition variable, where we must use `pthread_cond_init()` to initilize automatically and dynamically allocated condition variables, and to initialize a statically allocated condition variable with attributes other than the default.
+
+```c
+#include <pthread.h>
+
+int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr);
+/* Return 0 on success, or a positive error number on error */
+```
+
++ The `cond` argument identifies the condition variable to be initialized.
++ Various Pthread functions can be used to initilize the attribute in the `pthread_condattr_t` object pointed by `attr`.
+  + if `attr` is `NULL`, a default set of attributes is assigned to the condtion variable.
+
+When an automatically or dynamically allocated condition variable is no longer required, then it should be **destroyed** using `pthread_cond_destroy()`. **It is not necessary to call `pthread_cond_destroy()` on a condition variable that was statically initialized** using `PTHREAD_COND_INITIALIZER`.
+
+```c
+#include <pthread.h>
+int pthread_cond_destory(pthread_cond_t *cond);
+/* Return 0 on success, or a positive error number on error */
+```
+
+**It is safe to destroy a condition variable only when no threads are waiting on it.** 
+
+**If the condition variable resides in a region of dynamically allocated memory,** **then it should be destroyed before freeing that memory region.** An automatically allocated condition variable should be destroyed before its host function returns.
+
+A condition variable that has been destroyed with `pthread_cond_destroy()` can subsequently be reinitialized by `pthread_cond_init()`.
+
+## Reference
+
+<a name="reference1"></a>[[1] “Cooperating sequential processes” by Edsger W. Dijkstra. 1968.](https://www.cs.utexas.edu/users/EWD/ewd01xx/EWD123.PDF)
+
+<a name="reference2"></a>[[2] “Monitors: An Operating System Structuring Concept” by C.A.R. Hoare. Communications of the ACM, 17:10, pages 549–557, October 1974.](https://www.cs.utexas.edu/users/EWD/ewd01xx/EWD123.PDF)
