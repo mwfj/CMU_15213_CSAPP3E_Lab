@@ -1004,6 +1004,67 @@ int pthread_cond_destory(pthread_cond_t *cond);
 
 A condition variable that has been destroyed with `pthread_cond_destroy()` can subsequently be reinitialized by `pthread_cond_init()`.
 
+### Semaphores
+
+A semaphore, `s`, is a global variable witha nonnegative integer value that can only be manipulated by two special operationis:
+
++ ***P***(s): a.k.a **Proberen** in Dutch(to test)
+  + If `s` is nonzero, then ***P*** decrements `s` and returns immediatly.
+  + If  `s` is zero, then suspend the thread until `s` become nonzero and the thread is restarted by a ***V*** operation. After restarting, the ***P*** operation decrements `s` and returns control to the caller.
++ ***V***(s): The ***V*** operation increments `s` by 1. (*a.k.a* **Verhogen** in Dutch(to increment))
+  + If there are any threads blocked at a ***P*** operation waiting for `s` to become nonzero, then ***V*** operation restarts exactly one of these threads, which then completes its ***P*** operation by decrementing `s`.
+
+The basic idea is to associate a semaphore `s`, initially 1, with each shared variable(or related set of shared variables) and then surround the corresponding critical section with `P(s)` and `V(s)` operations.
+
+In the POSIX standard, these routines are `sem wait()`(***P***) and `sem post() ` (***V***).
+
+```c
+#include <semaphore>
+
+int sem_init(sem_t *sem, int pthread, unsigned int value);
+int sem_destroy(sem_t *sem);
+int sem_wait(sem_t *s); /* P(s) */
+int sem_post(sem_t *s); /* V(s) */
+/* Return: 0 if Ok; -1 on error */
+```
+
+where , in `sem_init`, `pthread` argument indicates whether the semaphore is to be shared between threads or between processes.
+
++ **If `pthread` is 0**, then the semaphore is to be **shared between the threads of the calling process**.
+  + `sem` is typically specified as the address of either a global variable or a variable allocated on the heap.
+  + A thread-shared semaphore has process persistence; it is destroyed when the process terminates
++ **If `pthread` is nonzero, then semaphore is to be shared between processes.**
+  + `sem` must be the address of a location in a region of shared memory(a POSIX shared memory object, a shared mapping created using `mmap()` or System V shared memory segment)
+  + **The semaphore persists as long as the shared memory in which it resides**.(The shared memory regions created by most of these techniques have kernel persistence. The exception is shared anonymous mappings, which persist only as long as process maintains the mapping).
+  + Since a child produced via `fork()` inherits its parent's memory mapping, **process-shared semaphores are inherited by the child of a `fork()`**, and parent and child can use these semaphores to synchronize their actions.
+
+There are no permission settings associated with an unnamed semaphore (i.e., `sem_init()` has no analog of the mode argument of `sem_open()`). Access to an unnamed semaphore is governed by the permissions that are granted to the process for the underlying shared memory region.
+
+After an unnamed semaphore segment has been destroyed with `sem_destroy()`, it can be reinitialized with `sem_init()`.
+
+An unnamed semaphore should be destroyed before its underlying memory is deallocated.
+
+#### Binary Semaphore(Locks)
+
+For binary semaphore, **its value always 0 or 1**. Performancing a `P` operation on a mutex is equal to `locking` operation, whereas `V` operation is equal to `unlocking` the mutex.
+
+Let's assume we have two threads:
+
++ The first thread(Thread 0) calls `sem_wait()` or `P` operation; it will first decrement the value of the semaphore, chaning it to 0.
++ Then, it will wait only if the value is **not great than or equal to 0**. Because the value is zero, `sem_wait()` will simply return and calling thread willl continue. Thread 0 now is free to enter the critical section.
++ If no other thread tries to acquire the lock while Thread 0 is inside the critical section, when it calls `sem_post()` or `V` opeartion, it will simply restore the value of the semaphore to 1(and not wake a waiting thread, because there is none)
+
+A more interesting case arises when Thread 0 “holds the lock” (i.e., it has called `sem wait()` but not yet called `sem_post()`), and another thread (Thread 1) tries to enter the critical section by calling `sem wait()`. In this case, Thread 1 will decrement the value of the semaphore to -1, and thus wait(putting itself to sleep and relinquishing the processor). When Thread 0 runs again, it will eventually call `sem_post()`, incrementing the value of  the semaphore back to zero, and then wake the waiting thread(Thread 1), which will then be able to acquire the lock for itself. When Thread 1 finishes, it will again increment the value of the semaphore, restoring it  to 1 again.
+
+<p align="center"> <img src="./pic/binary_semaphore.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Thread Trace: Two Threads Using A Semaphore from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
+Operating Systems: Three Easy Pieces</a>  chapter 31</p>
+
+<p align="center"> <img src="./pic/progress_graphs_for_binary_semaphore.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Process graph for binary semaphore, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/24-sync-basic.pdf">cmu-213 slide</a></p>
+
 ## Reference
 
 <a name="reference1"></a>[[1] “Cooperating sequential processes” by Edsger W. Dijkstra. 1968.](https://www.cs.utexas.edu/users/EWD/ewd01xx/EWD123.PDF)
