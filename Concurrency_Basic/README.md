@@ -897,15 +897,13 @@ The futex mechanism's effectiveness lies in its ability to handle low-contention
 
 There are many cases where a thread wishes to check whether a condition is true before continuing its execution. For example, a parent thread might wish to check whether a child thread has completed before continuing (this is often called a `join()`).
 
-To wait for a condition to become true, a thread can make sure of what is konwn as a ***condition variable***. A ***condition  variables*** is an explicit queue that threads can put themselves on when some state of execution(*i.e*, some  condition) is not as desire (by ***waiting*** on the condition); Some other thread, when it changes said state, can then wake one(or more) of those waiting threads thus allow them to continue(by ***signal*** the condition).
+To wait for a condition to become true, a thread can make sure of what is konwn as a ***condition variable***. A ***condition variables*** is an explicit queue that threads can put themselves on when some state of execution(*i.e*, some  condition) is not as desire (by ***waiting*** on the condition); Some other thread, when it changes said state, can then wake one(or more) of those waiting threads thus allow them to continue(by ***signal*** the condition).
 
 The idea goes back to Dijkstra’s use of “private semaphores”<a href="#reference1">[1]</a>; a similar idea was later named a “condition variable” by Hoare in his work on monitors <a href="#reference2">[2]</a>.
 
 **A mutex prevents multiple threads from accessing a shared variable at the same time. A condition variable allows one thread to inform other threads about changes in the state of a shared variable (or other shared resource) and allows the other threads to wait (block) for such notification.**
 
 **A condition variable is always used in conjunction with a mutex.** The mutex provides mutual exclusion for accessing the shared variable, while the condition variable is used to signal changes in the variable’s state.
-
-
 
 #### Pthread APIs
 
@@ -948,7 +946,7 @@ The principle condition variable operations are ***signal*** and ***wait***.
 + The wait operation(`pthread_cond_wait()`) is the means of blocking until such a notification is received.
 
   + `pthread_cond_wait()` also takes a mutex as a parameter, where **it assumes that this mutex is locked when `wait()` is called**.
-  + The responsibility of `pthread_cond_wait()` is to release the lock and put the calling thread to sleep(atomatically); 
+  + The responsibility of `pthread_cond_wait()` is to **release the lock** and **put the calling thread to sleep(atomatically)**; 
   + When the thread wakes up(after some other thread has signaled it), it must **re-acquire the lock** before returning to the caller.
 
 ```c
@@ -972,8 +970,6 @@ int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
                            const struct timespe *abstime);
 /* Return 0 on Success, or a positive error number on error */
 ```
-
-
 
 ##### Dynamically Allocated Condition Variables
 
@@ -1003,6 +999,16 @@ int pthread_cond_destory(pthread_cond_t *cond);
 **If the condition variable resides in a region of dynamically allocated memory,** **then it should be destroyed before freeing that memory region.** An automatically allocated condition variable should be destroyed before its host function returns.
 
 A condition variable that has been destroyed with `pthread_cond_destroy()` can subsequently be reinitialized by `pthread_cond_init()`.
+
+#### Why Condition Variable Functions Require A Mutex? <a href="#reference4">[4]</a>
+
+One of the reasons is that the condition variable is originally implemented by the mutex lock.
+
+For the wait operation, it will 'atomically' unlock the mutex, allowing others access to the condition variable(for signaling). Then when the condition variable is signalled or broadcast to, one or more of the thread on the waiting list will be woken up and the mutex will be magically locked again for that thread.
+
+Specifically, when the thread has been flagged to stop doing work (usually by another thread setting the exit condition then kicking the condition variable to wake this thread up), the wait loop will exit, the mutex will be unlocked and this thread will exit. The condition variable relieves you of the burden of polling some condition instead allowing another thread to notify you when something needs to happen.
+
+The vast majority of what are often erroneously called [***spurious wakeups***](https://en.wikipedia.org/wiki/Spurious_wakeup) was generally always because multiple threads had been signalled within their `pthread_cond_wait` call (broadcast), one would return with the mutex, do the work, then re-wait. Then the second signalled thread could come out when there was no work to be done. So you had to have an extra variable indicating that work should be done (this was inherently mutex-protected with the condvar/mutex pair here - other threads needed to lock the mutex before changing it however).
 
 ### Semaphores
 
@@ -1065,8 +1071,91 @@ Operating Systems: Three Easy Pieces</a>  chapter 31</p>
 
 <p align="center">Process graph for binary semaphore, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/24-sync-basic.pdf">cmu-213 slide</a></p>
 
+### Producer-Consumer Problem
+
+***Producer-consumer problem***, also known as ***bound buffer problem***, which was first postd by Dijkstra<a href="#reference3">[3]</a>.
+
+Imagine one or more producer threads and one or more consumer threads. A producer and consumer thread share a ***bounded buffer*** with ***n slots***.
+
++ Producer thread repeatedly generate new data items and place them in a buffer;
++ Consumer thread repeatedly grab the date items from the buffer and consume(use) them in some way.
+
+#### Mutex + Condition Variable
+
+First of all, condition variables is to **always use while loops**. To do this is for solving the problem of ***Mesa semantics*** <a href="#reference5">[5]</a>, the problem is raised from after the producer woke the waiting consumer thread but before this thread ever ran, the state of the bound buffer changed by the other consumer thread. Specifically, signaling a thread only wakes the target consumer thread up, but there is no guarantee that when the target consumer thread runs.
+
+Second, for the producer-consumer problem, ***single condition variable for both of producer and consumer is not enough***.
+
+In the code, producer threads wait on the condition `empty`, and signals `ﬁll`. Conversely, **consumer threads wait on ﬁll and signal empty**. By doing so, a consumer can never accidentally wake a consumer, and a producer can never accidentally wake a producer.
+
+```c
+int buffer[MAX];
+int fill_ptr = 0;
+int use_ptr = 0;
+int count = 0;
+
+void put(int value){
+  buffer[fill_ptr] = value;
+  fill_ptr = (fill_ptr + 1) % MAX;
+  count ++;
+}
+
+int get(){
+  int tmp = buffer[use_ptr];
+  use_ptr = (use_ptr + 1) % MAX;
+  count --; 
+  return tmp;
+}
+```
+
+
+
+```c
+cond_t empty, fill;
+mutex_t mutex;
+
+void *producer(void *arg){
+  int i;
+  for(i = 0; i < loops; i++){
+    Pthread_mutex_lock(&mutex);
+    while(count == MAX)
+      Pthread_cond_wait(&empty, &mutex);
+    put(i);
+    Pthread_cond_signal(&fill);
+    Pthread_mutex_unlock(&mutex);
+  }
+}
+
+void *consumer(void *arg){
+  int i;
+  for(i = 0; i < loops; i++){
+    Pthread_mutex_lock(&mutex);
+    while(count == 0)
+      Pthread_cond_wait(&fill, &mutex);
+    int tmp = get();
+    Pthread_cond_signal(&empty);
+    Pthread_mutex_unlock(&mutex);
+    printf("%d\n", tmp);
+  }
+}
+```
+
+
+
+
+
+#### Semaphore
+
+
+
 ## Reference
 
 <a name="reference1"></a>[[1] “Cooperating sequential processes” by Edsger W. Dijkstra. 1968.](https://www.cs.utexas.edu/users/EWD/ewd01xx/EWD123.PDF)
 
 <a name="reference2"></a>[[2] “Monitors: An Operating System Structuring Concept” by C.A.R. Hoare. Communications of the ACM, 17:10, pages 549–557, October 1974.](https://www.cs.utexas.edu/users/EWD/ewd01xx/EWD123.PDF)
+
+<a name="reference3"></a>[[3] “Information Streams Sharing a Finite Buffer” by E.W. Dijkstra. Information Processing Letters 1: 179180, 1972.](https://www.cs.utexas.edu/users/EWD/ewd03xx/EWD329.PDF)
+
+<a name="reference4"></a>[[4] Stackoverflow: [Why do pthreads’ condition variable functions require a mutex?](https://stackoverflow.com/questions/2763714/why-do-pthreads-condition-variable-functions-require-a-mutex)](https://stackoverflow.com/questions/2763714/why-do-pthreads-condition-variable-functions-require-a-mutex)
+
+<a name="reference5"></a>[[5] “Experience with Processes and Monitors in Mesa” by B.W. Lampson, D.R. Redell. Communications of the ACM. 23:2, pages 105-117, February 1980.](https://dl.acm.org/doi/pdf/10.1145/800215.806568)
