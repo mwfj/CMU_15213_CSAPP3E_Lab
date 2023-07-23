@@ -18,7 +18,7 @@ Application that use application-level concurrency are known as ***concurrent pr
 
 **In this artical, we mainly focus on concurrent in threads.**
 
-## Concurrent Programming with Threads
+# Concurrent Programming with Threads
 
 Like processes, ***threads*** are mechanism that permits an application to perform multiple tasks concurrently. A single process can contain multiple threads. However, each thread is very much like a separate tiny process, except for one difference: **they share the same address space and thus can access the same data.**
 
@@ -102,9 +102,7 @@ The state of a single thread is thus very similar to that of a process. It has a
 
 <p align="center">concurrent thread execution from <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a>  chapter 12</p>
 
-
-
-### Pthread API
+## Pthread API
 
 The Pthread API defines a number of data types, here some of them in the table below:
 
@@ -285,7 +283,7 @@ s = pthread_attr_destroy(&attr); if (s != 0) errExitEN(s, "pthread_attr_destroy"
 
 
 
-### Shared Variables in Threaded Programs
+## Shared Variables in Threaded Programs
 
 #### Mapping Variables to Memory
 
@@ -387,7 +385,9 @@ Ideally, the way to solve the race condition would be to have more powerful inst
 
 However, in the general case, almost all the hardward cannot support this operations. Instead, we can ask hardware for a few useful instructions upon which we can build a general set of what we call ***synchronization primitives***. By using these hardware synchronization primitives, in combination with some help from the operating system, we will be able to build multi-thread code that accesses critical section in a synchronized and controlled manner, and thus reliably produces the correct result despite the challenge nature of concurrent execution.
 
-### Locks
+
+
+## Locks
 
 A lock is just a variable, and thus to use one, you must declare a **lock variable** of some kind(such as mutex above). This lock variable holds the states of the lock at any instance in time and thus exactly one thread holds the lock and presumably is in a critical section.
 
@@ -409,7 +409,7 @@ There have three criteria for the lock:
 
 
 
-#### Pthread Locks(***a.k.a mutex***)
+### Pthread Locks(***a.k.a mutex***)
 
 The name that the POSIX library uses for aa lock is a ***mutex***, as it is used to provide ***mutual exclusion*** between threads.
 
@@ -573,7 +573,7 @@ To summary:
 
 
 
-### Spin Lock
+## Spin Lock
 
 #### Lock Implementation: Controling Interrupt
 
@@ -645,8 +645,10 @@ Unfortunately, the code has two problems:
 - performance
 
   the way a thread waits to acquire a lock that is already held: **it endlessly checks the value of ﬂag**, a technique known as ***spin-waiting***. **Spin-waiting wastes time waiting for another thread to release a lock.** The waste is exceptionally high on a uniprocessor, where the thread that the waiter is waiting for cannot even run (at least, until a context switch occurs)! Thus, as we move forward and develop more sophisticated solutions, we should also consider ways to avoid this kind of waste.
+  
+  
 
-#### Building Working Spin Locks with Test-And-Set
+### Building Working Spin Locks with Test-And-Set
 
 ***Test-And-Set*** known as the simplest bit of hardware support to understand.
 
@@ -885,7 +887,7 @@ The futex mechanism's effectiveness lies in its ability to handle low-contention
 
 
 
-### Condition Variables
+## Condition Variables
 
 There are many cases where a thread wishes to check whether a condition is true before continuing its execution. For example, a parent thread might wish to check whether a child thread has completed before continuing (this is often called a `join()`).
 
@@ -1002,7 +1004,9 @@ Specifically, when the thread has been flagged to stop doing work (usually by an
 
 The vast majority of what are often erroneously called [***spurious wakeups***](https://en.wikipedia.org/wiki/Spurious_wakeup) was generally always because multiple threads had been signalled within their `pthread_cond_wait` call (broadcast), one would return with the mutex, do the work, then re-wait. Then the second signalled thread could come out when there was no work to be done. So you had to have an extra variable indicating that work should be done (this was inherently mutex-protected with the condvar/mutex pair here - other threads needed to lock the mutex before changing it however).
 
-### Semaphores
+
+
+## Semaphores
 
 A semaphore, `s`, is a global variable witha nonnegative integer value that can only be manipulated by two special operationis:
 
@@ -1119,7 +1123,9 @@ There has two cases we need to consider:
      <p align="center">Thread Trace: Parent Waiting for Child Case2 from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
      Operating Systems: Three Easy Pieces</a>  chapter 31</p>
 
-### The Difference Between Mutex with Condition Variable and Semaphore
+
+
+## The Difference Between Mutex with Condition Variable and Semaphore
 
 1. Ownership:
    + A shared resource protected by mutex lock can be accessed **only by one thread** at any time. 
@@ -1150,7 +1156,7 @@ The **main difference** between mutex with condition variable and semaphore lies
   2. ***Task Pool and Throttling***: In scenarios where a fixed number of threads need to work on tasks concurrently or where a certain number of tasks can be processed in parallel, semaphores can be used to control task concurrency. Threads acquire semaphore permits before working on a task and release them when done, limiting the number of tasks running in parallel.
   3. ***Multithreaded Printing***: Semaphores can be used in multithreaded environments to synchronize access to shared resources like a printer. Threads representing different print jobs can acquire a semaphore permit to print, ensuring that only a limited number of print jobs are processed simultaneously.
 
-### Producer-Consumer Problem
+## Producer-Consumer Problem
 
 ***Producer-consumer problem***, also known as ***bound buffer problem***, which was first postd by Dijkstra<a href="#reference3">[3]</a>.
 
@@ -1174,7 +1180,7 @@ Producer-consumer interactions occur frequently in real-systems. For example:
   + The producer detects mouse and keyboard events and inserts them in the buffer.
   + The consumer removes the events from the buffer in some priority-based manner and paints the screen.
 
-#### Mutex + Condition Variable
+### Mutex + Condition Variable
 
 First of all, condition variables is to **always use while loops**. To do this is for solving the problem of ***Mesa semantics*** <a href="#reference5">[5]</a>, the problem is raised from after the producer woke the waiting consumer thread but before this thread ever ran, the state of the bound buffer changed by the other consumer thread. Specifically, signaling a thread only wakes the target consumer thread up, but there is no guarantee that when the target consumer thread runs.
 
@@ -1302,7 +1308,7 @@ int main(int argc, char * argv[]) {
 
 
 
-### Reader-Writer Problem
+## Reader-Writer Problem
 
 A collection of concurrent threads is accessing a shared object such as a data structure in main memory or a database on disk, some thread only read object while other modify it.
 
