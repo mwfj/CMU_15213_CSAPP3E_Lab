@@ -16,15 +16,7 @@ Application that use application-level concurrency are known as ***concurrent pr
   + scheduled by the kernel like process flows
   + shareing the same virtual address space like I/O multiplexing flows.
 
-
-
-## Concurrent Programming with Processes
-
-
-
-## Concurrent Programming with I/O multiplexing
-
-
+**In this artical, we mainly focus on concurrent in threads.**
 
 ## Concurrent Programming with Threads
 
