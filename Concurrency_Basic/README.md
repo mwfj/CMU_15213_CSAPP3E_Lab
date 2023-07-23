@@ -1310,6 +1310,76 @@ int main(int argc, char * argv[]) {
 
 
 
+### Reader-Writer Problem
+
+A collection of concurrent threads is accessing a shared object such as a data structure in main memory or a database on disk, some thread only read object while other modify it.
+
++ Threads that modify the object are called ***writers***
++ Threads that only read it are called ***readers***
+
+Write must have exclusive access to the object, but readers may share the object with an unlimited number of other readers.
+In general, there are an unbounded number of concurrent readers and writers.
+
+The special type of lock to support this type of operation is known as a ***reader-writer lock***.
+
++ If some thread wants to update the data strucuture in question, it should call the new pair of synchronization operations:  `rwlock_acquire_write_lock()`, to acquire a write lock and `rwlock_release_write_lock()` to release it.
+  Internally, these simply use the ***write lock*** semaphore to ensure that **only a single writer can acquire the lock** and thus enter the critical section to update the data structure in question.
++ When acquiring a read lock, the reader first acquires `lock` and then increments the ***readers*** variable to track how many readers are currently inside the data structure.
+  The important step then taken within `rwlock_acquire_readlock()` occurs when the first reader acquires the lock; in that case, the reader also acquire the ***write lock*** by calling `sem_wait()` on the ***writer lock*** semaphore, an then releasing the lock by calling `sem_post()`.
+  + ***once a reader has acquired a read lock, more reader will be allowed to acquire the read lock too***; 
+  + however, **any thread that wishes to acquire the writee lock will have to wait unitl all readers are finished;** 
+  + **the last one to exit the critical section call `sem_post()` on write lock and thus enable a waiting writer to acquire the lock**.
+
+```c
+typedef struct _rwlock_t{
+  sem_t lock;       /* binary semaphore */
+  sem_t writelock;  /* allow ONE writer/MANY readers */
+  int readers;      /* number of readers in critical section */
+} rwlock_t;
+
+void rwlock_init(rwlock_t *rw){
+  rw->readers = 0;
+  sem_init(&rw->lock, 0, 1);
+  sem_init(rw->writelock(&rw->lock, 0, 1));
+}
+
+void rwlock_acquire_readlock(rwlock_t *rw){
+  sem_wait(&rw->lock);
+  rw->readers ++;
+  if(rw->readers == 1) /* first reader gets writelock */
+    sem_wait(&rw->writelock);
+  sem_post(&rw->writelock);
+}
+
+void rwlock_release_readlock(rwlock_t *rw){
+  sem_wait(&rw->lock);
+  rw->readers --;
+  if(rw->readers == 0) /* last reader lets it go */
+    sem_post(&rw->writelock);
+  sem_post(&rw->lock);
+}
+
+void rwlock_acquire_writelock(rwlock_t *rw){
+  sem_wait(&rw->writelock);
+}
+
+void rwlock_release_writelock(rwlock_t *rw){
+  sem_post(&rw->writelock);
+}
+```
+
+Readers-writers interactions occur frequently in real systems. For example:
+
++ In online airline reservation system, an unlimited number of customers are allowed to concurrently inspect the seat assignments, but a custeromer who is booking a seat must have exclusive access to the database.
++ In a multi-threads cacheing web proxy, an unlimited number of threads can fetch existing pages from the shared page cache, but any thread that writes a new page to the cache must have exclusive access,
+
+The reader-writer problem has several variations, each based on the priorities of readers and writers.
+
++ The ***first readers-writers problem***, **which favors readers**, requires that no reader be kept wairing unless a writer has already been granted permission to use the object.
+  In other words, no reader should wait simply because a writer is waiting.
++ The ***second readers-writes problem***, **which favors writes**, requires that once a writer is ready to write, it performs its write as soon as possible.
+  In this case, a reader that arrives after a writer must wait, even if the writer is also waiting.
+
 ## Reference
 
 <a name="reference1"></a>[[1] “Cooperating sequential processes” by Edsger W. Dijkstra. 1968.](https://www.cs.utexas.edu/users/EWD/ewd01xx/EWD123.PDF)
