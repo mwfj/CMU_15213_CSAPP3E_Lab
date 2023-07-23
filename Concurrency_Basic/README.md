@@ -1022,6 +1022,8 @@ A semaphore, `s`, is a global variable witha nonnegative integer value that can 
 
 The basic idea is to associate a semaphore `s`, initially 1, with each shared variable(or related set of shared variables) and then surround the corresponding critical section with `P(s)` and `V(s)` operations.
 
+Semaphores inherently provide synchronization with atomic wait and signal operations, making them easier to use in certain cases without the need for explicit locks.
+
 In the POSIX standard, these routines are `sem wait()`(***P***) and `sem post() ` (***V***).
 
 ```c
@@ -1050,6 +1052,14 @@ After an unnamed semaphore segment has been destroyed with `sem_destroy()`, it c
 
 An unnamed semaphore should be destroyed before its underlying memory is deallocated.
 
++ For the `sem_wait()`, it decrements(decrease by 1) the value of the semaphore referred to by `sem`.
+  + If the semaphore currently has a value greater than 0, `sem_wait()` returns immediately.
+  + If the value of the semaphore is currently 0, `sem_wait()` blocks until the semaphore value rises above 0; at that time, semaphore is then decremented and `sem_wait()` returns.
+  + If a blocked `sem_wait()` calls is interrupted by a signal handler, then it fails with the error `EINTR`, regardless of whether the `SA_RESTART` flag was used when establishing the signal handler with `sigaction()`.(On some UNIX implementations, `SA_RESTART` does cause `sem_wait()` to automatically restart.)
++ For the `sem_post()`, it increments(increases by 1) the value of the semaphore referred to by `sem.`
+  + If the value of the semaphore was 0 before the `sem_post()` call, and some other process(or thread) is blocked waiting to decrement the semaphore, then that process is awoken, and its `sem_wait()` call proceeds to decrement the semaphore.
+  + If multiple processes(or threads) are blocked in `sem_wait()`, then, if the processes are being scheduled under the default round-robin time-sharing policy, it is indeterminated which one will will be awoken and allowed to decrement the semaphore.
+
 #### Binary Semaphore(Locks)
 
 For binary semaphore, **its value always 0 or 1**. Performancing a `P` operation on a mutex is equal to `locking` operation, whereas `V` operation is equal to `unlocking` the mutex.
@@ -1071,6 +1081,83 @@ Operating Systems: Three Easy Pieces</a>  chapter 31</p>
 
 <p align="center">Process graph for binary semaphore, the figure from <a href = "https://www.cs.cmu.edu/afs/cs/academic/class/15213-f15/www/lectures/24-sync-basic.pdf">cmu-213 slide</a></p>
 
+#### Semaphore For Ordering
+
+Semaphore are also useful to order events in a concurrent program. For example. a thread may wish to wait for a list to become non-empty, so it can delete an element from it. In this pattern of usage, we often find one thread ***waiting*** for something to happen, and another thread making that something happen and then ***signaling*** that it is has happened, thus walking the waiting thread. We are thus using semaphore as an ***ordering primtive***(similar to the uage of ***condition variable***)
+
+```c
+sem_t s;
+void *child(void *arg){
+  printf("child\n");
+  sem_post(&s); /* signal here: child is done */
+  return NULL;
+}
+int main(int argc, char **argv){
+  sem_init(&s, 0, 0);
+  printf("parent: begin\n");
+  pthread_t c;
+  Pthread_create(&c, NULL, child, NULL);
+  sem_wait(&s); /* wait here for child */
+  printf("parent: end\n");
+  return 0;
+}
+```
+
+There has two cases we need to consider:
+
+1. the parent creates the child but the ***child has not run yet*** (i.e., it is sitting in a ready queue but not running).
+
+   + the parent will call `sem_wait()` **before** the child has called `sem_post()`; we’d like the parent to wait for the child to run.
+   + This will happen is **if the value of the semaphore is not greater than 0; hence, 0 is the initial value.** The parent runs, decrements the semaphore (to -1), then waits (sleeping).
+   + When the child ﬁnally runs, it will call `sem_post()`, increment the value of the semaphore to 0, and wake the parent, which will then return from sem wait() and ﬁnish the program.
+
+   <p align="center"> <img src="./pic/sem_parent_wait_for_child_case1.png" alt="cow" style="zoom:100%;"/> </p>
+
+   <p align="center">Thread Trace: Parent Waiting for Child Case1 from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
+   Operating Systems: Three Easy Pieces</a>  chapter 31</p>
+
+2. when the ***child runs to completion*** **before** the parent gets a chance to call `sem_wait()`.
+
+   + the child will ﬁrst call `sem_post()`, thus incrementing the value of the semaphore from 0 to 1.
+
+   + When the parent then gets a chance to run, it will call `sem_wait()` and ﬁnd the value of the semaphore to be 1; the parent will thus decrement the value (to 0) and return from `sem_wait()` without waiting, also achieving the desired effect.
+
+     <p align="center"> <img src="./pic/sem_parent_wait_for_child_case2.png" alt="cow" style="zoom:100%;"/> </p>
+
+     <p align="center">Thread Trace: Parent Waiting for Child Case2 from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
+     Operating Systems: Three Easy Pieces</a>  chapter 31</p>
+
+### The Difference Between Mutex with Condition Variable and Semaphore
+
+1. Ownership:
+   + A shared resource protected by mutex lock can be accessed **only by one thread** at any time. 
+     The thread owning the mutex lock has to release it in order to let any other thread access the resource (which will again require acquisition of the mutex lock).
+   + Semaphore allows a resource to be concurrently accessed by **at most N threads at any time**. The value of N is dependent on the application.
+2. Purpose:
+   + A mutex lock with a condition variable is primarily used for mutual exclusion (protecting critical sections) and providing a way for threads to wait for specific conditions to become true before proceeding. **It allows threads to coordinate based on complex conditions.**
+   +  A semaphore is a synchronization primitive used to control access to a shared resource or to represent the count of available resources. It is **commonly used for resource counting**, such as managing a fixed pool of resources that multiple threads can access.
+3. Signaling:
+   + Condition variables allow for **explicit signaling**, meaning threads can be awakened based on specific conditions, reducing unnecessary wake-ups and providing more **precise control over thread coordination**.
+   + Normally, semaphore will wake all the thread up when calls `sem_post()` and not guarantee which one thread will take over the resource.
+
+The **main difference** between mutex with condition variable and semaphore lies in their primary use cases and how they handle signaling:
+
+- ***Mutex with Condition Variable*** is typically used when you need mutual exclusion and want threads to wait for complex conditions before proceeding. It provides **explicit signaling control** and is more suitable for scenarios where threads need to **wait for specific conditions** to become true before they can continue their tasks.
+
+  The scenarios that used mutex with condition variable more often:
+
+  1. ***Producer-Consumer Problem***: Mutex locks with condition variables are commonly used to solve the classic producer-consumer problem, where multiple producer threads generate data, and multiple consumer threads process the data. The condition variable allows consumers to wait for new data when the buffer is empty and be awakened when the producer adds new data.
+  2. ***Reader-Writer Problem***: In scenarios where multiple reader threads can access shared data simultaneously but exclusive access is required for writer threads, mutex locks with condition variables can be used to implement reader-writer synchronization. Readers acquire the mutex lock to access the shared data, while writers wait on the condition variable when they want exclusive access to modify the data.
+  3. ***Barrier Synchronization***: Mutex locks with condition variables can be used to implement barrier synchronization, where multiple threads need to synchronize at a certain point before proceeding. Threads wait on a condition variable until all threads have reached the barrier, and then the condition is signaled to allow all threads to proceed.
+
+- ***Semaphore*** is often used for **resource counting or controlling access to a limited number of resources**. It is more straightforward in terms of signaling, as it allows threads to wait until a certain number of resources become available. Semaphores are often used when the number of resources is fixed or when you want to limit the number of concurrent tasks accessing a resource.
+
+  The scenarios that used semaphore more often:
+
+  1. ***Resource Pool Management***: Semaphores are commonly used to manage resource pools, where a fixed number of resources is available for use by multiple threads. The semaphore's count represents the number of available resources, and threads wait for the semaphore when they need a resource, which decrements the count. When a resource is released, the semaphore is signaled to increment the count.
+  2. ***Task Pool and Throttling***: In scenarios where a fixed number of threads need to work on tasks concurrently or where a certain number of tasks can be processed in parallel, semaphores can be used to control task concurrency. Threads acquire semaphore permits before working on a task and release them when done, limiting the number of tasks running in parallel.
+  3. ***Multithreaded Printing***: Semaphores can be used in multithreaded environments to synchronize access to shared resources like a printer. Threads representing different print jobs can acquire a semaphore permit to print, ensuring that only a limited number of print jobs are processed simultaneously.
+
 ### Producer-Consumer Problem
 
 ***Producer-consumer problem***, also known as ***bound buffer problem***, which was first postd by Dijkstra<a href="#reference3">[3]</a>.
@@ -1079,6 +1166,21 @@ Imagine one or more producer threads and one or more consumer threads. A produce
 
 + Producer thread repeatedly generate new data items and place them in a buffer;
 + Consumer thread repeatedly grab the date items from the buffer and consume(use) them in some way.
+
+Producer-consumer interactions occur frequently in real-systems. For example:
+
++ In a multimedia system, 
+
+  + the producer might encode video frames, 
+  + while the consumer decodes and renders them on the screen.
+
+  The purpose of the buffer is to reduce jitter in the video stream caused by data-dependent differences in the encoding and decoding times for individual frames.
+  The buffer provides a reservior of slots to the producer and a reservior of encoded frames to the consumer.
+
++ Another common example is the design of graphical user interfaces
+
+  + The producer detects mouse and keyboard events and inserts them in the buffer.
+  + The consumer removes the events from the buffer in some priority-based manner and paints the screen.
 
 #### Mutex + Condition Variable
 
@@ -1140,11 +1242,71 @@ void *consumer(void *arg){
 }
 ```
 
-
-
-
+***Covering condition :*** replace the `pthread_cond_signal() `call in the code above with a call to `pthread_cond_broadcast()`, which **wakes up all waiting threads**. By doing so, we guarantee that any threads that should be woken are. The downside, of course, can be a negative performance impact, as we might needlessly wake up many other waiting threads that shouldn’t (yet) be awake. Those threads will simply wake up, re-check the condition, and then go immediately back to sleep.
 
 #### Semaphore
+
+In the code, we use three semaphore values to make sure every thing works fine, where
+
++ `empty` is to markwhether the current slot is empty or not. Producer decrease this value and consumer increase it.
++ `full` is to mark whether the current slot is full or noto. Producer increase it and consumer decrease it.
++ `mutex` is the part the implementation of mutual exclusion(binary semaphore), which is to prevent the race condition.
+
+```c
+sem_t empty;
+sem_t full;
+sem_t mutex
+ 
+#define MAX 1
+ 
+int buffer[MAX];
+int fill = 0;
+int use = 0;
+
+void put(int value){
+  buffer[fill] = value;
+  fill = (fill + 1) % MAX;
+}
+
+int get(){
+  int tmp = buffer[use];
+  use = (use + 1) % MAX;
+  return tmp;
+}
+
+void *producer(void *arg){
+  int i;
+  for(i = 0; i < loops; i++){
+    sem_wait(&empty);
+    sem_wait(&mutex); /* mutex here */
+    put(i);
+    sem_post(&mutex); /* and here */
+    sem_post(&full);
+  }
+}
+
+void *consumer(void *arg){
+  int i;
+  for(i = 0; i < loops; i++){
+    sem_wait(&full);
+    sem_wait(&mutex); /* mutex here */
+    int tmp = get(i);
+    sem_post(&mutex); /* and here */
+    sem_post(&empty);
+    printf("%d\n", tmp);
+  }
+}
+
+int main(int argc, char * argv[]) { 
+  
+  // ...
+	sem_init(&empty, 0, MAX); // MAX are empty 
+  sem_init(&full, 0, 0); // 0 are full 
+  sem_init(&mutex, 0, 0); // 0 are mutex
+  // ...
+
+}
+```
 
 
 
