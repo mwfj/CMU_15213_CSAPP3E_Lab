@@ -1389,7 +1389,7 @@ The basic setup for the problem is: assume there are five "philosophers" sitting
 <p align="center">The Dinning Philosophers from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
 Operating Systems: Three Easy Pieces</a>  chapter 31</p>
 
-
+The one solution is that all the philosophers grab the left fork first except one grab the right one(inverse order). The reason for doing this is to avoid the **deadlock**, where if each philosopher happens to grab the fork on their left before any philosopher can grab the fork on their right, each will be stuck holding the one fork and waiting for another forever. Speciﬁcally, philosopher 0 grabs fork 0, philosopher 1 grabs fork 1, philosopher 2 grabs fork 2, philosopher 3 grabs fork 3, and philosopher 4 grabs fork 4; all the forks are acquired, and all the philosophers are stuck waiting for a fork that another philosopher possesses.
 
 ## Reference
 
