@@ -1391,6 +1391,76 @@ Operating Systems: Three Easy Pieces</a>  chapter 31</p>
 
 The one solution is that all the philosophers grab the left fork first except one grab the right one(inverse order). The reason for doing this is to avoid the **deadlock**, where if each philosopher happens to grab the fork on their left before any philosopher can grab the fork on their right, each will be stuck holding the one fork and waiting for another forever. Speciﬁcally, philosopher 0 grabs fork 0, philosopher 1 grabs fork 1, philosopher 2 grabs fork 2, philosopher 3 grabs fork 3, and philosopher 4 grabs fork 4; all the forks are acquired, and all the philosophers are stuck waiting for a fork that another philosopher possesses.
 
+## Thread Safety
+
+A function ***thread-safe*** if and only if it will always produce correct results when called repeatedly from multiple concurrent threads.
+
+We can identify **four(nondisjoint) classes** of thread-unsafee functions:
+
+1. ***Functions that do not protect shared variables.*** This class of thread-unsafe functions is relatively easy to make thread-safe: **protect the shared   variable with synchronization operation**.
+
+   + Advantage is that it does not require any changes in the calling program
+   + Disadvantage is that the synchronization operation slow down the functions.
+
+2. ***Function that keep state across multiple invocations.*** 
+   The `rand` function is thread-unsafe because the result of the current invocation depends on an intermediate result from the previous iteration. When we call `rand` repeatedly from a single thread after seeding it with a call to `srand`, we can expect a repeatable sequence of numbers. However, this assumption no longer holds if multiple threads are calling `rand`.
+   **The only way to make a function such as `rend` thread-safe is to rewrite it** so that it does not user any `static` data, relying on instead on the caller to pass the state information in arguments.
+   The disadvantage is that the programmer is now forced to change the code in the calling routine as well.
+   In a large program where there are potentially hundreds of different call sites, making such modifications could be nontrivial and prone to error.
+
+3. ***Functions that return a pointer to a static variable.*** Some functions such as `ctime` and `gethostbyname`, compute a result in a `static` variable and then return a pointer to that variable. If we call such functions from concurrent threads, then disaster is likely, as result being used by **one thread are sliently overwritten by another thread**.
+   There are two ways to deal with this class of thread-unsafe functions.
+
+   1. One option is to rewrite the function so that the caller passess the address of the variable in which store the results. This eliminates all shared data, but it requires the programmer to have access to the function source code.
+
+   2. If the thread-safe function is diffcult or impossible to modify(*e.g.*, the code is very complex or there is no source code available), then another option is to use the ***lock-and-copy*** technique.
+      The basic idea is to associate a mutex with the thread-unsafe function. 
+      At each call site:
+
+      1. lock the mutex, 
+      2. call the thread-unsafe function, 
+      3. copy the result returned by the function to a private memory location, 
+      4. and then unlock the mutex.
+
+      To minimize changes to the caller, you should define a thread-safe wrapper function that performs the lock-and-copy and then replace all calls to the thread-unsafe function with calls to the wrapper.
+
+4. ***Functions that call thread-unsafe functions***.
+   If a function `f` calls a thread-unsafe function `g`, is `f` thread-unsafe?
+   It depends. 
+
+   + If `g` is a **class 2** function that relies on the **state across multiple invovation**, then `f` is also thread-unsafe and there is no resource short of rewritting `g`.
+   + If `g` is a **class 1** or **class3** function, then `f` can still be thread-safe if you protect the call site and any resulting shared data with a mutex.
+
+
+
+## Reentrancy
+
+
+
+## No-lock Algorithm
+
+
+
+## Non-Deadlock Bugs
+
+### Atomicity-Violation Bugs
+
+The formal definition of an atomicity violation is: "The desired serializability among multiple memory accesses is violated(*i.e.* a code region is intended to be atomic, but **the atomicity is not enforced during execution**)." Typically, the code in each thread has an atomicity assumption. when this assumption is incorrect, the code will not work as desire.
+
+To prevent atomicity violations, concurrent programs must use proper synchronization mechanisms like mutex locks, semaphores, condition variables, or atomic instructions. These mechanisms ensure that critical sections of code are protected from concurrent access, allowing operations to be executed atomically and avoiding data races and other concurrency issues.
+
+Detecting and debugging atomicity violations can be challenging, as they may not always lead to immediate failures or errors. They can result in subtle and intermittent bugs that are hard to reproduce. Thorough testing, code review, and careful application of synchronization techniques are essential to prevent and resolve atomicity violation issues in concurrent programs.
+
+### Order-Violation Bugs
+
+The formal definition of order violation is: "The desired order between two(group of) memory accesses is flipped(*i.e.,* A should always be executed before B, but the order is not enforced during execution)"
+
+The fix to this type of bug is generally to enforce ordering. As discussed previously, using **condtion variables** is an easy and robust way to add this style of synchronization into modern code bases.
+
+## Deadlock
+
+
+
 ## Reference
 
 <a name="reference1"></a>[[1] “Cooperating sequential processes” by Edsger W. Dijkstra. 1968.](https://www.cs.utexas.edu/users/EWD/ewd01xx/EWD123.PDF)
