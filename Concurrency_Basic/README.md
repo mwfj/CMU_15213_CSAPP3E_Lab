@@ -754,8 +754,6 @@ void unlock(lock_t * lock) {
 
 The purpose of CAS is to achieve synchronization and ensure atomic updates without the need for locks or other explicit synchronization mechanisms. CAS is commonly used in lock-free and wait-free algorithms, where multiple threads can concurrently access shared data structures or perform atomic operations without blocking or waiting for locks.
 
-
-
 ### Fetch-And-Add
 
 ***Fetch-and-add*** is an atomic operation that reads the value from a memory location and atomically adds a specified value to that location. Fetch-and-add atomically increments a value while returning the old value at a particular address. The fetch-and-add operation ensures that **no other concurrent operation can interfere with the read and addition**, providing atomicity and synchronization.
@@ -1435,9 +1433,29 @@ We can identify **four(nondisjoint) classes** of thread-unsafee functions:
 
 ## Reentrancy
 
+The reentrancy function characterized by the property that **they do not reference any shared data when they are called by multiple threads**. 
 
+Reentrant functions are typically more efficient than non-reentrant thread-saft functions because they require no synchronization operations. Furthermore, the only way to convert the ***thread-unsafe function that keep state across multiple invocations***  into thread-safe one is to rewrite it so that it is reentrant.
 
-## No-lock Algorithm
+<p align="center"> <img src="./pic/reentrant_function.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Relationships between the sets of reentrant, thread-safe, and thread-unsafe functions from <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a> chapter 12</p>
+
+If all function arguments are passed by value and all data references are to local automatic stack variable(*i.e.*, no reference to static or global variable), then the function is ***explicit reentrant***, in the sense that we can assert its reentrancy regardless of how it is called.
+
+However, if we loosen our consumption a bit and allow some parameters in our otherwise explicitly reentrant function to be **passed by reference**(*i.e.*, we allow them to pass pointers), then we have an ***implicitly reentrant function***, in the sense that it is only reentrant if the calling threads are careful to pass pointers to nonshared data. For example the `rand_r` function is implicitly function
+
+```c
+/* rand_r - return a pseudorandom integer on 0..32767 */ 
+int rand_r(unsigned int *nextp) {
+	*nextp = *nextp * 113515245 + 12345;
+	return (unsigned int)(*nextp / 65536) % 32768;
+}
+```
+
+<p align="center"> <img src="./pic/thread-unsafe_function_library.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Common threa-unsafe library function from <a href = "http://csapp.cs.cmu.edu/3e/home.html">CS:APP3e</a> chapter 12</p>
 
 
 
@@ -1457,6 +1475,59 @@ The formal definition of order violation is: "The desired order between two(grou
 
 The fix to this type of bug is generally to enforce ordering. As discussed previously, using **condtion variables** is an easy and robust way to add this style of synchronization into modern code bases.
 
+## Lock-free Algorithm <a href="#reference6">[6]</a> <a href="#reference6">[7]</a>
+
+A lock-free algorithm is a concurrent programming technique that aims to provide progress guarantees and avoid the use of traditional locks or synchronization primitives like mutexes and semaphores. In a lock-free algorithm, threads can make progress even in the presence of contention, contention being the scenario where multiple threads try to access shared resources simultaneously.
+
+The main goal of lock-free algorithms is to improve concurrent program performance by minimizing contention and avoiding the potential drawbacks of using locks, such as thread blocking and potential deadlocks.
+
+Lock-free algorithm allow concurrent update of shared data structures without resorting to critical sections protected by operating system managed locks. It handles communication, data sharing, and other mechanisms that usually require threads to be synchronized differently to avoid the need for locks.
+
+On a system using a lock-free algorithm, it is guaranteed that some thread is making progress. This means that the overall system is making progress toward the end goal. However, there still might be starved threads, as lock-free algorithms only guarantee that at least one thread is making progress at any given time.
+
+A significant benefit of lock (or wait)-freedom for real-time systems is that by avoiding locks the potential for priority inversion is avoided. Solutions for avoiding priority inversion usually involve special real-time process schedulers. 
+
+Designing generalized lock-free algorithms is hard, and thus design lock-free data structures instead(Buffer, list, stack, queue, map, deque, snapshot).
+
+***Compare-and-swap*** is the common technique used for lock-free algorithm.
+
+### Lock-free Stack(aka LIFO queue)
+
+```c++
+class Node{
+  Node *next;
+  int data;
+};
+Node *head;
+
+// Lock-free stack push
+void push(int t) {
+  Node* node = new Node(t);
+  do {
+  	node->next = head;
+  } while (!cas(&head, node, node->next));
+}
+
+// Lock-free stack pop
+bool pop(int& t){
+  Node *current = head;
+  while(current){
+    if(cas(&head, current->next, current)){
+      t = current->data;
+      return true;
+    }
+    current = head;
+  }
+  return false;
+}
+```
+
+### ABA Problem
+
+
+
+
+
 ## Deadlock
 
 
@@ -1472,3 +1543,7 @@ The fix to this type of bug is generally to enforce ordering. As discussed previ
 <a name="reference4"></a>[[4] Stackoverflow: [Why do pthreads’ condition variable functions require a mutex?](https://stackoverflow.com/questions/2763714/why-do-pthreads-condition-variable-functions-require-a-mutex)](https://stackoverflow.com/questions/2763714/why-do-pthreads-condition-variable-functions-require-a-mutex)
 
 <a name="reference5"></a>[[5] “Experience with Processes and Monitors in Mesa” by B.W. Lampson, D.R. Redell. Communications of the ACM. 23:2, pages 105-117, February 1980.](https://dl.acm.org/doi/pdf/10.1145/800215.806568)
+
+<a name="reference6"></a>[[6] “Experience with Processes and Monitors in Mesa” by B.W. Lampson, D.R. Redell. Communications of the ACM. 23:2, pages 105-117, February 1980.](https://dl.acm.org/doi/pdf/10.1145/800215.806568)
+
+<a name="reference7"></a>[[7] “Experience with Processes and Monitors in Mesa” by B.W. Lampson, D.R. Redell. Communications of the ACM. 23:2, pages 105-117, February 1980.](https://dl.acm.org/doi/pdf/10.1145/800215.806568)
