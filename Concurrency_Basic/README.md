@@ -1475,7 +1475,7 @@ The formal definition of order violation is: "The desired order between two(grou
 
 The fix to this type of bug is generally to enforce ordering. As discussed previously, using **condtion variables** is an easy and robust way to add this style of synchronization into modern code bases.
 
-## Lock-free Algorithm <a href="#reference6">[6]</a> <a href="#reference7">[7]</a><a href="#reference8">[8]</a>
+## Lock-free Algorithm <a href="#reference6">[6]</a><a href="#reference7">[7]</a><a href="#reference8">[8]</a>
 
 A lock-free algorithm is a concurrent programming technique that aims to provide progress guarantees and avoid the use of traditional locks or synchronization primitives like mutexes and semaphores. In a lock-free algorithm, threads can make progress even in the presence of contention, contention being the scenario where multiple threads try to access shared resources simultaneously.
 
