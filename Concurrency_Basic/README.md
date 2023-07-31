@@ -1475,7 +1475,7 @@ The formal definition of order violation is: "The desired order between two(grou
 
 The fix to this type of bug is generally to enforce ordering. As discussed previously, using **condtion variables** is an easy and robust way to add this style of synchronization into modern code bases.
 
-## Lock-free Algorithm <a href="#reference6">[6]</a> <a href="#reference6">[7]</a>
+## Lock-free Algorithm <a href="#reference6">[6]</a> <a href="#reference7">[7]</a><a href="#reference8">[8]</a>
 
 A lock-free algorithm is a concurrent programming technique that aims to provide progress guarantees and avoid the use of traditional locks or synchronization primitives like mutexes and semaphores. In a lock-free algorithm, threads can make progress even in the presence of contention, contention being the scenario where multiple threads try to access shared resources simultaneously.
 
@@ -1489,7 +1489,7 @@ A significant benefit of lock (or wait)-freedom for real-time systems is that by
 
 Designing generalized lock-free algorithms is hard, and thus design lock-free data structures instead(Buffer, list, stack, queue, map, deque, snapshot).
 
-***Compare-and-swap*** is the common technique used for lock-free algorithm.
+With the exception of a uniprocessor implementation of a single-reader single-writer ring buffer FIFO, all the lock-free algorithms which I have encountered require the use of special atomic processor instructions such as CAS (compare and swap) or LL/SC (load linked/store conditional). Furthermore, the correct implementation of these algorithms also requires an understanding of the use of memory barriers to force the order of some memory reads and writes on multiprocessor systems. This is because memory controllers may reorder reads and writes as observed by other processors on an multiprocessor system (or by prehipherals on a uniprocessor system).
 
 ### Lock-free Stack(aka LIFO queue)
 
@@ -1544,6 +1544,8 @@ bool pop(int& t){
 
 <a name="reference5"></a>[[5] “Experience with Processes and Monitors in Mesa” by B.W. Lampson, D.R. Redell. Communications of the ACM. 23:2, pages 105-117, February 1980.](https://dl.acm.org/doi/pdf/10.1145/800215.806568)
 
-<a name="reference6"></a>[[6] “Experience with Processes and Monitors in Mesa” by B.W. Lampson, D.R. Redell. Communications of the ACM. 23:2, pages 105-117, February 1980.](https://dl.acm.org/doi/pdf/10.1145/800215.806568)
+<a name="reference6"></a>[[6] Some notes on lock-free and wait-free algorithms](http://www.rossbencina.com/code/lockfree?q=~rossb/code/lockfree/)
 
-<a name="reference7"></a>[[7] “Experience with Processes and Monitors in Mesa” by B.W. Lampson, D.R. Redell. Communications of the ACM. 23:2, pages 105-117, February 1980.](https://dl.acm.org/doi/pdf/10.1145/800215.806568)
+<a name="reference7"></a>[[7] Lock-Free Programming - Geoff Langdale](https://www.cs.cmu.edu/~410-s05/lectures/L31_LockFree.pdf)
+
+<a name="reference8"></a>[[8] **Lock-Free Algorithms** - **DanceWithDragon and abattagl**](http://15418.courses.cs.cmu.edu/spring2013/article/32) 
