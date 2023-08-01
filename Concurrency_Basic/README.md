@@ -1376,8 +1376,6 @@ The reader-writer problem has several variations, each based on the priorities o
 + The ***second readers-writes problem***, **which favors writes**, requires that once a writer is ready to write, it performs its write as soon as possible.
   In this case, a reader that arrives after a writer must wait, even if the writer is also waiting.
 
-
-
 ## The Dining Philosophers
 
 The basic setup for the problem is: assume there are five "philosophers" sitting around a table. Between each pair of philosophers is a single fork(and thus, five total). The philosophers each have times where they think, and don't need any forks. When the philosopher intends to eat, a philosopher needs two forks, both the one on their left and the one on their right. 
