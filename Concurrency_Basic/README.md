@@ -1489,7 +1489,7 @@ A significant benefit of lock (or wait)-freedom for real-time systems is that by
 
 Designing generalized lock-free algorithms is hard, and thus design lock-free data structures instead(Buffer, list, stack, queue, map, deque, snapshot).
 
-With the exception of a uniprocessor implementation of a single-reader single-writer ring buffer FIFO, all the lock-free algorithms which I have encountered require the use of special atomic processor instructions such as CAS (compare and swap) or LL/SC (load linked/store conditional). Furthermore, the correct implementation of these algorithms also requires an understanding of the use of memory barriers to force the order of some memory reads and writes on multiprocessor systems. This is because memory controllers may reorder reads and writes as observed by other processors on an multiprocessor system (or by prehipherals on a uniprocessor system).
+With the exception of a uniprocessor implementation of a single-reader single-writer ring buffer FIFO, all the lock-free algorithms which I have encountered require the use of special atomic processor instructions such as **CAS (compare and swap)** or **LL/SC (load linked/store conditional)**. Furthermore, the correct implementation of these algorithms also requires an understanding of the use of memory barriers to force the order of some memory reads and writes on multiprocessor systems. This is because memory controllers may reorder reads and writes as observed by other processors on an multiprocessor system (or by prehipherals on a uniprocessor system).
 
 ### Lock-free Stack(aka LIFO queue)
 
@@ -1524,9 +1524,31 @@ bool pop(int& t){
 
 ### ABA Problem
 
++ Thread 1 looks at some shared variable, finds that it is **A**
++ Thread 1 calculates same data based on the fact that the variable is **A**
++ Thread 2 executes, change the variable to **B**(if Thread 1 wakes up now and tries to compare-and-set, all is well – compare and set fails and Thread 1 retries)
++ Instead, Thread 2 changes variable back to **A**
 
+<p align="center"> <img src="./pic/ABA_problem_1.png" alt="cow" style="zoom:100%;"/> </p>
 
+<p align="center">Figure comes from <a href = "https://www.cs.cmu.edu/~410-s05/lectures/L31_LockFree.pdf">Lock-Free Programming by Geoff Langdale</a></p>
 
+<p align="center"> <img src="./pic/ABA_problem_2.jpeg" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Figure comes from <a href = "https://www.cs.cmu.edu/~410-s05/lectures/L31_LockFree.pdf">Lock-Free Algorithms by DanceWithDragon and abattagl</a></p>
+
+To address the ABA problem, various techniques can be employed, such as:
+
+1. ***Double-Word Compare-and-Swap (DCAS)***: DCAS extends the CAS operation to use **two memory words for comparison**, effectively checking if both the data value and a separate "tag" value match before performing the update.
+2. ***Using Hazard Pointers:*** Hazard pointers are a technique that involves maintaining a list of "hazard pointers" to shared data locations that threads are currently working with. Before performing an operation, a thread must acquire a hazard pointer, which protects the data from being modified by other threads.
+3. The other solution is to ***put a counter for the number of pop operations***. By checking both the value and number of pop operations, it can be ensured whether or not the value is up-to-date.
+
+**Theoretically not a problem for LL/SC-based approaches.**
+
++  ‘Ideal’ semantics of Load-linked/Store-conditional don’t suffer from this problem
++ No ‘ideal’ implementation of load-linked/store-conditional exists (so all new problems instead of ABA)
+  + Spurious failures
+  + Limited or no access to other shared variables between LL/SC pairs
 
 ## Deadlock
 
