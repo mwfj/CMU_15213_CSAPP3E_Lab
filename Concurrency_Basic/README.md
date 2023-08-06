@@ -1550,6 +1550,63 @@ To address the ABA problem, various techniques can be employed, such as:
 
 ## Deadlock
 
+Deadlock, basically, is a collection of threads is blocked, waiting for a condition that will never be true.
+
+For example, deadlock occurs when a thread(say **Thread1**) is holding a lock(`L1`) and waiting for another one(`L2`); unforturnately, the thread(**Thread2**) that holds lock `L2 `is waiting for `L1 `to be released.
+
+Here is a code snippet that demonstates such a potential deadlock:
+
+```txt
+Thread 1:                      Thread 2:
+pthread_mutex_lock(L1);        pthread_mutex_lock(L2);
+pthread_mutex_lock(L2);        pthread_mutex_lock(L1);
+```
+
+Note that if this code runs, deadlock does not necessary occur; rather, it may occur, if, for example, **Thread1** grab lock `L1` and then a context switch to **Thread2**. At that point, **Thread2** grabs `L2`, and tries to acquire `L1`. Thus we have a deadlock, as each thread is waiting for the other and neither can run
+
+<p align="center"> <img src="./pic/deadlock_dependency_graph.png" alt="cow" style="zoom:100%;"/> </p>
+
+<p align="center">Deadlock Dependency Graph from <a href = "https://pages.cs.wisc.edu/~remzi/OSTEP/">
+Operating Systems: Three Easy Pieces</a>  chapter 32</p>
+
+### Why Do Deadlocks Occur?
+
+1. One reason is that in large code bases, complex dependencies arise between components.
+2. Another reason is due to the nature of **encapsulation**,
+
+### Conditions for Deadlock
+
+Four conditions need to hold for a deadlock to occur:
+
+1. **Mutual exclusion:** Thread claim exclusive contorl of resoruces that they require.
+
+   + The idea behind these lock-free (and related wait-free) approaches here is simple: **using powerful hardware instructions, you can build data structures in a manner that does not require explicit locking.**(**compare-and-swap instruction**, instead of acquiring a lock, doing the update, and then releasing it, we have instead built an approach that **repeatedly tries to update the value to the new amount and uses the compare-and-swap to do so**.)
+
+2. **Hold-and-wait:** Threads hold resource allocated to them, while waiting for additional resource.
+
+   + The hold-and-wait requirement for deadlock can be avoided by **acquiring all locks at once, atomically**.(Of course, it requires that any time any thread grabs a lock, it ﬁrst acquires the global prevention lock)
+     ```c
+     pthread_mutex_lock(prevention);  // begin acquisition
+     pthread_mutex_lock(L1); 
+     pthread_mutex_lock(L2); 
+     ...
+     pthread_mutex_unlock(prevention); // end
+     ```
+
+3. **No preemption:** Resource cannot be forcibly removed from threads that are holding them.
+
+   + Many thread libraries provide a more ﬂexible set of interfaces to help avoid this situation. 
+     Speciﬁcally, the routine `pthread_mutex_trylock()` either grabs the lock (if it is available) and returns success or returns an error code indicating the lock is held; in the latter case, you can try again later if you want to grab that lock.
+   + However, one new problem arises: ***livelock***. It is possible (though perhaps unlikely) that two threads could both be repeatedly attempting this sequence and repeatedly failing to acquire both locks.
+     There are solutions to the livelock problem, too: for example, one could **add a random delay before looping back and trying the entire thing over again**, thus decreasing the odds of repeated interference among competing threads.
+     If the code had acquired some resources alone the way, way, it must make sure to carefully release them as well. For example, if after acquiring `L1`, the code had allocated some memory, **it would have to release that memory upon failure to acquire `L2`, before jumping back to the top to try the entire sequence again**.
+
+4. **Circualr wait:** There exists a circular chain of threads such as each thread holds one or more resources that are being requested by the next thread in the chain.
+
+   + To prevent circular wait, the most straightforward way to do that is to provide a ***total ordering* on lock acquisition**. For example, if there are only two locks in the system(`L1` and `L2`), **you can prevent deadlock by always acquiring `L1`  before `L2`**
+   + Another way to prevent deadlock is to use the **partial order** between threads.
+     An excellent real example of partial lock ordering can be seen in the memory mapping code in Linux. The comment at the top of the source code reveals ten different group of lock acquisition orders, including simple ones such as `i_mutex` before `immap_rwsem` and more complex orders such as `i_mmap_rwsem` before `private_lock` before `swap_lock` before `i_pages lock`
+
 
 
 ## Reference
