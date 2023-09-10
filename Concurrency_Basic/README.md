@@ -84,8 +84,8 @@ Operating Systems: Three Easy Pieces</a>  chapter 26</p>
 
 ### Why use threads?
 
-1. **parallelism**
-2. To avoid blocking program progress due to slow I/O.
+1. **Multicore parallelism**
+2. **I/O concurrency**: To avoid blocking program progress due to slow I/O.
 
 ### Thread Execution Model
 
