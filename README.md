@@ -10,7 +10,7 @@
 
 ### **Updating...**
 
-- [x] **1. [Data Lab](http://csapp.cs.cmu.edu/3e/datalab.pdf)** : Students implement simple logical, **two's complement, and floating point functions**, but using a highly restricted subset of C. This lab helps students understand the bit-level representations of C data types and the **bit-level behavior** of the operations on data.(wait for document the report.)
+- [x] **1. [Data Lab](http://csapp.cs.cmu.edu/3e/datalab.pdf)** : Students implement simple logical, **two's complement, and floating point functions**, but using a highly restricted subset of C. This lab helps students understand the bit-level representations of C data types and the **bit-level behavior** of the operations on data.(wait for the lab report.)
 - [x] **2. [Bomb Lab](http://csapp.cs.cmu.edu/3e/bomblab.pdf)** : The lab teaches students to understand **assembly language**, and also forces them to learn how to use a debugger. It's also great fun. A legendary lab among the CMU undergrads.
 - [x] **3. [Attack Lab](http://csapp.cs.cmu.edu/3e/attacklab.pdf)** : Students are asked to modify the behavior of the targets by developing exploits based on either **code injection or return-oriented programming**. This lab teaches the students about the stack discipline and teaches them about the danger of writing code that is vulnerable to buffer overflow attacks.
 - [x] **4. [Cache Lab](http://csapp.cs.cmu.edu/3e/cachelab.pdf):** Students write a general-purpose cache simulator, and then optimize a small matrix transpose kernel to minimize the number of misses on a simulated cache. This lab uses the Valgrind tool to generate address traces. **Note: This lab must be run on a 64-bit x86-64 Linux system.**
